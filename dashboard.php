@@ -48,15 +48,15 @@ $baseURL = 'dashboard.php?module=' . $module;
       <div class="tabs tabs-boxed">
         <?php foreach ($allowed_modules as $key => $label): ?>
           <a href="dashboard.php?module=<?= $key ?>"
-            class="tab <?= $key === $module ? 'tab-active' : '' ?>">
+            class="tab h-min <?= $key === $module ? 'tab-active' : '' ?>">
             <?= htmlspecialchars($label) ?>
           </a>
         <?php endforeach; ?>
       </div>
 
       <!-- Module content -->
-      <div class="mt-4 p-4 bg-white shadow rounded">
-        <main class="flex-1 p-6">
+      <div class="mt-4 p-4 shadow rounded ">
+        <main class="flex-1 p-6 ">
           <?php
           // Make $baseURL available to modules so forms/links point back to dashboard
           // Example modules will use $baseURL for form actions and delete links.
