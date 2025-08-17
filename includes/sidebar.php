@@ -1,8 +1,8 @@
-<div class="bg-[#001f54] pt-5 pb-4 flex flex-col w-20 fixed md:relative h-full transition-all duration-300 ease-in-out shadow-xl transform -translate-x-full md:transform-none md:translate-x-0" id="sidebar">
+<div class="bg-[#001f54] pt-5 pb-4 flex flex-col fixed md:relative h-full transition-all duration-300 ease-in-out shadow-xl transform -translate-x-full md:transform-none md:translate-x-0" id="sidebar">
   <!-- Sidebar Header -->
   <div class="flex items-center justify-between flex-shrink-0 px-4 mb-6 text-center">
-    <h1 class="text-xl font-bold text-white items-center gap-2">
-      <img id="sidebar-logo" src="images/logo/logofinal.png" alt="">
+    <h1 class="text-xl font-bold text-white items-center gap-2 px-1 justify-center flex">
+      <img id="sidebar-logo" class="hidden" src="images/logo/logofinal.png" alt="">
       <img id="sonly" class="hidden w-auto h-12" src="images/logo/sonly-2.png" alt="">
 
     </h1>
@@ -241,41 +241,44 @@
   }
 
   /* Desktop styles */
-  .w-20 .sidebar-text,
-  .w-20 .lucide-chevron-down {
-    display: none;
-  }
+  @media (max-width: 1024px) {
 
-  .w-20 .flex.items-center {
-    justify-content: center;
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-  }
+    .w-20 .sidebar-text,
+    .w-20 .lucide-chevron-down {
+      display: none;
+    }
 
-  .w-20 .collapse-title {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-    justify-content: center;
-  }
+    .w-20 .flex.items-center {
+      justify-content: center;
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
 
-  .w-20 .collapse-content {
-    display: none;
-  }
+    .w-20 .collapse-title {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+      justify-content: center;
+    }
 
-  .w-20 .text-xs.uppercase {
-    display: none;
-  }
+    .w-20 .collapse-content {
+      display: none;
+    }
 
-  .w-20 .p-1.5.rounded-lg {
-    margin-right: 0;
-  }
+    .w-20 .text-xs.uppercase {
+      display: none;
+    }
 
-  #sidebar-logo {
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
+    .w-20 .p-1.5.rounded-lg {
+      margin-right: 0;
+    }
 
-  #sidebar.loaded #sidebar-logo {
-    opacity: 1;
+    #sidebar-logo {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    #sidebar.loaded #sidebar-logo {
+      opacity: 1;
+    }
   }
 </style>

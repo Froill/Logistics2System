@@ -1,15 +1,15 @@
-<header class="bg-base-100 shadow-sm z-10 border-b border-base-300 dark:border-gray-700" data-theme="light">
+<header class="bg-[#001f54] shadow-sm z-10 border-b border-base-300 dark:border-gray-700 w-full">
   <div class="px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
       <div class="flex items-center">
-        <button onclick="toggleSidebar()" class="btn btn-ghost btn-sm hover:bg-base-300  transition-all hover:scale-105">
+        <button onclick="toggleSidebar()" class="btn text-white btn-ghost btn-sm hover:bg-[#F7B32B] hover:text-[#001f54]  transition-all hover:scale-105">
           <i data-lucide="menu" class="w-5 h-5"></i>
         </button>
       </div>
       <div class="flex items-center gap-4">
         <!-- Time Display -->
         <div class="animate-fadeIn">
-          <span id="philippineTime" class="font-medium max-md:text-sm"></span>
+          <span id="philippineTime" class="font-medium text-white max-md:text-sm"></span>
         </div>
 
         <!-- Notification Dropdown -->
@@ -17,7 +17,7 @@
 
 
           <!-- Button -->
-          <button id="notification-button" tabindex="0" class="btn btn-ghost btn-circle btn-sm relative">
+          <button id="notification-button" tabindex="0" class="btn btn-ghost text-white btn-circle btn-sm relative">
             <i data-lucide="bell" class="w-5 h-5"></i>
             <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
           </button>
