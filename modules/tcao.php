@@ -57,7 +57,7 @@ $costs = fetchAll('transport_costs');
                         <label class="label">Other Expenses</label>
                         <input type="number" step="0.01" name="other_expenses" class="input input-bordered">
                     </div>
-                    <button class="btn btn-primary mt-2 w-full">Add Cost Record</button>
+                    <button class="btn btn-primary btn-outline mt-2 w-full">Add Cost Record</button>
                 </form>
 
             </div>

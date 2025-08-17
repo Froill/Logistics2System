@@ -1,0 +1,126 @@
+[data-theme="light"] {
+  color-scheme: light; /* from your config */
+
+  --b1: 98% 0.003 247.858; /* base-100 */
+  --b2: 98% 0 0; /* base-200 */
+  --b3: 98% 0.002 247.839; /* base-300 */
+  --bc: 21% 0.006 285.885; /* base-content */
+
+  --p: 0.2577 0.1035 259.71; /* primary */
+  --pc: 100% 0 0; /* primary-content */
+
+  --s: 60% 0.118 184.704; /* secondary */
+  --sc: 12% 0.042 264.695; /* secondary-content */
+
+  --a: 0.8102 0.1577 78.92; /* accent */
+  --ac: 0.3564 0.0391 248.97; /* accent-content */
+
+  --n: 0.3064 0.0875 265.72; /* neutral */
+  --nc: 98% 0.003 247.858; /* neutral-content */
+
+  --in: 74% 0.16 232.661; /* info */
+  --inc: 29% 0.066 243.157; /* info-content */
+
+  --su: 76% 0.177 163.223; /* success */
+  --suc: 37% 0.077 168.94; /* success-content */
+
+  --wa: 87% 0.169 91.605; /* warning */
+  --wac: 41% 0.112 45.904; /* warning-content */
+
+  --er: 71% 0.194 13.428; /* error */
+  --erc: 27% 0.105 12.094; /* error-content */
+
+  /* extra daisyUI variables */
+  --rounded-btn: 0.5rem; /* from --radius-selector */
+  --rounded-box: 0.5rem; /* from --radius-box */
+  --rounded-badge: 0.25rem; /* from --radius-field */
+  --border-btn: 2px; /* from --border */
+
+  /* optional animations & depth */
+  --animation-btn: 0.25s;
+  --animation-input: 0.2s;
+  --btn-focus-scale: 0.95;
+  --tab-border: 1px;
+  --tab-radius: 0.5rem;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark; /* from your config */
+
+  --b1: 13% 0.028 261.692; /* base-100 */
+  --b2: 21% 0.034 264.665; /* base-200 */
+  --b3: 27% 0.033 256.848; /* base-300 */
+  --bc: 96% 0.003 264.542; /* base-content */
+
+  --p: 42% 0.199 265.638; /* primary */
+  --pc: 97% 0.013 17.38; /* primary-content */
+
+  --s: 50% 0.118 165.612; /* secondary */
+  --sc: 98% 0.001 106.423; /* secondary-content */
+
+  --a: 0.8102 0.1577 78.92; /* accent */
+  --ac: 0.3564 0.0391 248.97; /* accent-content */
+
+  --n: 27% 0.033 256.848; /* neutral */
+  --nc: 98% 0.002 247.839; /* neutral-content */
+
+  --in: 62% 0.214 259.815; /* info */
+  --inc: 97% 0.014 254.604; /* info-content */
+
+  --su: 72% 0.219 149.579; /* success */
+  --suc: 98% 0.018 155.826; /* success-content */
+
+  --wa: 70% 0.213 47.604; /* warning */
+  --wac: 98% 0.016 73.684; /* warning-content */
+
+  --er: 63% 0.237 25.331; /* error */
+  --erc: 97% 0.013 17.38; /* error-content */
+
+  /* extra daisyUI variables */
+  --rounded-btn: 0.5rem;
+  --rounded-box: 0.5rem;
+  --rounded-badge: 0.25rem;
+  --border-btn: 2px;
+
+  /* optional animations & depth */
+  --animation-btn: 0.25s;
+  --animation-input: 0.2s;
+  --btn-focus-scale: 0.95;
+  --tab-border: 1px;
+  --tab-radius: 0.5rem;
+}
+
+@plugin "daisyui/theme" {
+  name: "dark";
+  default: false;
+  prefersdark: false;
+  color-scheme: "dark";
+  --color-base-100: 25.33% 0.016 252.42;
+  --color-base-200: 23.26% 0.014 253.1;
+  --color-base-300: 21.15% 0.012 254.09;
+  --color-base-content: 97.807% 0.029 256.847;
+  --color-primary: #1a2c5b;
+  --color-primary-content: 96% 0.018 272.314;
+  --color-secondary: 65% 0.241 354.308;
+  --color-secondary-content: 94% 0.028 342.258;
+  --color-accent: 77% 0.152 181.912;
+  --color-accent-content: 38% 0.063 188.416;
+  --color-neutral: 14% 0.005 285.823;
+  --color-neutral-content: 92% 0.004 286.32;
+  --color-info: 74% 0.16 232.661;
+  --color-info-content: 29% 0.066 243.157;
+  --color-success: 76% 0.177 163.223;
+  --color-success-content: 37% 0.077 168.94;
+  --color-warning: 82% 0.189 84.429;
+  --color-warning-content: 41% 0.112 45.904;
+  --color-error: 71% 0.194 13.428;
+  --color-error-content: 27% 0.105 12.094;
+  --radius-selector: 0.5rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}

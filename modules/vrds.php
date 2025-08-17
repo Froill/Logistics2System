@@ -62,7 +62,7 @@ $vehicles = fetchAll('fleet_vehicles');
                         <option>Completed</option>
                     </select>
                 </div>
-                <button class="btn btn-primary mt-2 w-full">Add Route</button>
+                <button class="btn btn-primary btn-outline mt-2 w-full">Add Route</button>
             </form>
 
         </div>
