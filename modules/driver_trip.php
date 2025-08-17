@@ -50,7 +50,7 @@ $trips = fetchAll('driver_trips');
                     <label class="label">Remarks</label>
                     <textarea name="remarks" class="textarea textarea-bordered"></textarea>
                 </div>
-                <button class="btn btn-primary mt-2 w-full">Add Trip Record</button>
+                <button class="btn btn-primary btn-outline mt-2 w-full">Add Trip Record</button>
             </form>
 
         </div>

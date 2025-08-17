@@ -35,6 +35,7 @@ $baseURL = 'dashboard.php?module=' . $module;
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Logistics 2 Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.0.0/dist/full.css" rel="stylesheet" type="text/css" />
+  <link rel="stylesheet" href="./css/style.css">
 </head>
 
 <body class="min-h-screen">
@@ -55,8 +56,8 @@ $baseURL = 'dashboard.php?module=' . $module;
       </div>
 
       <!-- Module content -->
-      <div class="mt-4 p-4 shadow rounded ">
-        <main class="flex-1 p-6 ">
+      <div class=" card mt-4 p-4 shadow rounded">
+        <main class="card-body flex-1 p-6">
           <?php
           // Make $baseURL available to modules so forms/links point back to dashboard
           // Example modules will use $baseURL for form actions and delete links.
