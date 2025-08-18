@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logistics 2 - Login</title>
+    <title>Login - Logistics 2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" href="./css/style.css">
@@ -24,14 +24,13 @@
         </div>
         <div class="card-body flex flex-col gap-3 justify-center">
 
-
             <?php if (isset($_SESSION['error'])): ?>
-                <div class="alert alert-error shadow-lg">
+                <div class="alert alert-error flex flex-row -center shadow-lg">
+                    <i data-lucide="octagon-alert"></i>
                     <span><?= $_SESSION['error'];
                             unset($_SESSION['error']); ?></span>
                 </div>
             <?php endif; ?>
-
             <form action="validate_login.php" method="POST">
                 <div class="form-control w-full max-w-xs mb-3">
                     <label class="label flex items-center justify-start gap-2">
