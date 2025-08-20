@@ -7,8 +7,9 @@ if (!isset($_SESSION['user_id'])) {
 
 require __DIR__ . '/includes/functions.php';
 
-$role = $_SESSION['role'];
+$id = $_SESSION['user_id'];
 $username = $_SESSION['username'];
+$role = $_SESSION['role'];
 
 // allowed modules (matching filenames in /modules)
 $allowed_modules = [
