@@ -1,14 +1,6 @@
 <?php
-$host = "localhost:3307";
-$dbname = "logistics2_db";
-$username = "root";
-$password = "";
 
-// Create connection
-$conn = new mysqli($host, $username, $password, $dbname);
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-?>
+// Gmail SMTP Configurations
+define('SMTP_EMAIL', 'sisfinance3220@gmail.com');
+define('SMTP_NAME', 'Soliera Logistic 2');
+define('SMTP_PASSWORD', 'btwh nbqe uwss ipsq'); // Gmail app password
