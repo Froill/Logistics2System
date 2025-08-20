@@ -1,4 +1,19 @@
-<?php session_start(); ?>
+<?php
+session_start();
+
+// Redirect to home if already logged in
+if (isset($_SESSION['user_id'])) {
+    header("Location: dashboard.php");
+    exit();
+}
+
+// Retain input and show error message
+$username = $_SESSION['username'] ?? ''; // Retain username from session if set
+$error = $_SESSION['login_error'] ?? ''; // Show any login errors
+unset($_SESSION['login_error']); // Clear error after display
+unset($_SESSION['username']); // Clear username after using it
+?>
+
 <!DOCTYPE html>
 <html data-theme="light" lang="en">
 
@@ -24,14 +39,13 @@
         </div>
         <div class="card-body flex flex-col gap-3 justify-center">
 
-            <?php if (isset($_SESSION['error'])): ?>
+            <?php if (!empty($error)):  ?>
                 <div class="alert alert-error flex flex-row -center shadow-lg">
                     <i data-lucide="octagon-alert"></i>
-                    <span><?= $_SESSION['error'];
-                            unset($_SESSION['error']); ?></span>
+                    <span><?php echo htmlspecialchars($error); ?></span>
                 </div>
             <?php endif; ?>
-            <form action="validate_login.php" method="POST">
+            <form action="includes/validate_login.php" method="POST">
                 <div class="form-control w-full max-w-xs mb-3">
                     <label class="label flex items-center justify-start gap-2">
                         <i data-lucide="user" class="w-5 h-5 "></i>
@@ -41,6 +55,7 @@
                         type="text"
                         name="username"
                         placeholder="Enter username"
+                        value="<?php echo htmlspecialchars($username); ?>"
                         class="input input-bordered w-full"
                         required />
                 </div>
