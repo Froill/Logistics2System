@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Aug 13, 2025 at 03:46 PM
+-- Generation Time: Aug 20, 2025 at 02:49 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -20,8 +20,6 @@ SET time_zone = "+00:00";
 --
 -- Database: `logistics2_db`
 --
-CREATE DATABASE IF NOT EXISTS `logistics2_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE `logistics2_db`;
 
 -- --------------------------------------------------------
 
@@ -69,8 +67,7 @@ INSERT INTO `fleet_vehicles` (`id`, `vehicle_name`, `plate_number`, `status`) VA
 (1, 'Toyota Hilux', 'ABC-123', 'Active'),
 (2, 'Mitsubishi L300', 'XYZ-456', 'Inactive'),
 (3, 'Isuzu D-Max', 'LMN-789', 'Under Maintenance'),
-(4, 'Hyundai H100', 'JKL-321', 'Active'),
-(5, 'Ford Ranger', 'PQR-654', 'Under Maintenance');
+(4, 'Hyundai H100', 'JKL-321', 'Active');
 
 -- --------------------------------------------------------
 
@@ -108,6 +105,7 @@ CREATE TABLE `users` (
   `id` int(11) NOT NULL,
   `username` varchar(50) NOT NULL,
   `password` varchar(255) NOT NULL,
+  `email` varchar(100) DEFAULT NULL,
   `role` enum('admin','user') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -115,9 +113,9 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `username`, `password`, `role`) VALUES
-(1, 'admin', 'password', 'admin'),
-(4, 'admin1', '$2y$10$/c90/0KTGJmypaf1w42wX.j7KXIhdLdWV9jgbnrbJJOX6FGpm3F2K', 'admin');
+INSERT INTO `users` (`id`, `username`, `password`, `email`, `role`) VALUES
+(1, 'user1', '$2y$10$/c90/0KTGJmypaf1w42wX.j7KXIhdLdWV9jgbnrbJJOX6FGpm3F2K', 'youremail@gmail.com', 'user'),
+(4, 'admin1', '$2y$10$/c90/0KTGJmypaf1w42wX.j7KXIhdLdWV9jgbnrbJJOX6FGpm3F2K', 'danielzabat01@gmail.com', 'admin');
 
 -- --------------------------------------------------------
 
@@ -141,8 +139,7 @@ INSERT INTO `vehicle_routes` (`id`, `route_name`, `vehicle_id`, `dispatch_date`,
 (2, 'Route A', 1, '2025-08-06', 'Planned'),
 (3, 'Route B', 2, '2025-08-06', 'Completed'),
 (4, 'Route C', 3, '2025-08-06', 'Completed'),
-(5, 'Route D', 4, '2025-08-06', 'Dispatched'),
-(6, 'Route E', 5, '2025-08-06', 'Planned');
+(5, 'Route D', 4, '2025-08-06', 'Dispatched');
 
 --
 -- Indexes for dumped tables
@@ -171,7 +168,8 @@ ALTER TABLE `transport_costs`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `username` (`username`);
+  ADD UNIQUE KEY `username` (`username`),
+  ADD UNIQUE KEY `email` (`email`);
 
 --
 -- Indexes for table `vehicle_routes`
@@ -194,7 +192,7 @@ ALTER TABLE `driver_trips`
 -- AUTO_INCREMENT for table `fleet_vehicles`
 --
 ALTER TABLE `fleet_vehicles`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `transport_costs`
@@ -206,7 +204,7 @@ ALTER TABLE `transport_costs`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `vehicle_routes`
