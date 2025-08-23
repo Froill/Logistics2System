@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class=" flex items-center justify-center min-h-screen bg-gradient-to-r from-slate-700 to-slate-900">
 
     <div class="card w-96 shadow-xl bg-white">
-        <div class="bg-[#001f54] text-white py-8 w-full rounded-t-md border-b-2 border-solid border-yellow-700 flex flex-col items-center">
+        <div class="bg-[#001f54] text-white py-8 px-6 text-center w-full rounded-t-md border-b-2 border-solid border-yellow-700 flex flex-col items-center">
             <h1 class="card-title justify-center mb-1">Verify OTP</h1>
             <p class="mb-4">Please enter the 6-digit code sent to your email</p>
             <p class="text-sm text-gray-300 flex items-center gap-2">
