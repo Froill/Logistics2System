@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Aug 23, 2025 at 09:24 AM
+-- Generation Time: Aug 23, 2025 at 10:10 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -149,7 +149,7 @@ CREATE TABLE `suppliers` (
 
 CREATE TABLE `transport_costs` (
   `id` int(11) NOT NULL,
-  `trip_id` varchar(50) NOT NULL,
+  `trip_id` int(11) DEFAULT NULL,
   `fuel_cost` decimal(10,2) DEFAULT NULL,
   `toll_fees` decimal(10,2) DEFAULT NULL,
   `other_expenses` decimal(10,2) DEFAULT NULL,
@@ -161,11 +161,10 @@ CREATE TABLE `transport_costs` (
 --
 
 INSERT INTO `transport_costs` (`id`, `trip_id`, `fuel_cost`, `toll_fees`, `other_expenses`, `total_cost`) VALUES
-(1, '1', 3500.00, 500.00, 200.00, 4200.00),
-(2, '2', 3000.00, 450.00, 150.00, 3600.00),
-(3, '3', 4000.00, 550.00, 300.00, 4850.00),
-(4, '4', 2500.00, 300.00, 100.00, 2900.00),
-(5, '5', 3700.00, 600.00, 250.00, 4550.00);
+(2, 2, 3000.00, 450.00, 150.00, 3600.00),
+(3, 3, 4000.00, 550.00, 300.00, 4850.00),
+(4, 4, 2500.00, 300.00, 100.00, 2900.00),
+(5, 5, 3700.00, 600.00, 250.00, 4550.00);
 
 -- --------------------------------------------------------
 
@@ -198,6 +197,9 @@ INSERT INTO `users` (`id`, `username`, `password`, `role`, `contact_info`, `emai
 
 CREATE TABLE `vehicle_routes` (
   `id` int(11) NOT NULL,
+  `order_id` int(11) DEFAULT NULL,
+  `supplier_id` int(11) DEFAULT NULL,
+  `assigned_by` int(11) DEFAULT NULL,
   `route_name` varchar(100) NOT NULL,
   `vehicle_id` int(11) DEFAULT NULL,
   `dispatch_date` date DEFAULT NULL,
@@ -210,12 +212,12 @@ CREATE TABLE `vehicle_routes` (
 -- Dumping data for table `vehicle_routes`
 --
 
-INSERT INTO `vehicle_routes` (`id`, `route_name`, `vehicle_id`, `dispatch_date`, `estimated_arrival`, `actual_arrival`, `status`) VALUES
-(2, 'Route A', 1, '2025-08-06', NULL, NULL, 'Planned'),
-(3, 'Route B', 2, '2025-08-06', NULL, NULL, 'Completed'),
-(4, 'Route C', 3, '2025-08-06', NULL, NULL, 'Completed'),
-(5, 'Route D', 4, '2025-08-06', NULL, NULL, 'Dispatched'),
-(6, 'Route E', 5, '2025-08-06', NULL, NULL, 'Planned');
+INSERT INTO `vehicle_routes` (`id`, `order_id`, `supplier_id`, `assigned_by`, `route_name`, `vehicle_id`, `dispatch_date`, `estimated_arrival`, `actual_arrival`, `status`) VALUES
+(2, NULL, NULL, NULL, 'Route A', 1, '2025-08-06', NULL, NULL, 'Planned'),
+(3, NULL, NULL, NULL, 'Route B', 2, '2025-08-06', NULL, NULL, 'Completed'),
+(4, NULL, NULL, NULL, 'Route C', 3, '2025-08-06', NULL, NULL, 'Completed'),
+(5, NULL, NULL, NULL, 'Route D', 4, '2025-08-06', NULL, NULL, 'Dispatched'),
+(6, NULL, NULL, NULL, 'Route E', 5, '2025-08-06', NULL, NULL, 'Planned');
 
 --
 -- Indexes for dumped tables
@@ -270,7 +272,8 @@ ALTER TABLE `suppliers`
 -- Indexes for table `transport_costs`
 --
 ALTER TABLE `transport_costs`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_transport_route` (`trip_id`);
 
 --
 -- Indexes for table `users`
@@ -284,7 +287,10 @@ ALTER TABLE `users`
 --
 ALTER TABLE `vehicle_routes`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `vehicle_id` (`vehicle_id`);
+  ADD KEY `vehicle_id` (`vehicle_id`),
+  ADD KEY `fk_vehicle_routes_order` (`order_id`),
+  ADD KEY `fk_vehicle_routes_supplier` (`supplier_id`),
+  ADD KEY `fk_vehicle_routes_user` (`assigned_by`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -368,9 +374,18 @@ ALTER TABLE `order_items`
   ADD CONSTRAINT `order_items_ibfk_2` FOREIGN KEY (`item_id`) REFERENCES `items` (`id`);
 
 --
+-- Constraints for table `transport_costs`
+--
+ALTER TABLE `transport_costs`
+  ADD CONSTRAINT `fk_transport_route` FOREIGN KEY (`trip_id`) REFERENCES `vehicle_routes` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
 -- Constraints for table `vehicle_routes`
 --
 ALTER TABLE `vehicle_routes`
+  ADD CONSTRAINT `fk_vehicle_routes_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_vehicle_routes_supplier` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_vehicle_routes_user` FOREIGN KEY (`assigned_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `vehicle_routes_ibfk_1` FOREIGN KEY (`vehicle_id`) REFERENCES `fleet_vehicles` (`id`) ON DELETE SET NULL;
 COMMIT;
 
