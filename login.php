@@ -19,7 +19,7 @@ unset($_SESSION['username']); // Clear username after using it
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - Logistics 2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
@@ -30,10 +30,10 @@ unset($_SESSION['username']); // Clear username after using it
 
 <body class=" flex items-center justify-center min-h-screen bg-gradient-to-r from-slate-700 to-slate-900">
 
-    <div class="card w-96 shadow-xl bg-white ">
+    <div class="card w-80 md:w-96 shadow-xl bg-white ">
         <div class="bg-[#001f54] text-white py-8 w-full rounded-t-md border-b-2 border-solid border-yellow-700">
             <img src="images/logo/sonly.png"
-                class="w-auto h-24 rounded-full border-solid border-yellow-600 border-4 mx-auto mb-4 bg-[#001f54]"
+                class="size-20 rounded-full border-solid border-yellow-600 border-4 mx-auto mb-2 bg-[#001f54]"
                 alt="Logo">
             <h2 class="card-title justify-center">Login to your account</h2>
         </div>
@@ -74,17 +74,24 @@ unset($_SESSION['username']); // Clear username after using it
                         required />
                 </div>
 
+                <!-- reCAPTCHA v2 widget -->
+                <div class="flex justify-center w-full">
+                    <div class="g-recaptcha" data-sitekey="6Lf6lrArAAAAAHAIJbwW50D8q4on5jwB-2MRw_Ho"></div>
+                </div>
+                <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
                 <div class="form-control mt-4">
                     <button type="submit" class="btn btn-primary"><i data-lucide="log-in" class="w-5 h-5"></i>Sign-in</button>
                 </div>
             </form>
+
         </div>
     </div>
     <script src=" https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script>
         lucide.createIcons();
     </script>
+
 </body>
 
 </html>
