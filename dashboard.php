@@ -42,9 +42,8 @@ $baseURL = 'dashboard.php?module=' . $module;
 <body class="min-h-screen">
   <?php include 'includes/navbar.php'; ?>
 
-  <div class="flex">
+  <div class="flex h-full">
     <?php include 'includes/sidebar.php'; ?>
-
     <div class="p-4">
       <!-- Server-side Tabs (links cause server render, keeps everything simple) -->
       <div class="tabs tabs-boxed">
