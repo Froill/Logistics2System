@@ -44,6 +44,19 @@ if (empty($username) || empty($password)) {
     exit();
 }
 
+// reCAPTCHA validation
+$recaptchaResponse = $_POST['g-recaptcha-response'] ?? '';
+$secretKey = "6Lf6lrArAAAAACTLFi57Z6MeWOYCkAQ2cV9kkeyu";
+
+$response = file_get_contents("https://www.google.com/recaptcha/api/siteverify?secret={$secretKey}&response={$recaptchaResponse}");
+$responseData = json_decode($response);
+
+if (!$responseData->success) {
+    $_SESSION['login_error'] = "reCAPTCHA failed. Please try again.";
+    header("Location: ../login.php");
+    exit();
+}
+
 try {
     // Prepare statement with MySQLi
     $stmt = $conn->prepare("SELECT id, username, password, role, email FROM users WHERE username = ? LIMIT 1");
