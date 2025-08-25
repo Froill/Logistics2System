@@ -65,3 +65,44 @@ function sendOTPEmail(string $recipientEmail, string $otp): bool
         return false;
     }
 }
+
+
+/**
+ *
+ * Send email
+ * 
+ * @param string $to Recipient email
+ * @param string $subject Email subject
+ * @param string $body HTML content of the email
+ * @return bool True if sent successfully, false otherwise
+ */
+function sendEmail(string $to, string $subject, string $body): bool
+{
+    $mail = new PHPMailer(true);
+
+    try {
+        // Server settings
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = SMTP_EMAIL;
+        $mail->Password   = SMTP_PASSWORD;
+        $mail->SMTPSecure = 'tls';
+        $mail->Port       = 587;
+
+        // Recipients
+        $mail->setFrom(SMTP_EMAIL, SMTP_NAME);
+        $mail->addAddress($to);
+
+        // Content
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+        $mail->Body    = $body;
+
+        $mail->send();
+        return true;
+    } catch (Exception $e) {
+        error_log("Mailer error: " . $mail->ErrorInfo);
+        return false;
+    }
+}

@@ -58,6 +58,9 @@ if (!$responseData->success) {
 }
 
 try {
+    // Lazy cleanup of expired trusted devices
+    $conn->query("DELETE FROM trusted_devices WHERE expires_at < NOW()");
+
     // Prepare statement with MySQLi
     $stmt = $conn->prepare("SELECT id, username, password, role, email FROM users WHERE username = ? LIMIT 1");
     $stmt->bind_param("s", $username);
