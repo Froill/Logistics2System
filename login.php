@@ -9,10 +9,10 @@ if (isset($_SESSION['user_id'])) {
 
 // Retain input and show error message
 $username = $_SESSION['username'] ?? ''; // Retain username from session if set
-$error = $_SESSION['login_error'] ?? ''; // Show any login errors
-$reset_success = $_SESSION['reset_success'] ?? ''; // Show reset success message    
-unset($_SESSION['login_error']); // Clear error after display
-unset($_SESSION['reset_success']); // Clear reset success after display
+$error = $_SESSION['error'] ?? ''; // Show any login errors
+$success = $_SESSION['success'] ?? ''; // Show reset success message    
+unset($_SESSION['error']); // Clear error after display
+unset($_SESSION['success']); // Clear reset success after display
 unset($_SESSION['username']); // Clear username after using it
 ?>
 
@@ -45,13 +45,15 @@ unset($_SESSION['username']); // Clear username after using it
                     <span><?php echo htmlspecialchars($error); ?></span>
                 </div>
             <?php endif; ?>
-            <?php if (!empty($reset_success)):  ?>
+
+            <?php if (!empty($success)):  ?>
                 <div class="alert alert-success alert-soft flex flex-row gap-2 shadow-lg">
                     <i data-lucide="shield-check"></i>
-                    <span><?php echo htmlspecialchars($reset_success); ?></span>
+                    <span><?php echo htmlspecialchars($success); ?></span>
                 </div>
             <?php endif; ?>
-            <form action="includes/validate_login.php" method="POST">
+
+            <form action="includes/validate_login.php" class="form flex flex-col justify-center" method="POST">
                 <div class="form-control w-full max-w-xs mb-3">
                     <label class="label flex items-center justify-start gap-2">
                         <i data-lucide="user" class="w-5 h-5 "></i>
@@ -86,8 +88,9 @@ unset($_SESSION['username']); // Clear username after using it
                 </div>
                 <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
-                <div class="form-control mt-4">
-                    <button type="submit" class="btn btn-primary"><i data-lucide="log-in" class="w-5 h-5"></i>Sign-in</button>
+                <div class="form-control  flex flex-col items-center mt-4">
+                    <button type="submit" class="btn btn-primary submit-btn w-full"><i data-lucide="log-in" class="w-5 h-5"></i>Sign-in</button>
+                    <span class="loading loading-bars loading-md text-primary hidden"></span>
                 </div>
                 <div class="mt-3 text-center">
                     <label onclick="reset_password.showModal()" class="text-blue-700 hover:underline cursor-pointer text-sm">Forgot password?</label>
@@ -103,7 +106,7 @@ unset($_SESSION['username']); // Clear username after using it
 
             <h3 class="text-lg font-bold mb-4 text-center">Reset Your Password</h3>
 
-            <form method="POST" action="includes/process_forgot.php" id="forgotForm" class="flex flex-col items-center gap-3">
+            <form method="POST" action="includes/process_forgot.php" class="form flex flex-col items-center gap-3">
                 <div class="form-control w-full">
                     <label class="label flex items-center justify-start gap-2">
                         <i data-lucide="mail"></i>
@@ -112,8 +115,9 @@ unset($_SESSION['username']); // Clear username after using it
                     <input type="email" name="email" placeholder="Enter your email" class="input input-bordered w-full" required />
                 </div>
 
-                <div class="flex justify-center w-full">
-                    <button type="submit" id="resetBtn" class="btn btn-primary btn-outline  mt-4"> <i data-lucide="refresh-ccw" class="w-5 h-5"></i>Send Reset Link</button>
+                <div class="flex justify-center w-full mt-4">
+                    <button type="submit" class="btn btn-primary btn-outline submit-btn"> <i data-lucide="refresh-ccw" class="w-5 h-5"></i>Send Reset Link</button>
+                    <span class="loading loading-bars loading-md text-primary hidden"></span>
                 </div>
             </form>
         </div>
@@ -121,17 +125,8 @@ unset($_SESSION['username']); // Clear username after using it
 
 
 
-    <script src=" https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <script>
-        lucide.createIcons();
-
-        const forgotForm = document.getElementById('forgotForm');
-        forgotForm.addEventListener('submit', function(event) {
-            const resetBtn = document.getElementById('resetBtn');
-            const loading = ['loading', 'loading-spinner']
-            resetBtn.classList.add(...loading)
-        });
-    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/login.js"></script>
 
 </body>
 

@@ -64,10 +64,10 @@ unset($_SESSION['otp_error']);
                 </div>
             </div>
         </div>
-        <script src=" https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-        <script>
-            lucide.createIcons();
-        </script>
+
+        <script src="https://unpkg.com/lucide@latest"></script>
+        <script src="js/login.js"></script>
+
 </body>
 
 </html>

@@ -38,7 +38,7 @@ $username = sanitize($_POST['username'] ?? '');
 $password = $_POST['password'] ?? '';
 
 if (empty($username) || empty($password)) {
-    $_SESSION['login_error'] = "Both fields are required.";
+    $_SESSION['error'] = "Both fields are required.";
     $_SESSION['username'] = $username;
     header("Location: ../login.php");
     exit();
@@ -52,7 +52,7 @@ $response = file_get_contents("https://www.google.com/recaptcha/api/siteverify?s
 $responseData = json_decode($response);
 
 if (!$responseData->success) {
-    $_SESSION['login_error'] = "reCAPTCHA failed. Please try again.";
+    $_SESSION['error'] = "reCAPTCHA failed. Please try again.";
     header("Location: ../login.php");
     exit();
 }
@@ -119,19 +119,19 @@ try {
             header("Location: ../verify-otp.php");
             exit();
         } else {
-            $_SESSION['login_error'] = "Failed to send OTP email. Try again.";
+            $_SESSION['error'] = "Failed to send OTP email. Try again.";
             header("Location: ../login.php");
             exit();
         }
     } else {
-        $_SESSION['login_error'] = "Invalid username or password.";
+        $_SESSION['error'] = "Invalid username or password.";
         $_SESSION['username'] = $username;
         header("Location: ../login.php");
         exit();
     }
 } catch (Exception $e) {
     error_log("Login DB error: " . $e->getMessage());
-    $_SESSION['login_error'] = "An unexpected error occurred. Please try again later.";
+    $_SESSION['error'] = "An unexpected error occurred. Please try again later.";
     header("Location: ../login.php");
     exit();
 }

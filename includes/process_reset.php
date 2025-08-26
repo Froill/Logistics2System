@@ -41,11 +41,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bind_param("i", $reset['id']);
         $stmt->execute();
 
-        $_SESSION['reset_success'] = "Password reset successful. Please login.";
+        $_SESSION['success'] = "Password reset successful. Please login.";
         header("Location: ../login.php");
         exit();
     } else {
-        $_SESSION['reset_error'] = "Invalid or expired reset link.";
+        $_SESSION['error'] = "Invalid or expired reset link.";
         header("Location: ../reset-password.php?token=" . urlencode($token));
         exit();
     }

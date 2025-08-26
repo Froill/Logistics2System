@@ -21,8 +21,47 @@ unset($_SESSION['reset_error']);
 
     <div class="card w-96 shadow-xl bg-white">
         <div class="bg-[#001f54] text-white py-6 px-6 text-center w-full rounded-t-md border-b-2 border-solid border-yellow-700">
-            <h1 class="card-title justify-center mb-2">Reset Password</h1>
-            <p class="text-sm text-gray-300">Enter a new password for your account</p>
+            <h1 class="card-title justify-center mb-2 text-lg text-gray-200">
+                <i data-lucide="key" class="size-6"></i>
+                Create a strong new password
+            </h1>
+            <ul class="list-disc text-sm text-gray-200 mt-3 space-y-1">
+                <li id="tip-length" class="flex items-center gap-2">
+                    <span class="inline-flex w-4 h-4 items-center justify-center">
+                        <i data-lucide="circle-x" class="icon-x w-4 h-4 text-red-300 hidden"></i>
+                        <i data-lucide="circle-check" class="icon-check w-4 h-4 text-green-400 hidden"></i>
+                    </span>
+                    <span>At least 8 characters long</span>
+                </li>
+                <li id="tip-uppercase" class="flex items-center gap-2">
+                    <span class="inline-flex w-4 h-4 items-center justify-center">
+                        <i data-lucide="circle-x" class="icon-x w-4 h-4 text-red-300 hidden"></i>
+                        <i data-lucide="circle-check" class="icon-check w-4 h-4 text-green-400 hidden"></i>
+                    </span>
+                    <span>At least one uppercase letter</span>
+                </li>
+                <li id="tip-lowercase" class="flex items-center gap-2">
+                    <span class="inline-flex w-4 h-4 items-center justify-center">
+                        <i data-lucide="circle-x" class="icon-x w-4 h-4 text-red-300 hidden"></i>
+                        <i data-lucide="circle-check" class="icon-check w-4 h-4 text-green-400 hidden"></i>
+                    </span>
+                    <span>At least one lowercase letter</span>
+                </li>
+                <li id="tip-number" class="flex items-center gap-2">
+                    <span class="inline-flex w-4 h-4 items-center justify-center">
+                        <i data-lucide="circle-x" class="icon-x w-4 h-4 text-red-300 hidden"></i>
+                        <i data-lucide="circle-check" class="icon-check w-4 h-4 text-green-400 hidden"></i>
+                    </span>
+                    <span>At least one number</span>
+                </li>
+                <li id="tip-symbol" class="flex items-center gap-2">
+                    <span class="inline-flex w-4 h-4 items-center justify-center">
+                        <i data-lucide="circle-x" class="icon-x w-4 h-4 text-red-300 hidden"></i>
+                        <i data-lucide="circle-check" class="icon-check w-4 h-4 text-green-400 hidden"></i>
+                    </span>
+                    <span>At least one special character (!@#$...)</span>
+                </li>
+            </ul>
         </div>
 
         <div class="card-body flex flex-col gap-2 justify-center">
@@ -30,16 +69,24 @@ unset($_SESSION['reset_error']);
                 <p class="text-center mb-3 text-red-600"><?php echo htmlspecialchars($error); ?></p>
             <?php endif; ?>
 
+
             <form method="POST" action="includes/process_reset.php?token=<?php echo urlencode($token); ?>">
                 <div class="form-control">
-                    <label class="label">
+                    <label class="label flex items-center justify-start gap-2">
+                        <i data-lucide="lock-keyhole" class="w-5 h-5 "></i>
                         <span class="label-text">New Password</span>
                     </label>
-                    <input type="password" class="input input-bordered w-full" name="password" required />
+                    <input type="password" class="input input-bordered w-full" id="password" name="password" required />
+                    <div class="flex flex-col items-center justify-start gap-2 ">
+                        <progress class="progress w-full mt-3" id="strengthBar" value="0" max="100"></progress>
+                        <p id="strengthText" class="text-center font-medium">Enter a password</p>
+                    </div>
+
                 </div>
 
                 <div class="form-control mt-3">
-                    <label class="label">
+                    <label class="label flex items-center justify-start gap-2">
+                        <i data-lucide="shield-check" class="w-5 h-5 "></i>
                         <span class="label-text">Confirm Password</span>
                     </label>
                     <input type="password" class="input input-bordered w-full" name="confirm" required />
@@ -47,17 +94,19 @@ unset($_SESSION['reset_error']);
 
                 <div class="form-control mt-6">
                     <button type="submit" class="btn btn-primary w-full">
-                        <i data-lucide="lock-reset" class="w-5 h-5"></i>
+                        <i data-lucide="rotate-ccw-key" class="w-5 h-5"></i>
                         Reset Password
                     </button>
                 </div>
             </form>
         </div>
     </div>
-
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/login.js"></script>
     <script>
-        lucide.createIcons();
+        document.addEventListener("DOMContentLoaded", () => {
+
+        });
     </script>
 </body>
 
