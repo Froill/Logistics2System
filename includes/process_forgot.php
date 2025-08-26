@@ -43,12 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         sendEmail($email, $subject, $body);
 
         // after sending email or showing error
-        $_SESSION['reset_success'] = "We sent you a password reset link!";
+        $_SESSION['success'] = "We sent you a password reset link!";
         header("Location: ../login.php");
         exit();
     } else {
         // after sending email or showing error
-        $_SESSION['reset_success'] = "No account found with that email.";
+        $_SESSION['error'] = "No account found with that email.";
         header("Location: ../login.php");
         exit();
     }
