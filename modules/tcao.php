@@ -1,37 +1,40 @@
 <?php
-//TRANSPORT COST ANALYSIS AND OPTIMIZATION
+// TRANSPORT COST ANALYSIS AND OPTIMIZATION
 require_once __DIR__ . '/../includes/functions.php';
 
-if (isset($_GET['delete'])) {
-    deleteData('transport_costs', $_GET['delete']);
-    header("Location: {$baseURL}");
-    exit;
+function tcao_logic($baseURL)
+{
+    if (isset($_GET['delete'])) {
+        deleteData('transport_costs', $_GET['delete']);
+        header("Location: {$baseURL}");
+        exit;
+    }
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['trip_id'])) {
+        $fuel  = floatval($_POST['fuel_cost'] ?: 0);
+        $toll  = floatval($_POST['toll_fees'] ?: 0);
+        $other = floatval($_POST['other_expenses'] ?: 0);
+        $total = $fuel + $toll + $other;
+
+        insertData('transport_costs', [
+            'trip_id'        => $_POST['trip_id'],
+            'fuel_cost'      => $fuel,
+            'toll_fees'      => $toll,
+            'other_expenses' => $other,
+            'total_cost'     => $total
+        ]);
+        header("Location: {$baseURL}");
+        exit;
+    }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['trip_id'])) {
-    $fuel = floatval($_POST['fuel_cost'] ?: 0);
-    $toll = floatval($_POST['toll_fees'] ?: 0);
-    $other = floatval($_POST['other_expenses'] ?: 0);
-    $total = $fuel + $toll + $other;
-
-    insertData('transport_costs', [
-        'trip_id' => $_POST['trip_id'],
-        'fuel_cost' => $fuel,
-        'toll_fees' => $toll,
-        'other_expenses' => $other,
-        'total_cost' => $total
-    ]);
-    header("Location: {$baseURL}");
-    exit;
-}
-
-$costs = fetchAll('transport_costs');
+function tcao_view($baseURL)
+{
+    $costs = fetchAll('transport_costs');
 ?>
-
-<div>
-    <h2 class="text-2xl font-bold mb-4">Transport Cost Analysis & Optimization</h2>
-
     <div>
+        <h2 class="text-2xl font-bold mb-4">Transport Cost Analysis & Optimization</h2>
+
         <button class="btn btn-primary mb-3" onclick="tcao_modal.showModal()">Add Cost Record</button>
 
         <dialog id="tcao_modal" class="modal">
@@ -66,7 +69,6 @@ $costs = fetchAll('transport_costs');
             <form method="dialog" class="modal-backdrop">
                 <button>close</button>
             </form>
-
         </dialog>
 
         <div class="overflow-x-auto">
@@ -100,3 +102,5 @@ $costs = fetchAll('transport_costs');
             </table>
         </div>
     </div>
+<?php
+}
