@@ -39,11 +39,11 @@ $baseURL = 'dashboard.php?module=' . $module;
   <link rel="stylesheet" href="./css/style.css">
 </head>
 
-<body class="min-h-screen">
-  <?php include 'includes/navbar.php'; ?>
+<body class="min-h-screen flex flex-row">
+  <?php include 'includes/sidebar.php'; ?>
 
-  <div class="flex">
-    <?php include 'includes/sidebar.php'; ?>
+  <div class="flex flex-col flex-grow">
+    <?php include 'includes/navbar.php'; ?>
 
     <div class="p-4">
       <!-- Server-side Tabs (links cause server render, keeps everything simple) -->

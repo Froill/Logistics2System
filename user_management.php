@@ -2,11 +2,11 @@
 session_start();
 require_once 'includes/db.php'; // provides $conn
 
-// // Access control: only admins
-// if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-//     header('Location: dashboard.php');
-//     exit();
-// }
+// Access control: only admins
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+    header('Location: dashboard.php');
+    exit();
+}
 
 // Flash messages
 $success = $_SESSION['um_success'] ?? '';
