@@ -1,4 +1,4 @@
-<div class="bg-[#001f54] pt-5 pb-4 flex flex-col fixed md:relative h-screen transition-all duration-300 ease-in-out 
+<div class="bg-[#001f54] pt-5 pb-4 flex flex-col fixed md:relative transition-all duration-300 ease-in-out 
 shadow-xl transform -translate-x-full md:transform-none md:translate-x-0" id="sidebar">
   <!-- Sidebar Header -->
   <div class="flex items-center justify-between flex-shrink-0 px-4 mb-6 text-center">
