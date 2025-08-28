@@ -39,7 +39,7 @@
             <!-- Notification Items Container - Scrollable -->
             <div class="max-h-96 overflow-y-auto">
               <!-- Notification Items -->
-              <li class="px-4 py-3 hover:scale-105 transition-all">
+              <!-- <li class="px-4 py-3 hover:scale-105 transition-all">
                 <a class="bg-blue-700/50 flex items-start gap-3">
                   <div class="p-2 rounded-full bg-blue-600/30 text-blue-300">
                     <i data-lucide="calendar-check" class="w-5 h-5 text-white"></i>
@@ -139,7 +139,8 @@
                     </p>
                   </div>
                 </a>
-              </li>
+              </li> 
+              -->
             </div>
 
             <!-- Footer -->
@@ -178,19 +179,19 @@
 
             <!-- Menu Items -->
             <li>
-              <a class="flex items-center gap-2 px-4 py-2 text-white hover:bg-blue-700/50 transition-colors">
+              <a class="flex items-center gap-2 px-4 py-2 text-white hover:bg-blue-700/50 hover:text-white transition-colors">
                 <i data-lucide="user" class="w-4 h-4"></i>
                 <span>Profile</span>
               </a>
             </li>
             <li>
-              <a class="flex items-center gap-2 px-4 py-2 text-white hover:bg-blue-700/50 transition-colors">
+              <a class="flex items-center gap-2 px-4 py-2 text-white hover:bg-blue-700/50  hover:text-white transition-colors">
                 <i data-lucide="settings" class="w-4 h-4"></i>
                 <span>Settings</span>
               </a>
             </li>
             <li class="">
-              <a class="flex items-center gap-2 px-4 py-2 text-white hover:bg-blue-700/50 transition-colors">
+              <a href="logout.php" class="flex items-center gap-2 px-4 py-2 text-white hover:bg-blue-700/50  hover:text-white transition-colors">
                 <i data-lucide="log-out" class="w-4 h-4"></i>
                 <span>Sign out</span>
               </a>
