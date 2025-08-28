@@ -171,8 +171,8 @@
                   </div>
                 </div>
                 <div>
-                  <p class="font-medium text-white">John Smith</p>
-                  <p class="text-xs text-white">Front Desk Manager</p>
+                  <p class="font-medium text-white"><?= htmlspecialchars($username) ?></p>
+                  <p class="text-xs text-white"><?= htmlspecialchars(ucfirst($role)) ?></p>
                 </div>
               </div>
             </li>
