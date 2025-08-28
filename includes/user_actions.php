@@ -19,7 +19,7 @@ $role = $_POST['role'] ?? 'user'; // Now role comes from form
 // Prevent admin role creation
 if ($role === 'admin') {
     $_SESSION['um_error'] = "You cannot assign the admin role.";
-    header("Location: ../user_management.php");
+    header("Location: ../dashboard.php?module=um");
     exit();
 }
 
@@ -84,5 +84,5 @@ try {
     $_SESSION['um_error'] = $e->getMessage();
 }
 
-header("Location: ../user_management.php");
+header("Location: ../dashboard.php?module=um");
 exit();
