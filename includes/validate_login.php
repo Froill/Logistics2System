@@ -62,8 +62,11 @@ try {
     $conn->query("DELETE FROM trusted_devices WHERE expires_at < NOW()");
 
     // Prepare statement with MySQLi
-    $stmt = $conn->prepare("SELECT id, username, password, role, email FROM users WHERE username = ? LIMIT 1");
-    $stmt->bind_param("s", $username);
+    $stmt = $conn->prepare("SELECT id, eid, username, password, role, email 
+                        FROM users 
+                        WHERE username = ? OR eid = ? 
+                        LIMIT 1");
+    $stmt->bind_param("ss", $username, $username);
     $stmt->execute();
 
     $result = $stmt->get_result();
@@ -93,6 +96,7 @@ try {
             if ($row && hash_equals($row['ua_hash'], $ua) && $row['ip_net'] === $net) {
                 // Trusted device & fingerprint OK → login without OTP
                 $_SESSION['user_id']  = $user['id'];
+                $_SESSION['eid']      = $user['eid'];
                 $_SESSION['role']     = $user['role'];
                 $_SESSION['username'] = $user['username'];
 
@@ -110,6 +114,7 @@ try {
         $_SESSION['otp_expires'] = $otp_expiration;
         $_SESSION['pending_user'] = [
             'id' => $user['id'],
+            'eid' => $user['eid'],
             'role' => $user['role'],
             'username' => $user['username'],
             'email' => $user['email']

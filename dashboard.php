@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id'])) {
 require __DIR__ . '/includes/functions.php';
 
 $id = $_SESSION['user_id'];
+$eid = $_SESSION['eid'];
 $username = $_SESSION['username'];
 $role = $_SESSION['role'];
 
