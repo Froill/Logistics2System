@@ -17,7 +17,7 @@ $allowed_modules = [
   'vrds' => 'Vehicle Routing & Dispatch',
   'driver_trip' => 'Driver & Trip Performance',
   'tcao' => 'Transport Cost Analysis',
-  'um' => 'User Management'
+  'user_management' => 'User Management'
 ];
 
 // which module to show (default fvm)
