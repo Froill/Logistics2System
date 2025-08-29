@@ -2,7 +2,7 @@
 // USER MANAGEMENT MODULE
 require_once __DIR__ . '/../includes/db.php';
 
-function um_logic($baseURL)
+function user_management_logic($baseURL)
 {
 
     // Access control
@@ -18,14 +18,14 @@ function um_logic($baseURL)
 
     // Fetch users
     global $conn;
-    $stmt = $conn->prepare("SELECT id, username, email, role, created_at FROM users ORDER BY created_at DESC");
+    $stmt = $conn->prepare("SELECT id, eid, username, email, role, created_at FROM users ORDER BY created_at DESC");
     $stmt->execute();
     $result = $stmt->get_result();
     $GLOBALS['um_users'] = $result->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
 }
 
-function um_view($baseURL)
+function user_management_view($baseURL)
 {
     $users   = $GLOBALS['um_users'] ?? [];
     $success = $GLOBALS['um_success'] ?? '';
@@ -44,10 +44,11 @@ function um_view($baseURL)
             <div class="alert alert-error mb-4"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
-        <div class="overflow-x-auto bg-white rounded-lg shadow">
+        <div class="overflow-x-auto rounded-box border border-base-content/5 bg-base-100">
             <table class="table w-full">
                 <thead>
                     <tr>
+                        <th>EID</th>
                         <th>Username</th>
                         <th>Email</th>
                         <th>Role</th>
@@ -58,32 +59,35 @@ function um_view($baseURL)
                 <tbody>
                     <?php foreach ($users as $u): ?>
                         <tr>
+                            <td><?= htmlspecialchars($u['eid']) ?></td>
                             <td><?= htmlspecialchars($u['username']) ?></td>
                             <td><?= htmlspecialchars($u['email']) ?></td>
-                            <td><?= htmlspecialchars($u['role']) ?></td>
+                            <td><?= htmlspecialchars(ucfirst($u['role'])) ?></td>
                             <td><?= htmlspecialchars($u['created_at']) ?></td>
                             <td class="text-right">
                                 <div class="flex items-center justify-end gap-2">
-                                    <button class="btn btn-sm btn-outline"
+                                    <button class="btn btn-info btn-sm py-5 flex  content-center" aria-label="Edit user details"
                                         onclick="openEditModal(<?= htmlspecialchars(json_encode([
                                                                     'id' => $u['id'],
                                                                     'username' => $u['username'],
                                                                     'email' => $u['email'],
                                                                     'role' => $u['role']
                                                                 ]), ENT_QUOTES, 'UTF-8') ?>)">
-                                        Edit
+                                        <i data-lucide="user-round-pen"></i>
                                     </button>
 
                                     <?php if ((int)$u['id'] !== (int)($_SESSION['user_id'] ?? 0)): ?>
-                                        <button class="btn btn-sm btn-error"
+                                        <button class="btn btn-error btn-sm  py-5 flex  content-center" aria-label="Delete user"
                                             onclick="openDeleteModal(<?= htmlspecialchars(json_encode([
                                                                             'id' => $u['id'],
                                                                             'username' => $u['username']
                                                                         ]), ENT_QUOTES, 'UTF-8') ?>)">
-                                            Delete
+                                            <i data-lucide="user-round-x"></i>
                                         </button>
                                     <?php else: ?>
-                                        <button class="btn btn-sm btn-disabled" disabled title="You cannot delete your own account">Delete</button>
+                                        <button class="btn btn-error btn-sm  py-5 flex  content-center btn-disabled" disabled title="You cannot delete your own account">
+                                            <i data-lucide="user-round-x"></i>
+                                        </button>
                                     <?php endif; ?>
                                 </div>
                             </td>
@@ -121,10 +125,6 @@ function um_view($baseURL)
                     <label class="label"><span class="label-text">Email</span></label>
                     <input type="email" name="email" class="input input-bordered w-full" required />
                 </div>
-                <div class="mt-3">
-                    <label class="label"><span class="label-text">Password</span></label>
-                    <input type="password" name="password" class="input input-bordered w-full" required />
-                </div>
 
                 <div class="modal-action">
                     <button type="submit" class="btn btn-primary">Create</button>
@@ -156,7 +156,12 @@ function um_view($baseURL)
                         <option value="manager">Manager</option>
                         <option value="staff">Staff</option>
                     </select>
+                    <div class="flex items-center gap-1 text-sm text-gray-500 mt-1 hidden">
+                        <i data-lucide="info"></i>
+                        <p class=" ">Admin role cannot be changed.</p>
+                    </div>
                 </div>
+
 
                 <div class="mt-3">
                     <label class="label">Email</label>
@@ -205,6 +210,7 @@ function um_view($baseURL)
                 if (roleSelect) {
                     roleSelect.value = user.role;
                     roleSelect.disabled = (user.role === 'admin');
+                    roleSelect.nextElementSibling.classList.toggle('hidden', user.role !== 'admin');
                 }
                 editUserModal.showModal();
             }
