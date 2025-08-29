@@ -158,7 +158,7 @@
         <div class="dropdown dropdown-end">
           <label tabindex="0" class="btn btn-ghost btn-circle avatar">
             <div class="w-8 rounded-full">
-              <img src="{{asset('images/avatars/employee2.webp')}}" alt="User Avatar" />
+              <img src="./images/user-icon.png" alt="User Avatar" />
             </div>
           </label>
           <ul tabindex="0" class="dropdown-content menu mt-1 z-[100] w-52 bg-[#001f54] rounded-box shadow-xl">
@@ -167,7 +167,7 @@
               <div class="bg-blue-700/50 rounded-md shadow-md flex items-center gap-3">
                 <div class="avatar">
                   <div class="w-10 rounded-full">
-                    <img src="{{asset('images/avatars/employee2.webp')}}" alt="User Avatar" class="dark:brightness-90" />
+                    <img src="./images/user-icon.png" alt="User Avatar" class="dark:brightness-90" />
                   </div>
                 </div>
                 <div>
