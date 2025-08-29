@@ -66,6 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Complete login (your existing session sets)
         $_SESSION['user_id']  = $user['id'];
+        $_SESSION['eid']      = $user['eid'];
         $_SESSION['role']     = $user['role'];
         $_SESSION['username'] = $user['username'];
 

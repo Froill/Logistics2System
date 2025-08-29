@@ -167,11 +167,12 @@
               <div class="bg-blue-700/50 rounded-md shadow-md flex items-center gap-3">
                 <div class="avatar">
                   <div class="w-10 rounded-full">
-                    <img src="./images/user-icon.png" alt="User Avatar" class="dark:brightness-90" />
+                    <img src="./images/user-icon.png" alt="User Avatar" class="" />
                   </div>
                 </div>
                 <div>
                   <p class="font-medium text-white"><?= htmlspecialchars($username) ?></p>
+                  <p class="text-xs text-white"><?= htmlspecialchars($eid) ?></p>
                   <p class="text-xs text-white"><?= htmlspecialchars(ucfirst($role)) ?></p>
                 </div>
               </div>
