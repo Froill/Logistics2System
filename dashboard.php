@@ -18,7 +18,8 @@ $allowed_modules = [
   'vrds' => 'Vehicle Routing & Dispatch',
   'driver_trip' => 'Driver & Trip Performance',
   'tcao' => 'Transport Cost Analysis',
-  'user_management' => 'User Management'
+  'user_management' => 'User Management',
+  'audit_log' => 'Audit Log'
 ];
 
 // which module to show (default fvm)
@@ -52,6 +53,8 @@ if (file_exists($moduleFile)) {
   <title>Logistics 2 Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.0.0/dist/full.css" rel="stylesheet" type="text/css" />
   <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
 <body class="min-h-screen flex flex-row">
@@ -66,7 +69,9 @@ if (file_exists($moduleFile)) {
       <div class="card mt-4 p-4 shadow rounded">
         <main class="card-body flex-1 p-6">
           <?php
-          if (function_exists("{$module}_view")) {
+          if ($module === 'audit_log' && function_exists('audit_log_view')) {
+            audit_log_view();
+          } else if (function_exists("{$module}_view")) {
             call_user_func("{$module}_view", $baseURL);
           }
           ?>
@@ -79,6 +84,9 @@ if (file_exists($moduleFile)) {
   <script src="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="./js/soliera.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
 </body>
 
 </html>
