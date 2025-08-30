@@ -1,8 +1,10 @@
+
 <?php
 // USER MANAGEMENT MODULE
+
 require_once __DIR__ . '/../includes/db.php';
 
-function um_logic($baseURL)
+function user_management_logic($baseURL)
 {
 
     // Access control
@@ -25,7 +27,7 @@ function um_logic($baseURL)
     $stmt->close();
 }
 
-function um_view($baseURL)
+function user_management_view($baseURL)
 {
     $users   = $GLOBALS['um_users'] ?? [];
     $success = $GLOBALS['um_success'] ?? '';
