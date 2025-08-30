@@ -1,7 +1,7 @@
 <?php
 // DRIVER AND TRIP PERFORMANCE MONITORING
 require_once __DIR__ . '/../includes/functions.php';
-
+require_once __DIR__ . '/audit_log.php';
 function validateTripData($data) {
     $errors = [];
     
@@ -69,6 +69,7 @@ function driver_trip_logic($baseURL)
 {
     if (isset($_GET['delete'])) {
         deleteData('driver_trips', $_GET['delete']);
+        log_audit_event('DTP', 'delete_trip', $_GET['delete'], $_SESSION['username'] ?? 'unknown');
         header("Location: {$baseURL}");
         exit;
     }
@@ -111,6 +112,9 @@ function driver_trip_logic($baseURL)
                 
                 $result = insertData('driver_trips', $tripData);
                 if ($result) {
+                    global $conn;
+                    $id = $conn->insert_id;
+                    log_audit_event('DTP', 'add_trip', $id, $_SESSION['username'] ?? 'unknown');
                     $_SESSION['success_message'] = "Trip data submitted successfully.";
                     error_log('Trip data inserted successfully');
                 } else {
@@ -165,6 +169,8 @@ function driver_trip_view($baseURL)
     ");
     $drivers = fetchAll('drivers');
     $vehicles = fetchAll('fleet_vehicles');
+    // Fetch completed dispatches for trip submission
+    $completedDispatches = fetchAllQuery("SELECT d.*, v.vehicle_name, dr.driver_name FROM dispatches d JOIN fleet_vehicles v ON d.vehicle_id = v.id JOIN drivers dr ON d.driver_id = dr.id WHERE d.status = 'Completed' ORDER BY d.dispatch_date DESC");
 
     // Calculate overall statistics
     $totalTrips = count($trips);
@@ -306,75 +312,78 @@ function driver_trip_view($baseURL)
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
                 <h3 class="font-bold text-lg mb-4">Submit Trip Data</h3>
-                
                 <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="space-y-4" onsubmit="return validateForm(this);">
                     <input type="hidden" name="submit_trip" value="1">
-                    
+                    <div class="form-control mb-2">
+                        <label class="label">Completed Dispatch</label>
+                        <select name="dispatch_id" class="select select-bordered w-full" onchange="fillDispatchFields(this)" required>
+                            <option value="">Select Completed Dispatch</option>
+                            <?php foreach ($completedDispatches as $cd): ?>
+                                <option value="<?= $cd['id'] ?>"
+                                    data-driver_id="<?= $cd['driver_id'] ?>"
+                                    data-vehicle_id="<?= $cd['vehicle_id'] ?>"
+                                    data-trip_date="<?= substr($cd['dispatch_date'],0,10) ?>"
+                                >
+                                    <?= htmlspecialchars($cd['dispatch_date']) ?> | <?= htmlspecialchars($cd['vehicle_name']) ?> | <?= htmlspecialchars($cd['driver_name']) ?> | <?= htmlspecialchars($cd['purpose']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                     <div class="grid grid-cols-2 gap-4">
-                    <script>
-                        function validateForm(form) {
-                            console.log('Form submission:', {
-                                submit_trip: form.submit_trip.value,
-                                driver_id: form.driver_id.value,
-                                vehicle_id: form.vehicle_id.value,
-                                // Log other fields
-                            });
-                            return true;
-                        }
-                    </script>
                         <div class="form-control">
                             <label class="label">Driver</label>
-                            <select name="driver_id" class="select select-bordered" required>
+                            <select id="driver_id_field" name="driver_id" class="select select-bordered" required>
                                 <option value="">Select Driver</option>
                                 <?php foreach ($drivers as $driver): ?>
                                     <option value="<?= $driver['id'] ?>"><?= htmlspecialchars($driver['driver_name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        
                         <div class="form-control">
                             <label class="label">Vehicle</label>
-                            <select name="vehicle_id" class="select select-bordered" required>
+                            <select id="vehicle_id_field" name="vehicle_id" class="select select-bordered" required>
                                 <option value="">Select Vehicle</option>
                                 <?php foreach ($vehicles as $vehicle): ?>
                                     <option value="<?= $vehicle['id'] ?>"><?= htmlspecialchars($vehicle['vehicle_name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
-
                         <div class="form-control">
                             <label class="label">Trip Date</label>
-                            <input type="date" name="trip_date" class="input input-bordered" required>
+                            <input id="trip_date_field" type="date" name="trip_date" class="input input-bordered" required>
                         </div>
-
                         <div class="form-control">
-                            <label class="label">Start Time</label>
-                            <input type="datetime-local" name="start_time" class="input input-bordered" required>
+                                <label class="label">Start Time</label>
+                                <input type="time" name="start_time" class="input input-bordered" required>
                         </div>
-
                         <div class="form-control">
-                            <label class="label">End Time</label>
-                            <input type="datetime-local" name="end_time" class="input input-bordered">
+                                <label class="label">End Time</label>
+                                <input type="time" name="end_time" class="input input-bordered">
                         </div>
-
                         <div class="form-control">
                             <label class="label">Distance (km)</label>
                             <input type="number" name="distance_traveled" step="0.01" min="0" class="input input-bordered" required>
                         </div>
-
                         <div class="form-control">
                             <label class="label">Fuel Consumed (L)</label>
                             <input type="number" name="fuel_consumed" step="0.01" min="0" class="input input-bordered" required>
                         </div>
-
                         <div class="form-control">
                             <label class="label">Idle Time (minutes)</label>
                             <input type="number" name="idle_time" min="0" class="input input-bordered">
                         </div>
                     </div>
-
                     <button type="submit" class="btn btn-primary w-full mt-6">Submit Trip Data</button>
                 </form>
+                <script>
+                function fillDispatchFields(sel) {
+                    var opt = sel.options[sel.selectedIndex];
+                    if (!opt || !opt.dataset) return;
+                    document.getElementById('driver_id_field').value = opt.dataset.driver_id || '';
+                    document.getElementById('vehicle_id_field').value = opt.dataset.vehicle_id || '';
+                    document.getElementById('trip_date_field').value = opt.dataset.trip_date || '';
+                }
+                </script>
             </div>
             <form method="dialog" class="modal-backdrop">
                 <button>close</button>
