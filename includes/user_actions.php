@@ -52,7 +52,11 @@ try {
             // First, insert a temporary record (without eid/password) so we get the user_id
             $stmt = $conn->prepare("INSERT INTO users (username, email, role) VALUES (?, ?, ?)");
             $stmt->bind_param("sss", $username, $email, $role);
-            $stmt->execute();
+            if (!$stmt->execute()) {
+                $error = $stmt->error;
+                $stmt->close();
+                throw new Exception("Failed to create user: $error");
+            }
 
             $userID = $stmt->insert_id;  // get auto-incremented ID
             $stmt->close();
@@ -70,7 +74,11 @@ try {
             // Update record with eid and password
             $stmt = $conn->prepare("UPDATE users SET eid = ?, password = ? WHERE id = ?");
             $stmt->bind_param("ssi", $eid, $hashed, $userID);
-            $stmt->execute();
+            if (!$stmt->execute()) {
+                $error = $stmt->error;
+                $stmt->close();
+                throw new Exception("Failed to update user credentials: $error");
+            }
             $stmt->close();
 
             require_once 'mailer.php';
