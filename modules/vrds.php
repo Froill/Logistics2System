@@ -1,7 +1,9 @@
+
 <?php
 // VEHICLE RESERVATION AND DISPATCH SYSTEM (VRDS)
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/mailer.php';
+require_once __DIR__ . '/audit_log.php';
 
 function recommend_assignment($vehicle_type = null) {
     // Simple recommender: first available vehicle/driver, optionally by type
@@ -52,6 +54,7 @@ function vrds_logic($baseURL) {
     $stmt->bind_param("isssssss", $requester_id, $reservation_date, $expected_return, $purpose, $origin, $destination, $requested_vehicle_type, $notes);
         $ok = $stmt->execute();
         if ($ok) {
+            log_audit_event('VRDS', 'request_vehicle', $conn->insert_id, $_SESSION['username'] ?? 'unknown');
             // 2. System checks availability and recommends
             $rec = recommend_assignment($requested_vehicle_type);
             $vehicle = $rec['vehicle'];
@@ -104,6 +107,11 @@ function vrds_logic($baseURL) {
             'purpose' => $request['purpose'],
             'notes' => '',
         ]);
+        if ($ok4) {
+            global $conn;
+            $dispatch_id = $conn->insert_id;
+            log_audit_event('VRDS', 'approve_dispatch', $dispatch_id, $_SESSION['username'] ?? 'unknown');
+        }
         // 5. Notify driver
         $driver = fetchById('drivers', $driver_id);
         if ($driver && !empty($driver['email'])) {
@@ -131,7 +139,25 @@ function vrds_logic($baseURL) {
             updateData('vehicle_requests', $dispatch['request_id'], ['status' => 'Pending']);
         }
         deleteData('dispatches', $dispatch_id);
+        log_audit_event('VRDS', 'delete_dispatch', $dispatch_id, $_SESSION['username'] ?? 'unknown');
         $_SESSION['success_message'] = "Dispatch cancelled.";
+        header("Location: {$baseURL}");
+        exit;
+    }
+
+    // 8. Officer can complete dispatch
+    if (isset($_GET['complete'])) {
+        $dispatch_id = (int) $_GET['complete'];
+        $dispatch = fetchById('dispatches', $dispatch_id);
+        if ($dispatch && $dispatch['status'] !== 'Completed') {
+            updateData('dispatches', $dispatch_id, ['status' => 'Completed']);
+            updateData('fleet_vehicles', $dispatch['vehicle_id'], ['status' => 'Active']);
+            updateData('drivers', $dispatch['driver_id'], ['status' => 'Available']);
+            log_audit_event('VRDS', 'complete_dispatch', $dispatch_id, $_SESSION['username'] ?? 'unknown');
+            $_SESSION['success_message'] = "Dispatch marked as completed.";
+        } else {
+            $_SESSION['error_message'] = "Dispatch not found or already completed.";
+        }
         header("Location: {$baseURL}");
         exit;
     }
@@ -347,9 +373,14 @@ function vrds_view($baseURL) {
                         <td><?= htmlspecialchars($d['dispatch_date']) ?></td>
                         <td><?= htmlspecialchars($d['status']) ?></td>
                         <td>
-                            <a href="<?= htmlspecialchars($baseURL . '&delete=' . $d['id']) ?>"
-                                class="btn btn-sm btn-error"
-                                onclick="return confirm('Cancel this dispatch? Vehicle & driver will be freed.')">Cancel</a>
+                            <?php if ($d['status'] === 'Ongoing'): ?>
+                                <a href="<?= htmlspecialchars($baseURL . '&complete=' . $d['id']) ?>" class="btn btn-sm btn-success" onclick="return confirm('Mark this dispatch as completed?')">
+                                    <i data-lucide="check-circle" class="inline w-4 h-4"></i> Complete
+                                </a>
+                                <a href="<?= htmlspecialchars($baseURL . '&delete=' . $d['id']) ?>"
+                                    class="btn btn-sm btn-error"
+                                    onclick="return confirm('Cancel this dispatch? Vehicle & driver will be freed.')">Cancel</a>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
