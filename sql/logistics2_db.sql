@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Aug 29, 2025 at 10:05 AM
+-- Generation Time: Aug 31, 2025 at 04:26 PM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.0.30
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -20,6 +20,30 @@ SET time_zone = "+00:00";
 --
 -- Database: `logistics2_db`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `audit_log`
+--
+
+CREATE TABLE `audit_log` (
+  `id` int(11) NOT NULL,
+  `module` varchar(32) NOT NULL,
+  `action` varchar(64) NOT NULL,
+  `record_id` int(11) DEFAULT NULL,
+  `user` varchar(64) NOT NULL,
+  `details` text DEFAULT NULL,
+  `timestamp` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `audit_log`
+--
+
+INSERT INTO `audit_log` (`id`, `module`, `action`, `record_id`, `user`, `details`, `timestamp`) VALUES
+(1, 'TCAO', 'submitted', 8, 'admin', NULL, '2025-08-30 19:11:09'),
+(2, 'VRDS', 'complete_dispatch', 1, 'admin', NULL, '2025-08-30 21:37:44');
 
 -- --------------------------------------------------------
 
@@ -49,7 +73,7 @@ CREATE TABLE `dispatches` (
 --
 
 INSERT INTO `dispatches` (`id`, `request_id`, `vehicle_id`, `driver_id`, `officer_id`, `dispatch_date`, `return_date`, `status`, `origin`, `destination`, `purpose`, `notes`, `created_at`, `updated_at`) VALUES
-(1, 17, 1, 2, 1, '2025-08-29 07:22:41', NULL, 'Ongoing', 'Kitchen', 'Supplier', 'Balut Order', '', '2025-08-29 05:22:41', '2025-08-29 05:22:41');
+(1, 17, 1, 2, 1, '2025-08-29 07:22:41', NULL, 'Completed', 'Kitchen', 'Supplier', 'Balut Order', '', '2025-08-29 05:22:41', '2025-08-30 13:37:44');
 
 -- --------------------------------------------------------
 
@@ -59,6 +83,7 @@ INSERT INTO `dispatches` (`id`, `request_id`, `vehicle_id`, `driver_id`, `office
 
 CREATE TABLE `drivers` (
   `id` int(11) NOT NULL,
+  `eid` varchar(100) NOT NULL,
   `driver_name` varchar(100) NOT NULL,
   `license_number` varchar(50) DEFAULT NULL,
   `phone` varchar(20) DEFAULT NULL,
@@ -71,12 +96,13 @@ CREATE TABLE `drivers` (
 -- Dumping data for table `drivers`
 --
 
-INSERT INTO `drivers` (`id`, `driver_name`, `license_number`, `phone`, `email`, `status`, `created_at`) VALUES
-(1, 'Juan Dela Cruz', 'PH-DL-2025-001', '09171234567', 'juan.delacruz@example.com', 'Dispatched', '2025-08-29 02:49:13'),
-(2, 'Maria Santos', 'PH-DL-2025-002', '09182345678', 'maria.santos@example.com', 'Dispatched', '2025-08-29 02:49:13'),
-(3, 'Pedro Ramirez', 'PH-DL-2025-003', '09193456789', 'pedro.ramirez@example.com', 'Available', '2025-08-29 02:49:13'),
-(4, 'Ana Villanueva', 'PH-DL-2025-004', '09184561234', 'ana.villanueva@example.com', 'Available', '2025-08-29 02:49:13'),
-(5, 'Ramon Cruz', 'PH-DL-2025-005', '09185672345', 'ramon.cruz@example.com', 'Available', '2025-08-29 02:49:13');
+INSERT INTO `drivers` (`id`, `eid`, `driver_name`, `license_number`, `phone`, `email`, `status`, `created_at`) VALUES
+(1, 'D25071', 'Juan Dela Cruz', 'PH-DL-2025-001', '09171234567', 'juan.delacruz@example.com', 'Dispatched', '2025-08-29 02:49:13'),
+(2, 'D25072', 'Maria Santos', 'PH-DL-2025-002', '09182345678', 'maria.santos@example.com', 'Available', '2025-08-29 02:49:13'),
+(3, 'D25073', 'Pedro Ramirez', 'PH-DL-2025-003', '09193456789', 'pedro.ramirez@example.com', 'Available', '2025-08-29 02:49:13'),
+(4, 'D25074', 'Ana Villanueva', 'PH-DL-2025-004', '09184561234', 'ana.villanueva@example.com', 'Available', '2025-08-29 02:49:13'),
+(5, 'D25075', 'Ramon Cruz', 'PH-DL-2025-005', '09185672345', 'ramon.cruz@example.com', 'Available', '2025-08-29 02:49:13'),
+(11, 'D250708', 'John Doe', '1234567', NULL, 'johndoe@gmail.com', 'Available', '2025-08-31 22:21:42');
 
 -- --------------------------------------------------------
 
@@ -130,13 +156,13 @@ CREATE TABLE `fleet_vehicles` (
 --
 
 INSERT INTO `fleet_vehicles` (`id`, `vehicle_name`, `plate_number`, `vehicle_type`, `status`) VALUES
-(1, 'Toyota Hilux', 'ABC-123', 'Car', 'Dispatched'),
+(1, 'Toyota Hilux', 'ABC-123', 'Car', 'Active'),
 (2, 'Mitsubishi L300', 'XYZ-456', 'Van', 'Active'),
 (3, 'Isuzu D-Max', 'LMN-789', 'Pickup', 'Under Maintenance'),
 (4, 'Hyundai H100', 'JKL-321', 'Truck', 'Dispatched'),
 (5, 'Ford Ranger', 'PQR-654', 'Car', 'Under Maintenance'),
 (18, 'Gold Ship', '69420', 'Car', 'Dispatched'),
-(19, 'agugu', '123213', NULL, '');
+(20, 'Lightning Mcqueen', 'KACHOW', NULL, 'Active');
 
 -- --------------------------------------------------------
 
@@ -160,7 +186,9 @@ INSERT INTO `fleet_vehicle_logs` (`id`, `vehicle_id`, `log_type`, `details`, `cr
 (1, 1, 'fuel', 'Need Refill', '2025-08-28 17:07:58'),
 (2, 1, 'fuel', 'Needs Refill', '2025-08-28 17:10:25'),
 (3, 1, 'maintenance', 'asdad', '2025-08-28 17:11:39'),
-(4, 18, 'maintenance', 'Training Options restricted', '2025-08-28 18:24:34');
+(4, 18, 'maintenance', 'Training Options restricted', '2025-08-28 18:24:34'),
+(5, 2, 'maintenance', 'Nabuang ang driver, ninakaw ang catalytic converter bago nag resign', '2025-08-30 10:51:43'),
+(6, 20, 'maintenance', 'Change Tires', '2025-08-30 10:56:03');
 
 -- --------------------------------------------------------
 
@@ -264,6 +292,27 @@ CREATE TABLE `suppliers` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `tcao_audit_log`
+--
+
+CREATE TABLE `tcao_audit_log` (
+  `id` int(11) NOT NULL,
+  `cost_id` int(11) NOT NULL,
+  `action` varchar(64) NOT NULL,
+  `user` varchar(64) NOT NULL,
+  `timestamp` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `tcao_audit_log`
+--
+
+INSERT INTO `tcao_audit_log` (`id`, `cost_id`, `action`, `user`, `timestamp`) VALUES
+(3, 8, 'submitted', 'admin', '2025-08-30 19:11:09');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `transport_costs`
 --
 
@@ -273,18 +322,19 @@ CREATE TABLE `transport_costs` (
   `fuel_cost` decimal(10,2) DEFAULT NULL,
   `toll_fees` decimal(10,2) DEFAULT NULL,
   `other_expenses` decimal(10,2) DEFAULT NULL,
-  `total_cost` decimal(10,2) DEFAULT NULL
+  `total_cost` decimal(10,2) DEFAULT NULL,
+  `status` varchar(255) DEFAULT NULL,
+  `receipt` varchar(255) DEFAULT NULL,
+  `created_by` varchar(255) DEFAULT NULL,
+  `created_at` timestamp(6) NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `transport_costs`
 --
 
-INSERT INTO `transport_costs` (`id`, `trip_id`, `fuel_cost`, `toll_fees`, `other_expenses`, `total_cost`) VALUES
-(2, 2, 3000.00, 450.00, 150.00, 3600.00),
-(3, 3, 4000.00, 550.00, 300.00, 4850.00),
-(4, 4, 2500.00, 300.00, 100.00, 2900.00),
-(5, 5, 3700.00, 600.00, 250.00, 4550.00);
+INSERT INTO `transport_costs` (`id`, `trip_id`, `fuel_cost`, `toll_fees`, `other_expenses`, `total_cost`, `status`, `receipt`, `created_by`, `created_at`) VALUES
+(8, 1, 12313213.00, 69585745.00, 420.00, 81899378.00, 'submitted', 'receipts_68b2dc4de9835.jpg', 'admin', '2025-08-30 11:11:09.000000');
 
 -- --------------------------------------------------------
 
@@ -311,7 +361,8 @@ INSERT INTO `trusted_devices` (`id`, `user_id`, `device_token`, `ua_hash`, `ip_n
 (2, 5, '41aeeeecb90bb83b0a6b2f46c1d8e3c9cec66ae3e27a472be2f5dc7242204470', 'c872b1a5d8f484c5e37fe7be0753f974e53712ba2d75f667602585626e90101d', '::1::/64', '2025-09-04 21:36:26', '2025-08-29 03:36:26', '2025-08-29 03:36:26'),
 (3, 1, '0c3a8bab846dc5664c359d622417e326d27328eec58f23484af6cefebb34c245', 'c872b1a5d8f484c5e37fe7be0753f974e53712ba2d75f667602585626e90101d', '::1::/64', '2025-09-04 22:19:18', '2025-08-29 04:19:18', '2025-08-29 04:19:18'),
 (4, 6, 'f2e71081f67ea74277a5b132e638e58b2c62dc1f6b13ca0a7d9338e4f60fbea3', 'c872b1a5d8f484c5e37fe7be0753f974e53712ba2d75f667602585626e90101d', '::1::/64', '2025-09-04 22:34:54', '2025-08-29 04:34:54', '2025-08-29 04:34:54'),
-(5, 1, 'cd1408be2ceffb639db9fc926da5db9548b4c0d40c967f0109726e3711ba2e46', 'c872b1a5d8f484c5e37fe7be0753f974e53712ba2d75f667602585626e90101d', '::1::/64', '2025-09-04 22:36:02', '2025-08-29 04:36:02', '2025-08-29 04:36:02');
+(5, 1, 'cd1408be2ceffb639db9fc926da5db9548b4c0d40c967f0109726e3711ba2e46', 'c872b1a5d8f484c5e37fe7be0753f974e53712ba2d75f667602585626e90101d', '::1::/64', '2025-09-04 22:36:02', '2025-08-29 04:36:02', '2025-08-29 04:36:02'),
+(6, 1, '942c7d912fb8441f8c7a4998a730f3f38866891272ba8a6dbcf725c8f4bac89e', 'c872b1a5d8f484c5e37fe7be0753f974e53712ba2d75f667602585626e90101d', '::1::/64', '2025-09-07 04:45:39', '2025-08-31 10:45:39', '2025-08-31 10:45:39');
 
 -- --------------------------------------------------------
 
@@ -321,21 +372,23 @@ INSERT INTO `trusted_devices` (`id`, `user_id`, `device_token`, `ua_hash`, `ip_n
 
 CREATE TABLE `users` (
   `id` int(11) NOT NULL,
-  `username` varchar(50) NOT NULL,
+  `eid` varchar(100) NOT NULL,
+  `full_name` varchar(255) NOT NULL,
+  `email` varchar(150) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `role` enum('admin','user','manager','staff') NOT NULL DEFAULT 'user',
-  `created_at` timestamp(6) NOT NULL DEFAULT current_timestamp(6),
-  `contact_info` varchar(255) DEFAULT NULL,
-  `email` varchar(100) DEFAULT NULL
+  `role` enum('admin','requester','driver','staff','manager','supervisor') NOT NULL DEFAULT 'staff',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `username`, `password`, `role`, `created_at`, `contact_info`, `email`) VALUES
-(1, 'admin1', '$2y$10$tzIT9cNo8wr/mMKwVFjQFumjhX6VIC6bCt/X/XGZdv2h4QxbtdDg6', 'admin', '2025-08-28 18:49:13.000000', '09915044624', 'froilan.respicio2021@gmail.com'),
-(6, 'user', '$2y$10$fuWXJrFgI0KdJwBbpczXCO.aiA0dDiiWN65UrxJZuQ38UoChfco.K', 'user', '0000-00-00 00:00:00.000000', '09915044624', 'froilan.respicio2021@gmail.com');
+INSERT INTO `users` (`id`, `eid`, `full_name`, `email`, `password`, `role`, `created_at`) VALUES
+(1, 'S250701', 'admin', 'froilan.respicio2021@gmail.com', '$2y$10$jIX3O6u91NS/77OMfeFYieOa7n2G9MAKSdmYFmz3nMwudlo652XTS', 'admin', '2025-08-30 08:37:43'),
+(6, 'M250706', 'gusion', 'cringey.ch@gmail.com', '$2y$10$EPiNvDrT8aKDFTmHIl5vnuq/UBbmmhOOe7Ov5NpqmETHoYzorZuc6', 'manager', '2025-08-30 09:51:12'),
+(8, 'D250708', 'John Doe', 'johndoe@gmail.com', '$2y$10$.ntimqwMd/xqkVZNc22vd.cqXE5TwsnBPZOKmmPkiDmEDvPYhyQfq', 'driver', '2025-08-31 14:21:41');
+
 
 -- --------------------------------------------------------
 
@@ -369,11 +422,18 @@ CREATE TABLE `vehicle_requests` (
 INSERT INTO `vehicle_requests` (`id`, `requester_id`, `request_date`, `reservation_date`, `expected_return`, `purpose`, `origin`, `destination`, `requested_vehicle_type`, `requested_driver_id`, `status`, `approved_by`, `approved_at`, `dispatched_at`, `completed_at`, `notes`) VALUES
 (16, 1, '2025-08-29 12:44:30', '2025-07-23', '2025-08-31', 'Resupply Ketchup', 'Kitchen', 'Warehouse', 'Car', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
 (17, 1, '2025-08-29 12:46:46', '2025-08-29', '2025-08-30', 'Balut Order', 'Kitchen', 'Supplier', 'Car', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
-(19, 1, '2025-08-29 13:32:05', '2025-08-29', '2025-08-30', 'Balut Order', 'Kitchen', 'Supplier', 'Truck', NULL, 'Pending', NULL, NULL, NULL, NULL, '');
+(19, 1, '2025-08-29 13:32:05', '2025-08-29', '2025-08-30', 'Balut Order', 'Kitchen', 'Supplier', 'Truck', NULL, 'Pending', NULL, NULL, NULL, NULL, ''),
+(20, 1, '2025-08-30 17:16:34', '2025-08-13', '2025-08-31', '100kg chongke', 'Warehouse', 'Supplier', 'Pickup', NULL, 'Pending', NULL, NULL, NULL, NULL, '');
 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `audit_log`
+--
+ALTER TABLE `audit_log`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `dispatches`
@@ -388,7 +448,8 @@ ALTER TABLE `dispatches`
 -- Indexes for table `drivers`
 --
 ALTER TABLE `drivers`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `eid_index` (`eid`);
 
 --
 -- Indexes for table `driver_trips`
@@ -461,10 +522,18 @@ ALTER TABLE `suppliers`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `tcao_audit_log`
+--
+ALTER TABLE `tcao_audit_log`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `cost_id` (`cost_id`);
+
+--
 -- Indexes for table `transport_costs`
 --
 ALTER TABLE `transport_costs`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_transport_trip` (`trip_id`);
 
 --
 -- Indexes for table `trusted_devices`
@@ -479,7 +548,8 @@ ALTER TABLE `trusted_devices`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `username` (`username`);
+  ADD UNIQUE KEY `email` (`email`),
+  ADD UNIQUE KEY `eid` (`eid`);
 
 --
 -- Indexes for table `vehicle_requests`
@@ -495,6 +565,12 @@ ALTER TABLE `vehicle_requests`
 --
 
 --
+-- AUTO_INCREMENT for table `audit_log`
+--
+ALTER TABLE `audit_log`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
 -- AUTO_INCREMENT for table `dispatches`
 --
 ALTER TABLE `dispatches`
@@ -504,7 +580,7 @@ ALTER TABLE `dispatches`
 -- AUTO_INCREMENT for table `drivers`
 --
 ALTER TABLE `drivers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `driver_trips`
@@ -516,13 +592,13 @@ ALTER TABLE `driver_trips`
 -- AUTO_INCREMENT for table `fleet_vehicles`
 --
 ALTER TABLE `fleet_vehicles`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `fleet_vehicle_logs`
 --
 ALTER TABLE `fleet_vehicle_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `items`
@@ -567,28 +643,34 @@ ALTER TABLE `suppliers`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `tcao_audit_log`
+--
+ALTER TABLE `tcao_audit_log`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
 -- AUTO_INCREMENT for table `transport_costs`
 --
 ALTER TABLE `transport_costs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `trusted_devices`
 --
 ALTER TABLE `trusted_devices`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `vehicle_requests`
 --
 ALTER TABLE `vehicle_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- Constraints for dumped tables
@@ -635,10 +717,16 @@ ALTER TABLE `password_resets`
   ADD CONSTRAINT `password_resets_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `tcao_audit_log`
+--
+ALTER TABLE `tcao_audit_log`
+  ADD CONSTRAINT `tcao_audit_log_ibfk_1` FOREIGN KEY (`cost_id`) REFERENCES `transport_costs` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `transport_costs`
 --
 ALTER TABLE `transport_costs`
-  ADD CONSTRAINT `fk_transport_route` FOREIGN KEY (`trip_id`) REFERENCES `vehicle_routes` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  ADD CONSTRAINT `fk_transport_trip` FOREIGN KEY (`trip_id`) REFERENCES `driver_trips` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `vehicle_requests`
