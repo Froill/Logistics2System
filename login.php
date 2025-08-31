@@ -8,7 +8,7 @@ if (isset($_SESSION['user_id'])) {
 }
 
 // Retain input and show error message
-$username = $_SESSION['username'] ?? ''; // Retain username from session if set
+$eid = $_SESSION['eid'] ?? ''; // Retain eid from session if set
 $error = $_SESSION['error'] ?? ''; // Show any login errors
 $success = $_SESSION['success'] ?? ''; // Show reset success message    
 unset($_SESSION['error']); // Clear error after display
@@ -57,13 +57,13 @@ unset($_SESSION['username']); // Clear username after using it
                 <div class="form-control w-full max-w-xs mb-3">
                     <label class="label flex items-center justify-start gap-2">
                         <i data-lucide="user" class="w-5 h-5 "></i>
-                        <span class="label-text">Username</span>
+                        <span class="label-text">EID</span>
                     </label>
                     <input
                         type="text"
-                        name="username"
-                        placeholder="Enter username"
-                        value="<?php echo htmlspecialchars($username); ?>"
+                        name="eid"
+                        placeholder="Enter EID"
+                        value="<?php echo htmlspecialchars($eid); ?>"
                         class="input input-bordered w-full"
                         required />
                 </div>
