@@ -2,6 +2,7 @@
 lucide.createIcons();
 
 const closeNav = "w-20";
+const openNav = "w-96";
 
 // Check if mobile view
 function isMobileView() {
@@ -27,7 +28,7 @@ function toggleSidebar() {
     }
   } else {
     // Desktop behavior - toggle between expanded/collapsed
-    const isCollapsed = sidebar.classList.toggle("w-64");
+    const isCollapsed = sidebar.classList.toggle(openNav);
     sidebar.classList.toggle(closeNav, !isCollapsed);
     localStorage.setItem("sidebarCollapsed", !isCollapsed);
 
@@ -93,7 +94,7 @@ function handleResize() {
     // On desktop, apply the saved collapsed state
     const isCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
     sidebar.classList.remove("-translate-x-full", "translate-x-0");
-    sidebar.classList.toggle("w-64", !isCollapsed);
+    sidebar.classList.toggle(openNav, !isCollapsed);
     sidebar.classList.toggle(closeNav, isCollapsed);
 
     document.querySelectorAll(".sidebar-text").forEach((text) => {
@@ -127,7 +128,7 @@ function initSidebar() {
   } else {
     // Start with saved state on desktop
     const isCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
-    sidebar.classList.add(isCollapsed ? closeNav : "w-64");
+    sidebar.classList.add(isCollapsed ? closeNav : openNav);
 
     document.querySelectorAll(".sidebar-text").forEach((text) => {
       text.classList.toggle("hidden", isCollapsed);

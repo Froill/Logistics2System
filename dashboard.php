@@ -21,7 +21,8 @@ $allowed_modules = [
   'driver_trip' => 'Driver & Trip Performance',
   'tcao' => 'Transport Cost Analysis',
   'user_management' => 'User Management',
-  'audit_log' => 'Audit Log'
+  'audit_log' => 'Audit Log',
+  'profile' => 'User Profile',
 ];
 
 // which module to show (default dashboard)
@@ -63,14 +64,14 @@ if ($module === 'dashboard') {
 <body class="min-h-screen flex flex-row">
   <?php include 'includes/sidebar.php'; ?>
 
-  <div class="flex flex-col flex-grow">
+  <div class="flex flex-col w-full">
     <?php include 'includes/navbar.php'; ?>
     <div class="p-4">
 
 
       <!-- Module content -->
       <div class="card mt-4 p-4 shadow rounded">
-        <main class="card-body flex-1 p-6">
+        <main class="card-body p-6">
           <?php
           if ($module === 'dashboard') {
             include __DIR__ . '/includes/dashboard_summary.php';

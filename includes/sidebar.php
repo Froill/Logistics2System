@@ -1,7 +1,10 @@
 <div class="bg-[#001f54] pt-5 pb-4 flex flex-col fixed md:relative transition-all duration-300 ease-in-out 
-shadow-xl transform -translate-x-full md:transform-none md:translate-x-0" id="sidebar">
+shadow-xl transform -translate-x-full md:transform-none md:translate-x-0 z-40 h-screen md:h-auto" id="sidebar">
   <!-- Sidebar Header -->
-  <div class="flex items-center justify-between flex-shrink-0 px-4 mb-6 text-center">
+  <div class="flex flex-col items-center justify-between flex-shrink-0 px-4 mb-6 text-center">
+    <button onclick="toggleSidebar()" class="btn text-white btn-ghost btn-sm self-end block md:hidden">
+      <i data-lucide="x" class="w-5 h-5"></i>
+    </button>
     <h1 class="text-xl font-bold text-white items-center gap-2 px-1 justify-center flex">
       <img id="sidebar-logo" class="hidden" src="images/logo/logofinal.png" alt="">
       <img id="sonly" class="hidden w-auto h-12" src="images/logo/sonly-2.png" alt="">
@@ -12,7 +15,7 @@ shadow-xl transform -translate-x-full md:transform-none md:translate-x-0" id="si
 
 
   <!-- Navigation Menu -->
-  <div class="flex-1 flex flex-col overflow-y-auto">
+  <div class="flex-1 flex flex-col overflow-y-auto overscroll-contain">
     <nav class="flex-1 px-2 space-y-1">
       <!-- Section Label -->
       <div class="px-4 py-2">
@@ -217,4 +220,4 @@ shadow-xl transform -translate-x-full md:transform-none md:translate-x-0" id="si
     </nav>
   </div>
 </div>
-<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+<div class="sidebar-overlay z-30" onclick="toggleSidebar()"></div>

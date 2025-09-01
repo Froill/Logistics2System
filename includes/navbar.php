@@ -9,7 +9,7 @@
       <div class="flex items-center gap-4">
         <!-- Time Display -->
         <div class="animate-fadeIn">
-          <span id="philippineTime" class="font-medium text-white max-md:text-sm"></span>
+          <span id="philippineTime" class="font-medium text-white max-sm:text-xs"></span>
         </div>
 
         <!-- Notification Dropdown -->
@@ -156,19 +156,17 @@
 
         <!-- User Dropdown -->
         <div class="dropdown dropdown-end">
-          <label tabindex="0" class="btn btn-ghost btn-circle avatar">
-            <div class="w-8 rounded-full">
-              <img src="./images/user-icon.png" alt="User Avatar" />
+          <label tabindex="0" class="btn btn-ghost btn-circle">
+            <div class="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 via-blue-500 to-blue-400 text-white font-bold">
+              <span class="text-center text-xl"><?= strtoupper(substr($full_name, 0, 1)) ?></span>
             </div>
           </label>
           <ul tabindex="0" class="dropdown-content menu mt-1 z-[100] w-52 bg-[#001f54] rounded-box shadow-xl">
             <!-- User Profile Section -->
             <li class="p-3 border-b ">
               <div class="bg-blue-700/50 rounded-md shadow-md flex items-center gap-3">
-                <div class="avatar">
-                  <div class="w-10 rounded-full">
-                    <img src="./images/user-icon.png" alt="User Avatar" class="" />
-                  </div>
+                <div class="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-tr from-blue-600 via-blue-500 to-blue-400 text-white font-bold">
+                  <span class="text-center text-xl"><?= strtoupper(substr($full_name, 0, 1)) ?></span>
                 </div>
                 <div>
                   <p class="font-medium text-white"><?= htmlspecialchars($full_name) ?></p>
@@ -180,7 +178,7 @@
 
             <!-- Menu Items -->
             <li>
-              <a class="flex items-center gap-2 px-4 py-2 text-white hover:bg-blue-700/50 hover:text-white transition-colors">
+              <a href="./dashboard.php?module=profile" class="flex items-center gap-2 px-4 py-2 text-white hover:bg-blue-700/50 hover:text-white transition-colors">
                 <i data-lucide="user" class="w-4 h-4"></i>
                 <span>Profile</span>
               </a>
