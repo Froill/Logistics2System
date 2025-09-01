@@ -196,7 +196,7 @@ function vrds_view($baseURL) {
         <?php unset($_SESSION['success_message']); ?>
     <?php endif; ?>
 <div>
-    <h2 class="text-2xl font-bold mb-4">Vehicle Reservation & Dispatch System</h2>
+    <h2 class="text-2xl font-bold mb-4">Vehicle Reservation & Dispatch</h2>
     <!-- Vehicle Request Form (Step 1) -->
     <button class="btn btn-primary mb-3" onclick="request_modal.showModal()">Request Vehicle</button>
     <dialog id="request_modal" class="modal">

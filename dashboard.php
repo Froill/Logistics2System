@@ -13,7 +13,9 @@ $username = $_SESSION['username'];
 $role = $_SESSION['role'];
 
 // allowed modules (matching filenames in /modules)
+
 $allowed_modules = [
+  'dashboard' => 'Dashboard',
   'fvm' => 'Fleet & Vehicle Management',
   'vrds' => 'Vehicle Routing & Dispatch',
   'driver_trip' => 'Driver & Trip Performance',
@@ -22,10 +24,10 @@ $allowed_modules = [
   'audit_log' => 'Audit Log'
 ];
 
-// which module to show (default fvm)
-$module = $_GET['module'] ?? 'fvm';
+// which module to show (default dashboard)
+$module = $_GET['module'] ?? 'dashboard';
 if (!array_key_exists($module, $allowed_modules)) {
-  $module = 'fvm';
+  $module = 'dashboard';
 }
 
 // base url for forms/links
@@ -35,10 +37,11 @@ $baseURL = 'dashboard.php?module=' . $module;
    Handle module logic BEFORE outputting HTML
    ------------------------------------------------------------------ */
 $moduleFile = __DIR__ . "/modules/{$module}.php";
-if (file_exists($moduleFile)) {
+if ($module === 'dashboard') {
+  // No module file needed for dashboard summary
+} else if (file_exists($moduleFile)) {
   // each module file can define a function for its logic
   require_once $moduleFile;
-
   if (function_exists("{$module}_logic")) {
     call_user_func("{$module}_logic", $baseURL);
   }
@@ -69,7 +72,9 @@ if (file_exists($moduleFile)) {
       <div class="card mt-4 p-4 shadow rounded">
         <main class="card-body flex-1 p-6">
           <?php
-          if ($module === 'audit_log' && function_exists('audit_log_view')) {
+          if ($module === 'dashboard') {
+            include __DIR__ . '/includes/dashboard_summary.php';
+          } else if ($module === 'audit_log' && function_exists('audit_log_view')) {
             audit_log_view();
           } else if (function_exists("{$module}_view")) {
             call_user_func("{$module}_view", $baseURL);

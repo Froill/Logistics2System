@@ -280,6 +280,7 @@ $dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dis
                                                     <option value="Under Maintenance" <?= $v['status'] === 'Under Maintenance' ? 'selected' : '' ?>>Under Maintenance</option>
                                                 </select>
                                             </div>
+                                            
                                             <div class="flex gap-2 mt-4">
                                                 <button type="submit" class="btn btn-primary flex-1">Update Vehicle</button>
                                                 <a href="<?= htmlspecialchars($baseURL . '&delete=' . $v['id']) ?>"

@@ -119,7 +119,7 @@ function user_management_view($baseURL)
                     <select name="role" class="select select-bordered">
                         <option value="user">User</option>
                         <option value="manager">Manager</option>
-                        <option value="staff">Staff</option>
+                        <option value="supervisor">Supervisor</option>
                     </select>
                 </div>
 
@@ -156,7 +156,7 @@ function user_management_view($baseURL)
                     <select name="role" id="edit_role" class="select select-bordered">
                         <option value="user">User</option>
                         <option value="manager">Manager</option>
-                        <option value="staff">Staff</option>
+                        <option value="supervisor">Supervisor</option>
                     </select>
                     <div class="flex items-center gap-1 text-sm text-gray-500 mt-1 hidden">
                         <i data-lucide="info"></i>
