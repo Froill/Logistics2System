@@ -9,7 +9,7 @@ require __DIR__ . '/includes/functions.php';
 
 $id = $_SESSION['user_id'];
 $eid = $_SESSION['eid'];
-$username = $_SESSION['username'];
+$full_name = $_SESSION['full_name'];
 $role = $_SESSION['role'];
 
 // allowed modules (matching filenames in /modules)

@@ -34,12 +34,12 @@ function ip_net(): string
     return 'unknown';
 }
 
-$username = sanitize($_POST['username'] ?? '');
+$eid = sanitize($_POST['eid'] ?? '');
 $password = $_POST['password'] ?? '';
 
-if (empty($username) || empty($password)) {
+if (empty($eid) || empty($password)) {
     $_SESSION['error'] = "Both fields are required.";
-    $_SESSION['username'] = $username;
+    $_SESSION['eid'] = $eid;
     header("Location: ../login.php");
     exit();
 }
@@ -62,11 +62,11 @@ try {
     $conn->query("DELETE FROM trusted_devices WHERE expires_at < NOW()");
 
     // Prepare statement with MySQLi
-    $stmt = $conn->prepare("SELECT id, eid, username, password, role, email 
+    $stmt = $conn->prepare("SELECT id, eid, full_name, password, role, email 
                         FROM users 
-                        WHERE username = ? OR eid = ? 
+                        WHERE eid = ? 
                         LIMIT 1");
-    $stmt->bind_param("ss", $username, $username);
+    $stmt->bind_param("s", $eid);
     $stmt->execute();
 
     $result = $stmt->get_result();
@@ -98,7 +98,7 @@ try {
                 $_SESSION['user_id']  = $user['id'];
                 $_SESSION['eid']      = $user['eid'];
                 $_SESSION['role']     = $user['role'];
-                $_SESSION['username'] = $user['username'];
+                $_SESSION['full_name'] = $user['full_name'];
 
                 header("Location: ../dashboard.php");
                 exit();
@@ -116,7 +116,7 @@ try {
             'id' => $user['id'],
             'eid' => $user['eid'],
             'role' => $user['role'],
-            'username' => $user['username'],
+            'full_name' => $user['full_name'],
             'email' => $user['email']
         ];
 
@@ -129,8 +129,8 @@ try {
             exit();
         }
     } else {
-        $_SESSION['error'] = "Invalid username or password.";
-        $_SESSION['username'] = $username;
+        $_SESSION['error'] = "Invalid EID or password.";
+        $_SESSION['eid'] = $eid;
         header("Location: ../login.php");
         exit();
     }

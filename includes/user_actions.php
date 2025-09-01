@@ -11,12 +11,13 @@ if ($_SESSION['role'] !== 'admin') {
 
 $baseURL = 'dashboard.php?module=user_management';
 
-$action = $_POST['action'] ?? '';
-$user_id = $_POST['user_id'] ?? null;
-$username = trim($_POST['username'] ?? '');
-$email = trim($_POST['email'] ?? '');
+$action   = $_POST['action'] ?? '';
+$user_id  = $_POST['user_id'] ?? null;
+$full_name = trim($_POST['full_name'] ?? '');
+$license_number = trim($_POST['license_number'] ?? '');
+$email    = trim($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
-$role = $_POST['role'] ?? 'user';
+$role     = $_POST['role'] ?? 'user';
 
 // Prevent admin role creation
 if ($role === 'admin') {
@@ -25,70 +26,80 @@ if ($role === 'admin') {
     exit();
 }
 
+// --- Helper functions ---
+function generateEID($role, $deptID, $userID)
+{
+    $year = date("y"); // last 2 digits of current year
+    $roleInitial = strtoupper(substr($role, 0, 1));
+    return $roleInitial . $year . str_pad($deptID, 2, "0", STR_PAD_LEFT) . str_pad($userID, 2, "0", STR_PAD_LEFT);
+}
+
+function generateDefaultPassword($role, $eid)
+{
+    $roleInitial = strtoupper(substr($role, 0, 1));
+    $last2 = substr($eid, -2);
+    return '#' . $roleInitial . $last2 . "Log02";
+}
+
 try {
     switch ($action) {
         case 'create':
-        case 'create':
-            if (empty($username) || empty($email) || empty($role)) {
-                throw new Exception("Username, email, and role are required.");
+            if (empty($full_name) || empty($email) || empty($role)) {
+                throw new Exception("Full name, email, and role are required.");
             }
 
-            // --- Generate EID ---
-            function generateEID($role, $deptID, $userID)
-            {
-                $year = date("y"); // last 2 digits of current year
-                $roleInitial = strtoupper(substr($role, 0, 1));
-                return $roleInitial . $year . str_pad($deptID, 2, "0", STR_PAD_LEFT) . str_pad($userID, 2, "0", STR_PAD_LEFT);
-            }
+            // // --- Generate EID ---
+            // function generateEID($role, $deptID, $userID)
+            // {
+            //     $year = date("y");
+            //     $roleInitial = strtoupper(substr($role, 0, 1));
+            //     return $roleInitial . $year . str_pad($deptID, 2, "0", STR_PAD_LEFT) . str_pad($userID, 2, "0", STR_PAD_LEFT);
+            // }
 
-            // --- Generate Default Password ---
-            function generateDefaultPassword($role, $eid)
-            {
-                $roleInitial = strtoupper(substr($role, 0, 1));
-                $last2 = substr($eid, -2);
-                return '#' . $roleInitial . $last2 . "Log02";
-            }
+            // // --- Generate Default Password ---
+            // function generateDefaultPassword($role, $eid)
+            // {
+            //     $roleInitial = strtoupper(substr($role, 0, 1));
+            //     $last2 = substr($eid, -2);
+            //     return '#' . $roleInitial . $last2 . "Log02";
+            // }
 
-            // First, insert a temporary record (without eid/password) so we get the user_id
-            $stmt = $conn->prepare("INSERT INTO users (username, email, role) VALUES (?, ?, ?)");
-            $stmt->bind_param("sss", $username, $email, $role);
-            if (!$stmt->execute()) {
-                $error = $stmt->error;
-                $stmt->close();
-                throw new Exception("Failed to create user: $error");
-            }
-
-            $userID = $stmt->insert_id;  // get auto-incremented ID
+            // Insert basic user
+            $stmt = $conn->prepare("INSERT INTO users (full_name, email, role) VALUES (?, ?, ?)");
+            $stmt->bind_param("sss", $full_name, $email, $role);
+            $stmt->execute();
+            $userID = $stmt->insert_id;
             $stmt->close();
 
-            // Logistic 2 department ID = 7
             $deptID = 7;
-
-            // Generate EID
             $eid = generateEID($role, $deptID, $userID);
-
-            // Generate password from algorithm and hash it
             $plainPassword = generateDefaultPassword($role, $eid);
             $hashed = password_hash($plainPassword, PASSWORD_DEFAULT);
 
-            // Update record with eid and password
+            // Update user with eid + password
             $stmt = $conn->prepare("UPDATE users SET eid = ?, password = ? WHERE id = ?");
             $stmt->bind_param("ssi", $eid, $hashed, $userID);
-            if (!$stmt->execute()) {
-                $error = $stmt->error;
-                $stmt->close();
-                throw new Exception("Failed to update user credentials: $error");
-            }
+            $stmt->execute();
             $stmt->close();
+
+            // --- Insert driver if role = driver ---
+            if ($role === 'driver') {
+                $license_number = $_POST['license_number'] ?? null;
+                $stmt = $conn->prepare("INSERT INTO drivers (eid, driver_name, license_number, email, status) VALUES (?, ?, ?, ?, 'Available')");
+                $stmt->bind_param("ssss", $eid, $full_name, $license_number, $email);
+                $stmt->execute();
+                $stmt->close();
+            }
 
             require_once 'mailer.php';
 
+            $first_name = explode(' ', $full_name)[0];
             // Send credentials to user's email
             $body = "
                 <div style='font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e5e5e5; border-radius: 8px; background: #f9f9f9;'>
                     <h2 style='color: #135efdff; margin-bottom: 15px;'>Welcome to Logistics 2</h2>
             
-                    <p>Hello <strong style='color:#111;'>$username</strong>,</p>
+                    <p>Hello <strong style='color:#111;'>$first_name</strong>,</p>
             
                     <p>Your account has been created successfully.</p>
             
@@ -112,43 +123,85 @@ try {
 
 
         case 'update':
-            if (empty($user_id) || empty($username) || empty($email)) {
-                throw new Exception("User ID, username, and email are required.");
+            if (empty($user_id) || empty($full_name) || empty($email)) {
+                throw new Exception("User ID, full name, and email are required.");
             }
 
-            if ($role === 'admin') {
-                throw new Exception("You cannot assign the admin role.");
-            }
+            // get old role + eid
+            $res = $conn->prepare("SELECT role, eid FROM users WHERE id=?");
+            $res->bind_param("i", $user_id);
+            $res->execute();
+            $res->bind_result($oldRole, $eid);
+            $res->fetch();
+            $res->close();
 
             if (!empty($password)) {
                 $hashed = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $conn->prepare("UPDATE users SET username=?, email=?, password=?, role=? WHERE id=?");
-                $stmt->bind_param("ssssi", $username, $email, $hashed, $role, $user_id);
+                $stmt = $conn->prepare("UPDATE users SET full_name=?, email=?, password=?, role=? WHERE id=?");
+                $stmt->bind_param("ssssi", $full_name, $email, $hashed, $role, $user_id);
             } else {
-                $stmt = $conn->prepare("UPDATE users SET username=?, email=?, role=? WHERE id=?");
-                $stmt->bind_param("sssi", $username, $email, $role, $user_id);
+                $stmt = $conn->prepare("UPDATE users SET full_name=?, email=?, role=? WHERE id=?");
+                $stmt->bind_param("sssi", $full_name, $email, $role, $user_id);
             }
             $stmt->execute();
+            $stmt->close();
+
+            // --- Driver sync logic ---
+            if ($role === 'driver') {
+                // Insert or update driver
+                $stmt = $conn->prepare("INSERT INTO drivers (eid, driver_name, license_number, email, status)
+                                        VALUES (?, ?, ?, ?, 'Available')
+                                        ON DUPLICATE KEY UPDATE 
+                                            driver_name=VALUES(driver_name),
+                                            license_number=VALUES(license_number),
+                                            email=VALUES(email),
+                                            status='Available'");
+                $stmt->bind_param("ssss", $eid, $full_name, $license_number, $email);
+                $stmt->execute();
+                $stmt->close();
+            } elseif ($oldRole === 'driver' && $role !== 'driver') {
+                // If no longer driver, mark inactive
+                $stmt = $conn->prepare("UPDATE drivers SET status='Inactive' WHERE eid=?");
+                $stmt->bind_param("s", $eid);
+                $stmt->execute();
+                $stmt->close();
+            }
 
             $_SESSION['um_success'] = "User account updated successfully.";
             break;
+
 
         case 'delete':
             if (empty($user_id)) {
                 throw new Exception("User ID is required for deletion.");
             }
-
-            // Prevent admin from deleting themselves
             if ($user_id == $_SESSION['user_id']) {
                 throw new Exception("You cannot delete your own account.");
             }
 
+            // Get eid before deleting
+            $stmt = $conn->prepare("SELECT eid FROM users WHERE id=? LIMIT 1");
+            $stmt->bind_param("i", $user_id);
+            $stmt->execute();
+            $stmt->bind_result($eid);
+            $stmt->fetch();
+            $stmt->close();
+
+            // Delete from users
             $stmt = $conn->prepare("DELETE FROM users WHERE id=?");
             $stmt->bind_param("i", $user_id);
             $stmt->execute();
+            $stmt->close();
 
-            $_SESSION['um_success'] = "User account deleted successfully.";
+            // Cascade delete from drivers
+            if (!empty($eid)) {
+                $stmt = $conn->prepare("DELETE FROM drivers WHERE eid=?");
+                $stmt->bind_param("s", $eid);
+                $stmt->execute();
+                $stmt->close();
+            }
             break;
+
 
         default:
             throw new Exception("Invalid action.");

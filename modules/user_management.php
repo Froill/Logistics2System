@@ -1,4 +1,3 @@
-
 <?php
 // USER MANAGEMENT MODULE
 
@@ -6,7 +5,6 @@ require_once __DIR__ . '/../includes/db.php';
 
 function user_management_logic($baseURL)
 {
-
     // Access control
     if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
         header("Location: dashboard.php");
@@ -18,14 +16,27 @@ function user_management_logic($baseURL)
     $GLOBALS['um_error']   = $_SESSION['um_error'] ?? '';
     unset($_SESSION['um_success'], $_SESSION['um_error']);
 
-    // Fetch users
+    // Fetch users with license numbers (if driver)
     global $conn;
-    $stmt = $conn->prepare("SELECT id, eid, username, email, role, created_at FROM users ORDER BY created_at DESC");
+    $stmt = $conn->prepare("
+        SELECT 
+            u.id, 
+            u.eid, 
+            u.full_name, 
+            u.email, 
+            u.role, 
+            u.created_at,
+            d.license_number
+        FROM users u
+        LEFT JOIN drivers d ON u.eid = d.eid
+        ORDER BY u.created_at DESC
+    ");
     $stmt->execute();
     $result = $stmt->get_result();
     $GLOBALS['um_users'] = $result->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
 }
+
 
 function user_management_view($baseURL)
 {
@@ -51,7 +62,7 @@ function user_management_view($baseURL)
                 <thead>
                     <tr>
                         <th>EID</th>
-                        <th>Username</th>
+                        <th>Name</th>
                         <th>Email</th>
                         <th>Role</th>
                         <th>Created</th>
@@ -62,7 +73,7 @@ function user_management_view($baseURL)
                     <?php foreach ($users as $u): ?>
                         <tr>
                             <td><?= htmlspecialchars($u['eid']) ?></td>
-                            <td><?= htmlspecialchars($u['username']) ?></td>
+                            <td><?= htmlspecialchars($u['full_name']) ?></td>
                             <td><?= htmlspecialchars($u['email']) ?></td>
                             <td><?= htmlspecialchars(ucfirst($u['role'])) ?></td>
                             <td><?= htmlspecialchars($u['created_at']) ?></td>
@@ -71,7 +82,8 @@ function user_management_view($baseURL)
                                     <button class="btn btn-info btn-sm py-5 flex  content-center" aria-label="Edit user details"
                                         onclick="openEditModal(<?= htmlspecialchars(json_encode([
                                                                     'id' => $u['id'],
-                                                                    'username' => $u['username'],
+                                                                    'full_name' => $u['full_name'],
+                                                                    'license_number' => $u['license_number'] ?? '',
                                                                     'email' => $u['email'],
                                                                     'role' => $u['role']
                                                                 ]), ENT_QUOTES, 'UTF-8') ?>)">
@@ -82,7 +94,7 @@ function user_management_view($baseURL)
                                         <button class="btn btn-error btn-sm  py-5 flex  content-center" aria-label="Delete user"
                                             onclick="openDeleteModal(<?= htmlspecialchars(json_encode([
                                                                             'id' => $u['id'],
-                                                                            'username' => $u['username']
+                                                                            'full_name' => $u['full_name']
                                                                         ]), ENT_QUOTES, 'UTF-8') ?>)">
                                             <i data-lucide="user-round-x"></i>
                                         </button>
@@ -110,17 +122,24 @@ function user_management_view($baseURL)
                 <input type="hidden" name="action" value="create" />
 
                 <div class="mt-3">
-                    <label class="label"><span class="label-text">Username</span></label>
-                    <input name="username" class="input input-bordered w-full" required />
+                    <label class="label"><span class="label-text">Full Name</span></label>
+                    <input name="full_name" class="input input-bordered w-full" required />
                 </div>
 
                 <div class="mt-3">
                     <label class="label">Role</label>
-                    <select name="role" class="select select-bordered">
-                        <option value="user">User</option>
-                        <option value="manager">Manager</option>
+                    <select name="role" id="add_role" class="select select-bordered" required>
+                        <option value="requester">Requester</option>
+                        <option value="driver">Driver</option>
+                        <option value="staff">Staff</option>
                         <option value="supervisor">Supervisor</option>
+                        <option value="manager">Manager</option>
                     </select>
+                </div>
+
+                <div class="mt-3 hidden" id="add_license_field">
+                    <label class="label"><span class="label-text">License Number</span></label>
+                    <input type="text" name="license_number" class="input input-bordered w-full" />
                 </div>
 
                 <div class="mt-3">
@@ -147,23 +166,29 @@ function user_management_view($baseURL)
                 </div>
 
                 <div class="mt-3">
-                    <label class="label">Username</label>
-                    <input id="edit_username" name="username" class="input input-bordered w-full" required />
+                    <label class="label">Full Name</label>
+                    <input id="edit_full_name" name="full_name" class="input input-bordered w-full" required />
                 </div>
 
                 <div class="mt-3">
                     <label class="label">Role</label>
-                    <select name="role" id="edit_role" class="select select-bordered">
-                        <option value="user">User</option>
-                        <option value="manager">Manager</option>
+                    <select name="role" id="edit_role" class="select select-bordered" required>
+                        <option value="requester">Requester</option>
+                        <option value="driver">Driver</option>
+                        <option value="staff">Staff</option>
                         <option value="supervisor">Supervisor</option>
+                        <option value="manager">Manager</option>
                     </select>
                     <div class="flex items-center gap-1 text-sm text-gray-500 mt-1 hidden">
                         <i data-lucide="info"></i>
-                        <p class=" ">Admin role cannot be changed.</p>
+                        <p>Admin role cannot be changed.</p>
                     </div>
                 </div>
 
+                <div class="mt-3 hidden" id="edit_license_field">
+                    <label class="label"><span class="label-text">License Number</span></label>
+                    <input type="text" id="edit_license_number" name="license_number" class="input input-bordered w-full" />
+                </div>
 
                 <div class="mt-3">
                     <label class="label">Email</label>
@@ -182,6 +207,7 @@ function user_management_view($baseURL)
             </form>
         </dialog>
 
+
         <!-- Delete User Modal -->
         <dialog id="deleteUserModal" class="modal">
             <form method="POST" action="includes/user_actions.php" class="modal-box">
@@ -192,7 +218,7 @@ function user_management_view($baseURL)
                     <i data-lucide="user-round-x" class="size-6 bold"></i>
                     <h3 class="font-bold text-lg">Delete User</h3>
                 </div>
-                <p class="mt-2">Are you sure you want to delete <strong id="delete_username"></strong>?</p>
+                <p class="mt-2">Are you sure you want to delete <strong id="delete_full_name"></strong>?</p>
 
                 <div class="modal-action">
                     <button type="submit" class="btn btn-error">Delete</button>
@@ -203,26 +229,65 @@ function user_management_view($baseURL)
 
         <script>
             function openEditModal(user) {
+                // Fill form fields
                 document.getElementById('edit_user_id').value = user.id;
-                document.getElementById('edit_username').value = user.username;
+                document.getElementById('edit_full_name').value = user.full_name;
+                document.getElementById('edit_license_number').value = user.license_number || '';
                 document.getElementById('edit_email').value = user.email;
                 document.getElementById('edit_password').value = '';
 
+                // Role select handling
                 const roleSelect = document.getElementById('edit_role');
                 if (roleSelect) {
                     roleSelect.value = user.role;
                     roleSelect.disabled = (user.role === 'admin');
-                    roleSelect.nextElementSibling.classList.toggle('hidden', user.role !== 'admin');
+
+                    // Show "Admin role cannot be changed." notice
+                    const adminNotice = roleSelect.nextElementSibling;
+                    if (adminNotice) {
+                        adminNotice.classList.toggle('hidden', user.role !== 'admin');
+                    }
                 }
+
+                // License field only visible for drivers
+                const licenseField = document.getElementById('edit_license_field');
+                if (licenseField) {
+                    if (user.role === 'driver') {
+                        licenseField.classList.remove("hidden");
+                    } else {
+                        licenseField.classList.add("hidden");
+                    }
+                }
+
                 editUserModal.showModal();
             }
 
             function openDeleteModal(user) {
                 document.getElementById('delete_user_id').value = user.id;
-                document.getElementById('delete_username').textContent = user.username;
+                document.getElementById('delete_full_name').textContent = user.full_name;
                 deleteUserModal.showModal();
             }
+
+            // --- Role change handlers ---
+            function handleRoleChange(selectId, fieldId) {
+                const select = document.getElementById(selectId);
+                const field = document.getElementById(fieldId);
+                if (!select || !field) return;
+
+                select.addEventListener("change", function() {
+                    if (this.value === "driver") {
+                        field.classList.remove("hidden");
+                    } else {
+                        field.classList.add("hidden");
+                    }
+                });
+            }
+
+            // Apply to Add User modal and Edit User modal
+            handleRoleChange("add_role", "add_license_field");
+            handleRoleChange("edit_role", "edit_license_field");
         </script>
+
     </div>
 <?php
 }

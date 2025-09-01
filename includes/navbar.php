@@ -171,7 +171,7 @@
                   </div>
                 </div>
                 <div>
-                  <p class="font-medium text-white"><?= htmlspecialchars($username) ?></p>
+                  <p class="font-medium text-white"><?= htmlspecialchars($full_name) ?></p>
                   <p class="text-xs text-white"><?= htmlspecialchars($eid) ?></p>
                   <p class="text-xs text-white"><?= htmlspecialchars(ucfirst($role)) ?></p>
                 </div>
