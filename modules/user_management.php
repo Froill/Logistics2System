@@ -44,9 +44,9 @@ function user_management_view($baseURL)
     $success = $GLOBALS['um_success'] ?? '';
     $error   = $GLOBALS['um_error'] ?? '';
 ?>
-    <div>
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-2xl font-bold">User Management</h2>
+    <div class="overflow-x-auto w-auto">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-2">
+            <h2 class="text-xl md:text-2xl font-bold">User Management</h2>
             <button onclick="addUserModal.showModal()" class="btn btn-primary">Add User</button>
         </div>
 
@@ -61,7 +61,7 @@ function user_management_view($baseURL)
             <table class="table w-full">
                 <thead>
                     <tr>
-                        <th>EID</th>
+                        <th class="sticky left-0 bg-base-100 z-10">EID</th>
                         <th>Name</th>
                         <th>Email</th>
                         <th>Role</th>
@@ -72,13 +72,13 @@ function user_management_view($baseURL)
                 <tbody>
                     <?php foreach ($users as $u): ?>
                         <tr>
-                            <td><?= htmlspecialchars($u['eid']) ?></td>
+                            <td class="sticky left-0 bg-base-100 z-10"><?= htmlspecialchars($u['eid']) ?></td>
                             <td><?= htmlspecialchars($u['full_name']) ?></td>
                             <td><?= htmlspecialchars($u['email']) ?></td>
                             <td><?= htmlspecialchars(ucfirst($u['role'])) ?></td>
                             <td><?= htmlspecialchars($u['created_at']) ?></td>
                             <td class="text-right">
-                                <div class="flex items-center justify-end gap-2">
+                                <div class="flex flex-wrap md:flex-nowrap items-center justify-end gap-2">
                                     <button class="btn btn-info btn-sm py-5 flex  content-center" aria-label="Edit user details"
                                         onclick="openEditModal(<?= htmlspecialchars(json_encode([
                                                                     'id' => $u['id'],
