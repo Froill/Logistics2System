@@ -190,7 +190,7 @@
               </a>
             </li>
             <li class="">
-              <a href="logout.php" class="flex items-center gap-2 px-4 py-2 text-white hover:bg-blue-700/50  hover:text-white transition-colors">
+              <a onclick="logoutModal.showModal()" class="flex items-center gap-2 px-4 py-2 text-white hover:bg-blue-700/50  hover:text-white transition-colors">
                 <i data-lucide="log-out" class="w-4 h-4"></i>
                 <span>Sign out</span>
               </a>

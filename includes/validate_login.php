@@ -2,6 +2,7 @@
 session_start();
 require_once 'db.php'; // DB connection
 require_once 'mailer.php'; // Mailer functions
+require_once dirname(__DIR__) . '/modules/audit_log.php'; // Audit log functions
 
 // Helper: sanitize input
 function sanitize($data)
@@ -100,6 +101,7 @@ try {
                 $_SESSION['role']     = $user['role'];
                 $_SESSION['full_name'] = $user['full_name'];
 
+                log_audit_event('Authentication', 'Login', $user['id'], $eid, 'User logged in via trusted device');
                 header("Location: ../dashboard.php");
                 exit();
             }
@@ -121,6 +123,7 @@ try {
         ];
 
         if (sendOTPEmail($user['email'], $otp)) {
+            log_audit_event('Authentication', 'OTP Sent', $user['id'], $user['eid'], 'OTP sent for login');
             header("Location: ../verify-otp.php");
             exit();
         } else {
@@ -130,6 +133,7 @@ try {
         }
     } else {
         $_SESSION['error'] = "Invalid EID or password.";
+        log_audit_event('User Management', 'Failed Attempt', null, $eid, 'Invalid EID or password');
         $_SESSION['eid'] = $eid;
         header("Location: ../login.php");
         exit();

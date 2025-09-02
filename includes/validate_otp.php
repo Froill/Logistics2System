@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once 'db.php';
+require_once dirname(__DIR__) . '/modules/audit_log.php'; // Audit log functions
 
 /** Fingerprint helpers **/
 function ua_hash(): string
@@ -30,8 +31,17 @@ if (!isset($_SESSION['otp']) || !isset($_SESSION['pending_user'])) {
     exit();
 }
 
+// block if previously locked
+if (!empty($_SESSION['otp_locked'])) {
+    $_SESSION['otp_error'] = 'Too many incorrect attempts. Please login again.';
+    session_destroy();
+    header('Location: ../login.php');
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $inputOtp = trim($_POST['otp'] ?? '');
+    $user = $_SESSION['pending_user'];
 
     if (empty($inputOtp)) {
         $_SESSION['otp_error'] = 'OTP is required.';
@@ -54,7 +64,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Check if maximum attempts reached
     if ($_SESSION['otp_attempts'] >= 3) {
+        $_SESSION['otp_locked'] = true; // mark locked
         $_SESSION['otp_error'] = 'Too many incorrect attempts. Please login again.';
+        log_audit_event('Authentication', 'OTP Failure', $user['id'], $user['eid'], 'Exceeded maximum OTP attempts');
         session_destroy();
         header('Location: ../login.php');
         exit();
@@ -62,12 +74,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Validate OTP
     if ($inputOtp === $_SESSION['otp']) {
-        $user = $_SESSION['pending_user'];
 
-        // Complete login (your existing session sets)
-        $_SESSION['user_id']  = $user['id'];
-        $_SESSION['eid']      = $user['eid'];
-        $_SESSION['role']     = $user['role'];
+        // Complete login
+        $_SESSION['user_id']   = $user['id'];
+        $_SESSION['eid']       = $user['eid'];
+        $_SESSION['role']      = $user['role'];
         $_SESSION['full_name'] = $user['full_name'];
 
         /*** Persist trusted device: cookie + fingerprint ***/
@@ -76,7 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $net = ip_net();
         $expiresAt = date('Y-m-d H:i:s', time() + 7 * 24 * 60 * 60);
 
-        // Insert or refresh
         $stmt = $conn->prepare("
             INSERT INTO trusted_devices (user_id, device_token, ua_hash, ip_net, expires_at, last_seen)
             VALUES (?, ?, ?, ?, ?, NOW())
@@ -87,8 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $stmt->close();
 
-        // Set cookie (7 days). Use array syntax for modern flags.
-        // Secure should be true on HTTPS. SameSite=Lax reduces CSRF risk.
+        // Set cookie (7 days)
         setcookie(
             'device_token',
             $deviceToken,
@@ -102,14 +111,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
 
         // Cleanup temp OTP data
-        unset($_SESSION['otp'], $_SESSION['otp_expires'], $_SESSION['otp_attempts'], $_SESSION['pending_user']);
-
+        unset($_SESSION['otp'], $_SESSION['otp_expires'], $_SESSION['otp_attempts'], $_SESSION['pending_user'], $_SESSION['otp_locked']);
+        log_audit_event(
+            'Authentication',
+            'Successful Login',
+            $user['id'],
+            $user['eid'],
+            'User successfully logged in after OTP verification'
+        );
         header('Location: ../dashboard.php');
         exit();
     } else {
         // Wrong OTP
         $_SESSION['otp_attempts']++;
-        $_SESSION['otp_error'] = "Incorrect OTP. Attempts left: " . (3 - $_SESSION['otp_attempts']);
+        if ($_SESSION['otp_attempts'] >= 2) {
+            $_SESSION['otp_locked'] = true; // mark locked immediately
+        }
+        $_SESSION['otp_error'] = "Incorrect OTP. Attempts left: " . max(0, (3 - $_SESSION['otp_attempts']));
         header('Location: ../verify-otp.php');
         exit();
     }
