@@ -86,6 +86,24 @@ if ($module === 'dashboard') {
     </div>
   </div>
 
+  <!-- Logout Modal -->
+  <dialog id="logoutModal" class="modal">
+    <form method="POST" action="logout.php" class="modal-box">
+
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="log-out" class="size-6"></i>
+        <h3 class="font-bold text-lg">Confirm Logout</h3>
+      </div>
+
+      <p class="mb-4">Are you sure you want to log out of your account?</p>
+
+      <div class="modal-action">
+        <button type="submit" class="btn btn-error">Logout</button>
+        <button type="button" class="btn" onclick="logoutModal.close()">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>

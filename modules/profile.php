@@ -210,7 +210,7 @@ function profile_view($baseURL)
     // Compute initial for avatar
     $initial = profile_initial($user['full_name'] ?? '', $user['email'] ?? '');
 ?>
-    <div class="w-full mx-auto">
+    <div class="">
         <h2 class="text-xl md:text-2xl font-bold mb-4">My Profile</h2>
 
         <?php if (!empty($success)): ?>
