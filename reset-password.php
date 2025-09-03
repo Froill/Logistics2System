@@ -65,12 +65,16 @@ unset($_SESSION['reset_error']);
         </div>
 
         <div class="card-body flex flex-col gap-2 justify-center">
-            <?php if (!empty($error)): ?>
-                <p class="text-center mb-3 text-red-600"><?php echo htmlspecialchars($error); ?></p>
-            <?php endif; ?>
+
+            <p id="pwResetError" class="text-center mb-3 text-red-600">
+                <?php if (!empty($error)) {
+                    echo htmlspecialchars($error);
+                } ?>
+            </p>
 
 
-            <form method="POST" action="includes/process_reset.php?token=<?php echo urlencode($token); ?>">
+
+            <form method="POST" id="resetForm" action="includes/process_reset.php?token=<?php echo urlencode($token); ?>">
                 <div class="form-control">
                     <label class="label flex items-center justify-start gap-2">
                         <i data-lucide="lock-keyhole" class="w-5 h-5 "></i>
@@ -78,7 +82,9 @@ unset($_SESSION['reset_error']);
                     </label>
                     <input type="password" class="input input-bordered w-full" id="password" name="password" required />
                     <div class="flex flex-col items-center justify-start gap-2 ">
-                        <progress class="progress w-full mt-3" id="strengthBar" value="0" max="100"></progress>
+                        <div class="w-full bg-gray-200 rounded h-3 overflow-hidden mt-3">
+                            <div id="strengthFill" class="h-3 bg-red-500 w-0 transition-all duration-500 ease-in-out"></div>
+                        </div>
                         <p id="strengthText" class="text-center font-medium">Enter a password</p>
                     </div>
 
@@ -89,7 +95,7 @@ unset($_SESSION['reset_error']);
                         <i data-lucide="shield-check" class="w-5 h-5 "></i>
                         <span class="label-text">Confirm Password</span>
                     </label>
-                    <input type="password" class="input input-bordered w-full" name="confirm" required />
+                    <input type="password" class="input input-bordered w-full" id="confirm_password" name="confirm" required />
                 </div>
 
                 <div class="form-control mt-6">
@@ -102,12 +108,7 @@ unset($_SESSION['reset_error']);
         </div>
     </div>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="js/login.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-
-        });
-    </script>
+    <script src="js/reset-password.js"></script>
 </body>
 
 </html>
