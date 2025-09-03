@@ -30,7 +30,7 @@ unset($_SESSION['username']); // Clear username after using it
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-slate-700 to-slate-900">
 
-    <div class="card w-80 md:w-96 shadow-xl bg-white ">
+    <div class="card w-full md:w-96 shadow-xl bg-white ">
         <div class="bg-[#001f54] text-white py-8 w-full rounded-t-md border-b-2 border-solid border-yellow-700">
             <img src="images/logo/sonly.png"
                 class="size-20 rounded-full border-solid border-yellow-600 border-4 mx-auto mb-2 bg-[#001f54]"
