@@ -210,143 +210,138 @@ function profile_view($baseURL)
     // Compute initial for avatar
     $initial = profile_initial($user['full_name'] ?? '', $user['email'] ?? '');
 ?>
-    <div class="">
-        <h2 class="text-xl md:text-2xl font-bold mb-4">My Profile</h2>
 
-        <?php if (!empty($success)): ?>
-            <div class="alert alert-success mb-4"><?= htmlspecialchars($success) ?></div>
-        <?php endif; ?>
-        <?php if (!empty($error)): ?>
-            <div class="alert alert-error mb-4"><?= htmlspecialchars($error) ?></div>
-        <?php endif; ?>
+    <h2 class="text-xl md:text-2xl font-bold mb-4">My Profile</h2>
 
-        <!-- Profile Card -->
-        <div class="card bg-base-100 shadow mb-6">
-            <div class="card-body">
-                <!-- Avatar and Name -->
-                <div class="flex items-center gap-4">
-                    <!-- First letter avatar -->
-                    <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-blue-600 via-blue-500 to-blue-400 text-white flex items-center justify-center text-2xl font-semibold"
-                        aria-label="User initial">
-                        <?= htmlspecialchars($initial) ?>
-                    </div>
-                    <div>
-                        <p class="text-lg font-semibold">
-                            <?= htmlspecialchars($user['full_name'] ?? '') ?>
-                        </p>
-                        <p class="text-sm text-gray-500">
-                            <?= htmlspecialchars(ucfirst($user['role'] ?? '')) ?>
-                        </p>
-                    </div>
-                </div>
+    <?php if (!empty($success)): ?>
+        <div class="alert alert-success mb-4"><?= htmlspecialchars($success) ?></div>
+    <?php endif; ?>
+    <?php if (!empty($error)): ?>
+        <div class="alert alert-error mb-4"><?= htmlspecialchars($error) ?></div>
+    <?php endif; ?>
 
-                <!-- Info Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div class="p-3 rounded border border-base-300">
-                        <p class="text-xs text-gray-500">Employee ID</p>
-                        <p class="font-medium"><?= htmlspecialchars($user['eid'] ?? '') ?></p>
-                    </div>
-                    <div class="p-3 rounded border border-base-300">
-                        <p class="text-xs text-gray-500">Email</p>
-                        <p class="font-medium break-all"><?= htmlspecialchars($user['email'] ?? '') ?></p>
-                    </div>
-                    <div class="p-3 rounded border border-base-300">
-                        <p class="text-xs text-gray-500">Created</p>
-                        <p class="font-medium">
-                            <?= htmlspecialchars($user['created_at'] ?? '') ?>
-                        </p>
-                    </div>
-                    <?php if (($user['role'] ?? '') === 'driver'): ?>
-                        <div class="p-3 rounded border border-base-300">
-                            <p class="text-xs text-gray-500">License Number</p>
-                            <p class="font-medium">
-                                <?= htmlspecialchars($user['license_number'] ?? 'N/A') ?>
-                            </p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-                <div class="divider">
-                    <button onclick="updateEmailModal.showModal()" class="btn btn-primary">Change Email</button>
-                    <button onclick="updatePasswordModal.showModal()" class="btn btn-info">Change Password</button>
-                </div>
-
-
-            </div>
+    <!-- Avatar and Name -->
+    <div class="flex flex-wrap justify-center md:justify-start content-center gap-4">
+        <!-- First letter avatar -->
+        <div class="w-14 h-14 rounded-full bg-gradient-to-tr from-blue-600 via-blue-500 to-blue-400 text-white flex items-center justify-center text-2xl font-semibold"
+            aria-label="User initial">
+            <?= htmlspecialchars($initial) ?>
         </div>
-
-        <!-- Change Email Modal -->
-        <dialog id="updateEmailModal" class="modal">
-            <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="modal-box space-y-3">
-                <!-- CSRF token -->
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-                <input type="hidden" name="action" value="update_email" />
-
-                <div class="flex items-center gap-2 mb-2">
-                    <i data-lucide="mail" class="size-5"></i>
-                    <h3 class="font-semibold text-lg">Change Email</h3>
-                </div>
-
-                <div class="mt-3">
-                    <label class="label"><span class="label-text">New Email</span></label>
-                    <input type="email" name="new_email" class="input input-bordered w-full" required />
-                </div>
-
-                <div class="mt-3">
-                    <label class="label"><span class="label-text">Current Password</span></label>
-                    <input type="password" name="current_password" class="input input-bordered w-full" required />
-                </div>
-
-                <div class="modal-action">
-                    <button type="submit" class="btn btn-primary">Update Email</button>
-                    <button type="button" class="btn" onclick="updateEmailModal.close()">Cancel</button>
-                </div>
-            </form>
-        </dialog>
-
-
-        <!-- Change Password Modal -->
-        <dialog id="updatePasswordModal" class="modal">
-            <form id="updatePasswordForm" method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="modal-box space-y-3" autocomplete="off">
-                <!-- CSRF token -->
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-                <input type="hidden" name="action" value="update_password" />
-
-                <div class="flex items-center gap-2 mb-2">
-                    <i data-lucide="key-round" class="size-5"></i>
-                    <h3 class="font-semibold text-lg">Change Password</h3>
-                </div>
-
-                <!-- Error message (hidden by default) -->
-                <div id="passwordError" class="alert alert-error hidden text-sm"></div>
-
-                <div class="mt-3">
-                    <label class="label"><span class="label-text">Current Password</span></label>
-                    <input type="password" name="current_password" id="current_password" class="input input-bordered w-full" required />
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div class="mt-3">
-                        <label class="label"><span class="label-text">New Password</span></label>
-                        <input type="password" name="new_password" id="new_password" class="input input-bordered w-full" required />
-                    </div>
-                    <div class="mt-3">
-                        <label class="label"><span class="label-text">Confirm New Password</span></label>
-                        <input type="password" name="confirm_password" id="confirm_password" class="input input-bordered w-full" required />
-                    </div>
-                </div>
-
-                <p class="text-xs text-gray-500 mt-2">
-                    Tip: Use at least 8 characters and avoid common words or reused passwords.
-                </p>
-
-                <div class="modal-action">
-                    <button type="submit" class="btn btn-primary">Update Password</button>
-                    <button type="button" class="btn" onclick="updatePasswordModal.close()">Cancel</button>
-                </div>
-            </form>
-        </dialog>
-
+        <div>
+            <p class="text-lg font-semibold">
+                <?= htmlspecialchars($user['full_name'] ?? '') ?>
+            </p>
+            <p class="text-sm text-gray-500">
+                <?= htmlspecialchars(ucfirst($user['role'] ?? '')) ?>
+            </p>
+        </div>
     </div>
+
+    <!-- Info Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div class="p-3 rounded border border-base-300">
+            <p class="text-xs text-gray-500">Employee ID</p>
+            <p class="font-medium"><?= htmlspecialchars($user['eid'] ?? '') ?></p>
+        </div>
+        <div class="p-3 rounded border border-base-300">
+            <p class="text-xs text-gray-500">Email</p>
+            <p class="font-medium break-all"><?= htmlspecialchars($user['email'] ?? '') ?></p>
+        </div>
+        <div class="p-3 rounded border border-base-300">
+            <p class="text-xs text-gray-500">Created</p>
+            <p class="font-medium">
+                <?= htmlspecialchars($user['created_at'] ?? '') ?>
+            </p>
+        </div>
+        <?php if (($user['role'] ?? '') === 'driver'): ?>
+            <div class="p-3 rounded border border-base-300">
+                <p class="text-xs text-gray-500">License Number</p>
+                <p class="font-medium">
+                    <?= htmlspecialchars($user['license_number'] ?? 'N/A') ?>
+                </p>
+            </div>
+        <?php endif; ?>
+    </div>
+    <div class="flex flex-wrap justify-center md:justify-start content-center gap-3 mt-4 w-full">
+        <button onclick="updateEmailModal.showModal()" class="btn btn-primary">Change Email</button>
+        <button onclick="updatePasswordModal.showModal()" class="btn btn-info">Change Password</button>
+    </div>
+
+
+
+
+    <!-- Change Email Modal -->
+    <dialog id="updateEmailModal" class="modal">
+        <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="modal-box space-y-3">
+            <!-- CSRF token -->
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+            <input type="hidden" name="action" value="update_email" />
+
+            <div class="flex items-center gap-2 mb-2">
+                <i data-lucide="mail" class="size-5"></i>
+                <h3 class="font-semibold text-lg">Change Email</h3>
+            </div>
+
+            <div class="mt-3">
+                <label class="label"><span class="label-text">New Email</span></label>
+                <input type="email" name="new_email" class="input input-bordered w-full" required />
+            </div>
+
+            <div class="mt-3">
+                <label class="label"><span class="label-text">Current Password</span></label>
+                <input type="password" name="current_password" class="input input-bordered w-full" required />
+            </div>
+
+            <div class="modal-action">
+                <button type="submit" class="btn btn-primary">Update Email</button>
+                <button type="button" class="btn" onclick="updateEmailModal.close()">Cancel</button>
+            </div>
+        </form>
+    </dialog>
+
+
+    <!-- Change Password Modal -->
+    <dialog id="updatePasswordModal" class="modal">
+        <form id="updatePasswordForm" method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="modal-box space-y-3" autocomplete="off">
+            <!-- CSRF token -->
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
+            <input type="hidden" name="action" value="update_password" />
+
+            <div class="flex items-center gap-2 mb-2">
+                <i data-lucide="key-round" class="size-5"></i>
+                <h3 class="font-semibold text-lg">Change Password</h3>
+            </div>
+
+            <!-- Error message (hidden by default) -->
+            <div id="passwordError" class="alert alert-error hidden text-sm"></div>
+
+            <div class="mt-3">
+                <label class="label"><span class="label-text">Current Password</span></label>
+                <input type="password" name="current_password" id="current_password" class="input input-bordered w-full" required />
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="mt-3">
+                    <label class="label"><span class="label-text">New Password</span></label>
+                    <input type="password" name="new_password" id="new_password" class="input input-bordered w-full" required />
+                </div>
+                <div class="mt-3">
+                    <label class="label"><span class="label-text">Confirm New Password</span></label>
+                    <input type="password" name="confirm_password" id="confirm_password" class="input input-bordered w-full" required />
+                </div>
+            </div>
+
+            <p class="text-xs text-gray-500 mt-2">
+                Tip: Use at least 8 characters and avoid common words or reused passwords.
+            </p>
+
+            <div class="modal-action">
+                <button type="submit" class="btn btn-primary">Update Password</button>
+                <button type="button" class="btn" onclick="updatePasswordModal.close()">Cancel</button>
+            </div>
+        </form>
+    </dialog>
+
 
     <script>
         // Initialize icons on this page. If you already call lucide.createIcons() globally, this is safe to call again.

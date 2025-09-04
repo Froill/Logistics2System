@@ -49,15 +49,30 @@ if ($module === 'dashboard') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 
 <head>
+  <!-- Meta -->
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Logistics 2 Dashboard</title>
+
+  <!-- Theme loader -->
+  <script>
+    (() => {
+      const savedTheme = localStorage.getItem("theme");
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const theme = savedTheme || (prefersDark ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+
+  <!-- Styles -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.0.0/dist/full.css" rel="stylesheet" type="text/css" />
-  <link rel="stylesheet" href="./css/style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="./css/style.css" />
+
+  <!-- Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
@@ -108,9 +123,6 @@ if ($module === 'dashboard') {
   <script src="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="./js/soliera.js"></script>
-  <script>
-    lucide.createIcons();
-  </script>
 </body>
 
 </html>
