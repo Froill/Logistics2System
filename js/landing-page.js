@@ -26,4 +26,12 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 
   fadeElems.forEach((el) => observer.observe(el));
+
+  // Set current year in footer section
+  const footer = document.getElementById("footerText");
+  const date = new Date();
+  const year = date.getFullYear();
+  console.log(year);
+
+  footer.textContent = `© ${year} Soliera Logistics 2 Subsystem. All rights reserved.`;
 });
