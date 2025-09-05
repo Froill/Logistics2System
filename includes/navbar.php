@@ -23,7 +23,7 @@
           </button>
 
           <!-- Dropdown Content - Responsive -->
-          <ul tabindex="0" class="dropdown-content menu mt-3 z-[1] rounded-lg shadow-xl overflow-hidden transform md:translate-x-0 sm:translate-x-1/2 sm:-translate-x-1/2">
+          <ul tabindex="0" class="dropdown-content bg-base-100 menu mt-3 z-[1] rounded-lg shadow-xl overflow-hidden transform md:translate-x-0 sm:translate-x-1/2 sm:-translate-x-1/2">
             <!-- Header -->
             <li class="px-4 py-3 border-b  flex justify-between items-center sticky top-0 backdrop-blur-sm z-10">
               <div class="flex items-center gap-2">
@@ -144,7 +144,7 @@
             </div>
 
             <!-- Footer -->
-            <li class="px-4 py-2 border-t  sticky bottom-0 backdrop-blur-sm">
+            <li class="px-4 py-2 border-t  sticky bottom-0">
               <a class="text-center   text-sm flex items-center justify-center gap-1">
                 <i data-lucide="list" class="w-4 h-4"></i>
                 <span>View All Notifications</span>
@@ -161,7 +161,7 @@
               <span class="text-center text-xl text-white"><?= strtoupper(substr($full_name, 0, 1)) ?></span>
             </div>
           </label>
-          <ul tabindex="0" class="dropdown-content menu mt-1 z-[100] w-52 rounded-box shadow-xl">
+          <ul tabindex="0" class="dropdown-content bg-base-100 menu mt-1 z-40 w-52 rounded-box shadow-xl">
             <!-- User Profile Section -->
             <li class="p-3 border-b ">
               <div class=" rounded-md shadow-md flex items-center gap-3">
