@@ -17,9 +17,10 @@ function audit_log_view() {
     echo '<div class="overflow-x-auto">';
     echo '<h2 class="text-2xl font-bold mb-4">Audit Logs</h2>';
     echo '<table class="table table-zebra w-full">';
-    echo '<thead><tr><th>Module</th><th>Action</th><th>Record ID</th><th>User</th><th>Details</th><th>Timestamp</th></tr></thead><tbody>';
+    echo '<thead><tr><th>ID</th><th>Module</th><th>Action</th><th>Record ID</th><th>User</th><th>Details</th><th>Timestamp</th></tr></thead><tbody>';
     foreach ($logs as $log) {
         echo '<tr>';
+        echo '<td>' . htmlspecialchars($log['id']) . '</td>';
         echo '<td>' . htmlspecialchars($log['module']) . '</td>';
         echo '<td>' . htmlspecialchars($log['action']) . '</td>';
         echo '<td>' . htmlspecialchars($log['record_id']) . '</td>';

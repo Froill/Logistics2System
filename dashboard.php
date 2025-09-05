@@ -21,7 +21,7 @@ $allowed_modules = [
   'driver_trip' => 'Driver & Trip Performance',
   'tcao' => 'Transport Cost Analysis',
   'user_management' => 'User Management',
-  'audit_log' => 'Audit Log'
+  'audit_log' => 'Audit Log',
 ];
 
 // which module to show (default dashboard)
@@ -37,8 +37,13 @@ $baseURL = 'dashboard.php?module=' . $module;
    Handle module logic BEFORE outputting HTML
    ------------------------------------------------------------------ */
 $moduleFile = __DIR__ . "/modules/{$module}.php";
+// Route dashboard view based on role
 if ($module === 'dashboard') {
-  // No module file needed for dashboard summary
+  if (in_array($role, ['admin', 'manager', 'supervisor', 'fleet_manager'])) {
+    $dashboard_include = __DIR__ . '/includes/dashboard_admin.php';
+  } else {
+    $dashboard_include = __DIR__ . '/includes/dashboard_user.php';
+  }
 } else if (file_exists($moduleFile)) {
   // each module file can define a function for its logic
   require_once $moduleFile;
@@ -71,9 +76,22 @@ if ($module === 'dashboard') {
       <!-- Module content -->
       <div class="card mt-4 p-4 shadow rounded">
         <main class="card-body flex-1 p-6">
+              <?php if (!empty($_SESSION['error_message'])): ?>
+        <div class="alert alert-error" style="color: #fff; background: #e3342f; padding: 10px; margin-bottom: 10px; border-radius: 4px;">
+            <?= htmlspecialchars($_SESSION['error_message']) ?>
+        </div>
+        <?php unset($_SESSION['error_message']); ?>
+    <?php endif; ?>
+    <?php if (!empty($_SESSION['success_message'])): ?>
+        <div class="alert alert-success" style="color: #155724; background: #d4edda; padding: 10px; margin-bottom: 10px; border-radius: 4px;">
+            <?= htmlspecialchars($_SESSION['success_message']) ?>
+        </div>
+        <?php unset($_SESSION['success_message']); ?>
+    <?php endif; ?>
           <?php
           if ($module === 'dashboard') {
-            include __DIR__ . '/includes/dashboard_summary.php';
+            // Show admin or user dashboard summary
+            include $dashboard_include;
           } else if ($module === 'audit_log' && function_exists('audit_log_view')) {
             audit_log_view();
           } else if (function_exists("{$module}_view")) {
