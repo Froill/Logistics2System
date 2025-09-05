@@ -2,6 +2,7 @@
 lucide.createIcons();
 
 const closeNav = "w-20";
+const openNav = "w-96";
 
 // Check if mobile view
 function isMobileView() {
@@ -27,7 +28,7 @@ function toggleSidebar() {
     }
   } else {
     // Desktop behavior - toggle between expanded/collapsed
-    const isCollapsed = sidebar.classList.toggle("w-64");
+    const isCollapsed = sidebar.classList.toggle(openNav);
     sidebar.classList.toggle(closeNav, !isCollapsed);
     localStorage.setItem("sidebarCollapsed", !isCollapsed);
 
@@ -93,7 +94,7 @@ function handleResize() {
     // On desktop, apply the saved collapsed state
     const isCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
     sidebar.classList.remove("-translate-x-full", "translate-x-0");
-    sidebar.classList.toggle("w-64", !isCollapsed);
+    sidebar.classList.toggle(openNav, !isCollapsed);
     sidebar.classList.toggle(closeNav, isCollapsed);
 
     document.querySelectorAll(".sidebar-text").forEach((text) => {
@@ -127,7 +128,7 @@ function initSidebar() {
   } else {
     // Start with saved state on desktop
     const isCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
-    sidebar.classList.add(isCollapsed ? closeNav : "w-64");
+    sidebar.classList.add(isCollapsed ? closeNav : openNav);
 
     document.querySelectorAll(".sidebar-text").forEach((text) => {
       text.classList.toggle("hidden", isCollapsed);
@@ -188,10 +189,58 @@ displayPhilippineTime();
 // Update the time every second
 setInterval(displayPhilippineTime, 1000);
 
-// Add event listener to ensure the function runs after DOM is loaded
-document.addEventListener("DOMContentLoaded", function () {
-  displayPhilippineTime();
-});
+(() => {
+  const savedTheme = localStorage.getItem("theme") || "light";
+  document.documentElement.setAttribute("data-theme", savedTheme);
+})();
 
-// Initialize when DOM loads
-document.addEventListener("DOMContentLoaded", initSidebar);
+// Add event listener to ensure the function runs after DOM is loaded
+document.addEventListener("DOMContentLoaded", () => {
+  displayPhilippineTime();
+  initSidebar();
+
+  const toggle = document.getElementById("themeToggle");
+  const html = document.documentElement;
+  const themeLabel = document.getElementById("themeLabel");
+  const themeIcon =
+    document.querySelector("#themeLabel").previousElementSibling;
+
+  // Load saved theme or detect system preference
+  const savedTheme = localStorage.getItem("theme");
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const theme = savedTheme || (prefersDark ? "dark" : "light");
+
+  // Helper to update label + icon
+  const updateThemeUI = (theme) => {
+    if (theme === "dark") {
+      themeLabel.textContent = "Dark Mode";
+      themeIcon.setAttribute("data-lucide", "moon-star");
+    } else {
+      themeLabel.textContent = "Light Mode";
+      themeIcon.setAttribute("data-lucide", "sun");
+    }
+    lucide.createIcons();
+  };
+
+  // Apply theme immediately
+  html.setAttribute("data-theme", theme);
+  updateThemeUI(theme);
+
+  // Ensure toggle reflects current theme
+  if (toggle) {
+    toggle.checked = theme === "dark";
+
+    toggle.addEventListener("change", function () {
+      html.classList.add("theme-transition");
+
+      const newTheme = this.checked ? "dark" : "light";
+      html.setAttribute("data-theme", newTheme);
+      localStorage.setItem("theme", newTheme);
+      updateThemeUI(newTheme);
+
+      setTimeout(() => {
+        html.classList.remove("theme-transition");
+      }, 300);
+    });
+  }
+});

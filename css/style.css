@@ -1,4 +1,5 @@
-/* @import url(sidebar.css); */
+@import url(sidebar.css);
+
 [data-theme="light"] {
   color-scheme: light; /* from your config */
 
@@ -14,7 +15,7 @@
   --sc: 12% 0.042 264.695; /* secondary-content */
 
   --a: 0.8102 0.1577 78.92; /* accent */
-  --ac: 0.3564 0.0391 248.97; /* accent-content */
+  --ac: 0.0694 0.0217 265.72; /* accent-content */
 
   --n: 0.3064 0.0875 265.72; /* neutral */
   --nc: 98% 0.003 247.858; /* neutral-content */
@@ -30,28 +31,15 @@
 
   --er: 71% 0.194 13.428; /* error */
   --erc: 27% 0.105 12.094; /* error-content */
-
-  /* extra daisyUI variables */
-  --rounded-btn: 0.5rem; /* from --radius-selector */
-  --rounded-box: 0.5rem; /* from --radius-box */
-  --rounded-badge: 0.25rem; /* from --radius-field */
-  --border-btn: 2px; /* from --border */
-
-  /* optional animations & depth */
-  --animation-btn: 0.25s;
-  --animation-input: 0.2s;
-  --btn-focus-scale: 0.95;
-  --tab-border: 1px;
-  --tab-radius: 0.5rem;
 }
 
 [data-theme="dark"] {
   color-scheme: dark; /* from your config */
 
-  --b1: 13% 0.028 261.692; /* base-100 */
-  --b2: 21% 0.034 264.665; /* base-200 */
-  --b3: 27% 0.033 256.848; /* base-300 */
-  --bc: 96% 0.003 264.542; /* base-content */
+  --b1: 25.33% 0.016 252.42; /* base-100 */
+  --b2: 23.26% 0.014 253.1; /* base-200 */
+  --b3: 21.15% 0.012 254.09; /* base-300 */
+  --bc: 97.807% 0.029 256.847; /* base-content */
 
   --p: 42% 0.199 265.638; /* primary */
   --pc: 97% 0.013 17.38; /* primary-content */
@@ -76,17 +64,4 @@
 
   --er: 63% 0.237 25.331; /* error */
   --erc: 97% 0.013 17.38; /* error-content */
-
-  /* extra daisyUI variables */
-  --rounded-btn: 0.5rem;
-  --rounded-box: 0.5rem;
-  --rounded-badge: 0.25rem;
-  --border-btn: 2px;
-
-  /* optional animations & depth */
-  --animation-btn: 0.25s;
-  --animation-input: 0.2s;
-  --btn-focus-scale: 0.95;
-  --tab-border: 1px;
-  --tab-radius: 0.5rem;
 }

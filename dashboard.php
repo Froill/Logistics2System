@@ -22,6 +22,7 @@ $allowed_modules = [
   'tcao' => 'Transport Cost Analysis',
   'user_management' => 'User Management',
   'audit_log' => 'Audit Log',
+  'profile' => 'User Profile',
 ];
 
 // which module to show (default dashboard)
@@ -53,22 +54,37 @@ if ($module === 'dashboard') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 
 <head>
+  <!-- Meta -->
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Logistics 2 Dashboard</title>
+
+  <!-- Theme loader -->
+  <script>
+    (() => {
+      const savedTheme = localStorage.getItem("theme");
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const theme = savedTheme || (prefersDark ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+
+  <!-- Styles -->
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.0.0/dist/full.css" rel="stylesheet" type="text/css" />
-  <link rel="stylesheet" href="./css/style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="./css/style.css" />
+
+  <!-- Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
 <body class="min-h-screen flex flex-row">
   <?php include 'includes/sidebar.php'; ?>
 
-  <div class="flex flex-col flex-grow">
+  <div class="flex flex-col w-full">
     <?php include 'includes/navbar.php'; ?>
     <div class="p-4">
 
@@ -103,13 +119,28 @@ if ($module === 'dashboard') {
     </div>
   </div>
 
+  <!-- Logout Modal -->
+  <dialog id="logoutModal" class="modal">
+    <form method="POST" action="logout.php" class="modal-box">
+
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="log-out" class="size-6"></i>
+        <h3 class="font-bold text-lg">Confirm Logout</h3>
+      </div>
+
+      <p class="mb-4">Are you sure you want to log out of your account?</p>
+
+      <div class="modal-action">
+        <button type="submit" class="btn btn-error">Logout</button>
+        <button type="button" class="btn" onclick="logoutModal.close()">Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="./js/soliera.js"></script>
-  <script>
-    lucide.createIcons();
-  </script>
 </body>
 
 </html>

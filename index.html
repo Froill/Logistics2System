@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logistics 2 - Fleet & Transportation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="css/landing-page.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="min-h-screen w-full flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="navbar bg-primary shadow-md px-6 sticky top-0 w-full z-50">
+        <div class="navbar-start">
+            <a href="#hero">
+                <h1 class="text-white normal-case font-semibold text-xl text-blue-600">Logistics 2</h1>
+            </a>
+        </div>
+        <div class="navbar-center">
+            <a href="#hero">
+                <img src="images/logo/sonly-2.png" alt="Soliera Logo" class="h-10 w-auto hidden md:block">
+            </a>
+        </div>
+        <div class="navbar-end">
+            <a href="login.php" class="btn btn-accent btn-outline">Sign In</a>
+        </div>
+    </nav>
+
+
+
+    <!-- Hero Section -->
+    <section class="hero min-h-screen" id="hero">
+        <div class="hero-overlay"></div>
+        <div class="hero-content text-neutral-content text-center">
+            <div class="max-w-md">
+                <h1 class="mb-5 text-5xl text-pretty font-bold">Fleet & Transportation Operations</h1>
+                <p class="mb-5">
+                    Streamline your fleet management, reservations, dispatch, and analysis with an intelligent and
+                    secure
+                    subsystem.
+                </p>
+                <a href="#features" class="btn btn-accent btn-primary">Explore Features</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- About -->
+    <section class="py-20 bg-base-200">
+        <div class="max-w-4xl mx-auto text-center px-6">
+            <h2 class="text-4xl font-bold mb-4">About Logistics 2</h2>
+            <p class="text-lg text-gray-600">
+                Logistics 2 is a modern subsystem designed for hotel and restaurant management systems, focusing on
+                optimizing transportation, vehicle usage, and cost efficiency.
+                With intelligent tools, it empowers staff and supervisors to handle operations effectively and improve
+                service delivery.
+            </p>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="py-20 bg-base-100">
+        <div class="text-center mb-12">
+            <h2 class="text-4xl font-bold">Key Features</h2>
+            <p class="text-gray-500 mt-2">Modules included in Logistics 2 Subsystem</p>
+        </div>
+        <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto px-6">
+            <div class="card bg-base-200 shadow-md fade-in">
+                <div class="card-body">
+                    <i data-lucide="car" class="w-8 h-8 text-blue-600 mb-3"></i>
+                    <h3 class="card-title">Fleet & Vehicle Management</h3>
+                    <p>Track vehicle details, maintenance, fuel logs, and availability in real-time.</p>
+                </div>
+            </div>
+            <div class="card bg-base-200 shadow-md fade-in">
+                <div class="card-body">
+                    <i data-lucide="calendar-range" class="w-8 h-8 text-blue-600 mb-3"></i>
+                    <h3 class="card-title">Vehicle Reservation</h3>
+                    <p>Request and approve vehicle usage seamlessly with automated workflows.</p>
+                </div>
+            </div>
+            <div class="card bg-base-200 shadow-md fade-in">
+                <div class="card-body">
+                    <i data-lucide="navigation" class="w-8 h-8 text-blue-600 mb-3"></i>
+                    <h3 class="card-title">Intelligent Dispatcher</h3>
+                    <p>AI-powered recommendations for assigning the right vehicle at the right time.</p>
+                </div>
+            </div>
+            <div class="card bg-base-200 shadow-md fade-in">
+                <div class="card-body">
+                    <i data-lucide="user-check" class="w-8 h-8 text-blue-600 mb-3"></i>
+                    <h3 class="card-title">Driver & Trip Monitoring</h3>
+                    <p>Monitor driver performance and trip histories for accountability and efficiency.</p>
+                </div>
+            </div>
+            <div class="card bg-base-200 shadow-md fade-in">
+                <div class="card-body">
+                    <i data-lucide="bar-chart-3" class="w-8 h-8 text-blue-600 mb-3"></i>
+                    <h3 class="card-title">Transport Cost Analysis</h3>
+                    <p>Gain insights into expenses and optimize fleet operations with cost analysis tools.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits -->
+    <section class="py-20 bg-base-100">
+        <div class="max-w-6xl mx-auto text-center px-6">
+            <h2 class="text-4xl font-bold mb-12">Why Choose Logistics 2?</h2>
+            <div class="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                <div class="card bg-base-100 shadow-md fade-in">
+                    <div class="card-body">
+                        <i data-lucide="clock" class="w-10 h-10 text-blue-600 mb-4 mx-auto"></i>
+                        <h3 class="text-xl font-semibold mb-2">Save Time</h3>
+                        <p class="text-gray-600">Automated reservations, dispatching, and approvals help reduce manual
+                            processes.</p>
+                    </div>
+                </div>
+                <div class="card bg-base-100 shadow-md fade-in">
+                    <div class="card-body">
+                        <i data-lucide="shield-check" class="w-10 h-10 text-blue-600 mb-4 mx-auto"></i>
+                        <h3 class="text-xl font-semibold mb-2">Secure Operations</h3>
+                        <p class="text-gray-600">Built with authentication and audit logging to keep your data safe and
+                            accountable.</p>
+                    </div>
+                </div>
+                <div class="card bg-base-100 shadow-md fade-in">
+                    <div class="card-body">
+                        <i data-lucide="bar-chart" class="w-10 h-10 text-blue-600 mb-4 mx-auto"></i>
+                        <h3 class="text-xl font-semibold mb-2">Optimize Costs</h3>
+                        <p class="text-gray-600">Transport Cost Analysis ensures resources are used efficiently with
+                            reduced waste.</p>
+                    </div>
+                </div>
+                <div class="card bg-base-100 shadow-md fade-in">
+                    <div class="card-body">
+                        <i data-lucide="activity" class="w-10 h-10 text-blue-600 mb-4 mx-auto"></i>
+                        <h3 class="text-xl font-semibold mb-2">Real-time Monitoring</h3>
+                        <p class="text-gray-600">Track fleet, trips, and driver performance instantly from the
+                            dashboard.</p>
+                    </div>
+                </div>
+                <div class="card bg-base-100 shadow-md fade-in">
+                    <div class="card-body">
+                        <i data-lucide="cpu" class="w-10 h-10 text-blue-600 mb-4 mx-auto"></i>
+                        <h3 class="text-xl font-semibold mb-2">Intelligent Dispatch</h3>
+                        <p class="text-gray-600">AI-powered recommendations assign the right vehicle and driver for the
+                            task.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Call to Action -->
+    <section class="py-20 bg-primary text-white text-center">
+        <h2 class="text-4xl font-bold mb-4">Ready to streamline your operations?</h2>
+        <p class="mb-6">Sign in now and experience the future of fleet and transportation management.</p>
+        <a href="login.php" class="btn btn-light btn-lg btn-pulse">Sign In</a>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer footer-center p-6 bg-base-300 text-base-content mt-auto">
+        <aside>
+            <p>© 2025 Logistics 2 Subsystem. All rights reserved.</p>
+        </aside>
+    </footer>
+
+    <script src="js/landing-page.js"></script>
+</body>
+
+</html>
