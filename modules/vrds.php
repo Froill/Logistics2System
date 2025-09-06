@@ -136,8 +136,12 @@ function vrds_logic($baseURL) {
         }
         // 6. Notify requester
         $user = fetchById('users', $request['requester_id']);
+        $vehicle = fetchById('fleet_vehicles', $vehicle_id);
+        $driver = fetchById('drivers', $driver_id);
         if ($user && !empty($user['email'])) {
-            $msg = "Your vehicle request has been approved and assigned. Vehicle: #$vehicle_id, Driver: #$driver_id.";
+            $vehicleName = $vehicle ? $vehicle['vehicle_name'] : ("ID #$vehicle_id");
+            $driverName = $driver ? $driver['driver_name'] : ("ID #$driver_id");
+            $msg = "Your vehicle request has been approved and assigned. Vehicle: $vehicleName, Driver: $driverName.";
             sendEmail($user['email'], 'Vehicle Request Approved', $msg);
         }
         $_SESSION['success_message'] = "Request approved and dispatch created.";
@@ -306,7 +310,7 @@ function vrds_view($baseURL) {
                             <td>
                                 <div class="flex gap-4">
                                     <button class="btn btn-primary btn-sm" onclick="assign_modal_<?= $req['id'] ?>.showModal()">Assign</button>
-                                    <a href="<?= htmlspecialchars($baseURL . '&remove_request=' . $req['id']) ?>" class="btn btn-error btn-sm" style="margin-left: 0;" onclick="return confirm('Remove this vehicle request?')">Remove</a>
+                                    <a href="<?= htmlspecialchars($baseURL . '&remove_request=' . $req['id']) ?>" class="btn btn-error btn-sm" style="margin-left: 0;" onclick="return confirm('Reject this vehicle request?')">Reject</a>
                                 </div>
                                 <dialog id="assign_modal_<?= $req['id'] ?>" class="modal">
                                     <div class="modal-box">
@@ -473,108 +477,141 @@ function vrds_view($baseURL) {
 </style>
 <script>
 let map, originMarker, destMarker, pois = [];
+let mapInitialized = false;
 function setupOSMAutocomplete(inputId, suggestionsId, markerType) {
-  const input = document.getElementById(inputId);
-  const suggestions = document.getElementById(suggestionsId);
-  input.addEventListener('input', function() {
-    const query = input.value.trim().toLowerCase();
-    if (query.length < 3) {
-      suggestions.style.display = 'none';
-      return;
+    const input = document.getElementById(inputId);
+    const suggestions = document.getElementById(suggestionsId);
+    if (!input || !suggestions) {
+        console.log('Autocomplete: input or suggestions element not found:', inputId, suggestionsId);
+        return;
     }
-    // Filter POIs first
-    let poiMatches = pois.filter(poi => poi.name.toLowerCase().includes(query));
-    suggestions.innerHTML = '';
-    poiMatches.forEach(poi => {
-      const div = document.createElement('div');
-      div.textContent = poi.name + ' (POI)';
-      div.style.fontWeight = 'bold';
-      div.onclick = function() {
-        input.value = poi.name;
-        suggestions.style.display = 'none';
-        // Place marker on map
-        if (map && poi.lat && poi.lon) {
-          const latlng = [parseFloat(poi.lat), parseFloat(poi.lon)];
-          if (markerType === 'origin') {
-            if (originMarker) originMarker.remove();
-            originMarker = L.marker(latlng, {title: 'Origin', icon: L.icon({iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png', iconAnchor: [12, 41]})}).addTo(map);
-            map.setView(latlng, 13);
-          } else if (markerType === 'destination') {
-            if (destMarker) destMarker.remove();
-            destMarker = L.marker(latlng, {title: 'Destination', icon: L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png', iconAnchor: [12, 41], shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'})}).addTo(map);
-            map.setView(latlng, 13);
-          }
-        }
-      };
-      suggestions.appendChild(div);
-    });
-    // Then fetch Nominatim results
-    fetch('https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&q=' + encodeURIComponent(query))
-      .then(res => res.json())
-      .then(data => {
-        data.slice(0, 5).forEach(place => {
-          const div = document.createElement('div');
-          div.textContent = place.display_name;
-          div.onclick = function() {
-            input.value = place.display_name;
+    // Remove previous event listeners by cloning
+    const newInput = input.cloneNode(true);
+    input.parentNode.replaceChild(newInput, input);
+    newInput.addEventListener('input', function() {
+        const query = newInput.value.trim().toLowerCase();
+        if (query.length < 3) {
             suggestions.style.display = 'none';
-            // Place marker on map
-            if (map && place.lat && place.lon) {
-              const latlng = [parseFloat(place.lat), parseFloat(place.lon)];
-              if (markerType === 'origin') {
-                if (originMarker) originMarker.remove();
-                originMarker = L.marker(latlng, {title: 'Origin', icon: L.icon({iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png', iconAnchor: [12, 41]})}).addTo(map);
-                map.setView(latlng, 13);
-              } else if (markerType === 'destination') {
-                if (destMarker) destMarker.remove();
-                destMarker = L.marker(latlng, {title: 'Destination', icon: L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png', iconAnchor: [12, 41], shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'})}).addTo(map);
-                map.setView(latlng, 13);
-              }
-            }
-          };
-          suggestions.appendChild(div);
-        });
-        if (suggestions.innerHTML !== '') {
-          suggestions.style.display = 'block';
-        } else {
-          suggestions.style.display = 'none';
+            return;
         }
-      });
-  });
-  document.addEventListener('click', function(e) {
-    if (!suggestions.contains(e.target) && e.target !== input) {
-      suggestions.style.display = 'none';
-    }
-  });
-}
-document.addEventListener('DOMContentLoaded', function() {
-  // Initialize map
-  map = L.map('osm-map').setView([14.5995, 120.9842], 6); // Default: Philippines
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(map);
-  // Load custom POIs from JSON file
-  fetch('js/custom_pois.json')
-    .then(res => res.json())
-    .then(data => {
-      pois = data;
-      // Show POIs on map
-      pois.forEach(function(poi) {
-        const marker = L.marker([poi.lat, poi.lon], {
-          title: poi.name,
-          icon: L.icon({
-            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-            iconAnchor: [12, 41],
-            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
-          })
-        }).addTo(map);
-        marker.bindPopup('<b>' + poi.name + '</b><br>' + poi.description);
-      });
-      // Setup autocomplete after POIs are loaded
-      setupOSMAutocomplete('origin', 'origin-suggestions', 'origin');
-      setupOSMAutocomplete('destination', 'destination-suggestions', 'destination');
+        // Filter POIs first
+        let poiMatches = pois.filter(poi => poi.name.toLowerCase().includes(query));
+        suggestions.innerHTML = '';
+        poiMatches.forEach(poi => {
+            const div = document.createElement('div');
+            div.textContent = poi.name + ' (POI)';
+            div.style.fontWeight = 'bold';
+            div.onclick = function() {
+                newInput.value = poi.name;
+                suggestions.style.display = 'none';
+                // Place marker on map
+                if (map && poi.lat && poi.lon) {
+                    const latlng = [parseFloat(poi.lat), parseFloat(poi.lon)];
+                    if (markerType === 'origin') {
+                        if (originMarker) originMarker.remove();
+                        originMarker = L.marker(latlng, {title: 'Origin', icon: L.icon({iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png', iconAnchor: [12, 41]})}).addTo(map);
+                        map.setView(latlng, 13);
+                    } else if (markerType === 'destination') {
+                        if (destMarker) destMarker.remove();
+                        destMarker = L.marker(latlng, {title: 'Destination', icon: L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png', iconAnchor: [12, 41], shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'})}).addTo(map);
+                        map.setView(latlng, 13);
+                    }
+                }
+            };
+            suggestions.appendChild(div);
+        });
+        // Then fetch Nominatim results
+        fetch('https://corsproxy.io/?https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&q=' + encodeURIComponent(query))
+            .then(res => res.json())
+            .then(data => {
+                data.slice(0, 5).forEach(place => {
+                    const div = document.createElement('div');
+                    div.textContent = place.display_name;
+                    div.onclick = function() {
+                        newInput.value = place.display_name;
+                        suggestions.style.display = 'none';
+                        // Place marker on map
+                        if (map && place.lat && place.lon) {
+                            const latlng = [parseFloat(place.lat), parseFloat(place.lon)];
+                            if (markerType === 'origin') {
+                                if (originMarker) originMarker.remove();
+                                originMarker = L.marker(latlng, {title: 'Origin', icon: L.icon({iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png', iconAnchor: [12, 41]})}).addTo(map);
+                                map.setView(latlng, 13);
+                            } else if (markerType === 'destination') {
+                                if (destMarker) destMarker.remove();
+                                destMarker = L.marker(latlng, {title: 'Destination', icon: L.icon({iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png', iconAnchor: [12, 41], shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'})}).addTo(map);
+                                map.setView(latlng, 13);
+                            }
+                        }
+                    };
+                    suggestions.appendChild(div);
+                });
+                if (suggestions.innerHTML !== '') {
+                    suggestions.style.display = 'block';
+                } else {
+                    suggestions.style.display = 'none';
+                }
+            });
     });
+    document.addEventListener('click', function(e) {
+        if (!suggestions.contains(e.target) && e.target !== newInput) {
+            suggestions.style.display = 'none';
+        }
+    });
+    console.log('Autocomplete initialized for', inputId);
+}
+
+function initMapAndAutocomplete() {
+    if (mapInitialized) {
+        // Remove old map instance if exists
+        if (map) {
+            map.remove();
+            document.getElementById('osm-map').innerHTML = "";
+        }
+    }
+    map = L.map('osm-map').setView([14.5995, 120.9842], 6); // Default: Philippines
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    // Load custom POIs from JSON file
+    fetch('js/custom_pois.json')
+        .then(res => res.json())
+        .then(data => {
+            pois = data;
+            // Show POIs on map
+            pois.forEach(function(poi) {
+                const marker = L.marker([poi.lat, poi.lon], {
+                    title: poi.name,
+                    icon: L.icon({
+                        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                        iconAnchor: [12, 41],
+                        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+                    })
+                }).addTo(map);
+                marker.bindPopup('<b>' + poi.name + '</b><br>' + poi.description);
+            });
+            // Setup autocomplete after POIs are loaded
+            setupOSMAutocomplete('origin', 'origin-suggestions', 'origin');
+            setupOSMAutocomplete('destination', 'destination-suggestions', 'destination');
+        });
+    mapInitialized = true;
+}
+
+// Re-initialize map and autocomplete every time the modal is opened (works for showModal and open attribute)
+document.addEventListener('DOMContentLoaded', function() {
+    const reqModal = document.getElementById('request_modal');
+    if (reqModal) {
+        // Use MutationObserver to detect when modal is opened
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (reqModal.hasAttribute('open')) {
+                    setTimeout(initMapAndAutocomplete, 100); // Delay to ensure DOM is ready
+                }
+            });
+        });
+        observer.observe(reqModal, { attributes: true, attributeFilter: ['open'] });
+    }
 });
 </script>
 </div>
