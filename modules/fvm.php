@@ -1,10 +1,27 @@
-
 <?php
 //FLEET & VEHICLE MANAGEMENT MODULE
 // Manages fleet vehicles, their statuses, and logs (maintenance, fuel, etc.)
 require_once __DIR__ . '/audit_log.php';
-function fvm_logic($baseURL)
-{
+function fvm_logic($baseURL){
+
+    // Handle manual adjustment of next maintenance date
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adjust_maintenance_vehicle_id']) && isset($_POST['next_maintenance_date'])) {
+        $vehicleId = intval($_POST['adjust_maintenance_vehicle_id']);
+        $nextDate = $_POST['next_maintenance_date'];
+        // Insert a maintenance log with the selected date
+        insertData('fleet_vehicle_logs', [
+            'vehicle_id' => $vehicleId,
+            'log_type'   => 'maintenance',
+            'details'    => 'Manual schedule adjustment',
+            'created_at' => $nextDate . ' 08:00:00' // Default to 8AM
+        ]);
+        // Optionally update vehicle status
+        updateData('fleet_vehicles', $vehicleId, ['status' => 'Under Maintenance']);
+        log_audit_event('FVM', 'adjust_maintenance', $vehicleId, $_SESSION['full_name'] ?? 'unknown');
+        header("Location: {$baseURL}");
+        exit;
+    }
+
     // Handle clear maintenance logs
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_maintenance_logs'])) {
         global $conn;
@@ -22,30 +39,122 @@ function fvm_logic($baseURL)
         exit;
     }
 
-    // Handle insert vehicle
+    // Handle insert vehicle (with car type and image upload)
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['vehicle_name']) && !isset($_POST['edit_vehicle_id'])) {
-        $result = insertData('fleet_vehicles', [
+        $vehicleType = isset($_POST['vehicle_type']) ? $_POST['vehicle_type'] : null;
+        $vehicleImagePath = null;
+        // Handle file upload if image is provided and file was actually uploaded
+        if (isset($_FILES['vehicle_image']) && is_uploaded_file($_FILES['vehicle_image']['tmp_name']) && $_FILES['vehicle_image']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = __DIR__ . '/../uploads/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+            $fileTmp = $_FILES['vehicle_image']['tmp_name'];
+            $fileName = basename($_FILES['vehicle_image']['name']);
+            $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+            $allowed = ['jpg', 'jpeg', 'png', 'gif'];
+            if (in_array($fileExt, $allowed)) {
+                $newFileName = 'vehicle_' . time() . '_' . rand(1000,9999) . '.' . $fileExt;
+                $destPath = $uploadDir . $newFileName;
+                if (move_uploaded_file($fileTmp, $destPath)) {
+                    $vehicleImagePath = 'uploads/' . $newFileName;
+                }
+            }
+        }
+        $data = [
             'vehicle_name' => $_POST['vehicle_name'],
             'plate_number' => $_POST['plate_number'],
-            'status'       => 'Available'
-        ]);
+            'vehicle_type' => $vehicleType,
+            'status'       => 'Active'
+        ];
+        if ($vehicleImagePath) {
+            $data['vehicle_image'] = $vehicleImagePath;
+        }
+        $result = insertData('fleet_vehicles', $data);
+        global $conn;
         if ($result) {
-            global $conn;
             $id = $conn->insert_id;
             log_audit_event('FVM', 'add_vehicle', $id, $_SESSION['full_name'] ?? 'unknown');
+            $_SESSION['fvm_success'] = 'Vehicle added successfully!';
+        } else {
+            $_SESSION['fvm_error'] = 'Vehicle insert failed.';
         }
         header("Location: {$baseURL}");
         exit;
     }
 
-    // Handle update vehicle
+    // Handle update vehicle (with car type and image upload)
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['edit_vehicle_id'])) {
-        updateData('fleet_vehicles', $_POST['edit_vehicle_id'], [
+        $vehicleType = isset($_POST['vehicle_type']) ? $_POST['vehicle_type'] : null;
+        $vehicleImagePath = null;
+        $debugMsg = '';
+        // Handle file upload if image is provided
+        if (isset($_FILES['vehicle_image'])) {
+            $debugMsg .= 'File info: ' . print_r($_FILES['vehicle_image'], true) . ' ';
+            if ($_FILES['vehicle_image']['error'] === UPLOAD_ERR_OK) {
+                $uploadDir = __DIR__ . '/../uploads/';
+                if (!is_dir($uploadDir)) {
+                    $debugMsg .= 'Upload dir does not exist, creating... ';
+                    if (mkdir($uploadDir, 0777, true)) {
+                        $debugMsg .= 'Upload dir created. ';
+                    } else {
+                        $debugMsg .= 'Failed to create upload dir! ';
+                    }
+                } else {
+                    $debugMsg .= 'Upload dir exists. ';
+                }
+                $fileTmp = $_FILES['vehicle_image']['tmp_name'];
+                $fileName = basename($_FILES['vehicle_image']['name']);
+                $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+                $allowed = ['jpg', 'jpeg', 'png', 'gif'];
+                if (in_array($fileExt, $allowed)) {
+                    $newFileName = 'vehicle_' . time() . '_' . rand(1000,9999) . '.' . $fileExt;
+                    $destPath = $uploadDir . $newFileName;
+                    $debugMsg .= "Moving file from $fileTmp to $destPath. ";
+                    if (move_uploaded_file($fileTmp, $destPath)) {
+                        $vehicleImagePath = 'uploads/' . $newFileName;
+                        $debugMsg .= 'Image uploaded successfully. ';
+                    } else {
+                        $debugMsg .= 'Failed to move uploaded file. ';
+                        if (!file_exists($fileTmp)) {
+                            $debugMsg .= 'Temp file does not exist. ';
+                        } else {
+                            $debugMsg .= 'Temp file exists. ';
+                        }
+                        $debugMsg .= 'Permissions: ' . substr(sprintf('%o', fileperms($uploadDir)), -4) . '. ';
+                    }
+                } else {
+                    $debugMsg .= 'Invalid file type: ' . $fileExt . '. ';
+                }
+            } else if ($_FILES['vehicle_image']['error'] !== UPLOAD_ERR_NO_FILE) {
+                $debugMsg .= 'File upload error: ' . $_FILES['vehicle_image']['error'] . '. ';
+            } else {
+                $debugMsg .= 'No file uploaded. ';
+            }
+        } else {
+            $debugMsg .= 'No vehicle_image in \\$_FILES. ';
+        }
+        $data = [
             'vehicle_name' => $_POST['vehicle_name'],
             'plate_number' => $_POST['plate_number'],
+            'vehicle_type' => $vehicleType,
             'status'       => $_POST['status']
-        ]);
+        ];
+        if ($vehicleImagePath) {
+            $data['vehicle_image'] = $vehicleImagePath;
+        }
+        $result = updateData('fleet_vehicles', $_POST['edit_vehicle_id'], $data);
+        if ($result === false) {
+            $debugMsg .= 'Database update failed.';
+            if (function_exists('mysqli_error') && isset($conn)) {
+                $debugMsg .= ' SQL Error: ' . mysqli_error($conn);
+            }
+        } else {
+            $debugMsg .= 'Database updated.';
+        }
+        $debugMsg .= ' Data: ' . print_r($data, true);
         log_audit_event('FVM', 'edit_vehicle', $_POST['edit_vehicle_id'], $_SESSION['full_name'] ?? 'unknown');
+        $_SESSION['fvm_debug'] = $debugMsg;
         header("Location: {$baseURL}");
         exit;
     }
@@ -77,9 +186,33 @@ function fvm_logic($baseURL)
         header("Location: {$baseURL}");
         exit;
     }
-
-    
 }
+// Handle check status button
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['check_status_vehicle_id'])) {
+    $vehicleId = intval($_POST['check_status_vehicle_id']);
+    $vehicle = fetchById('fleet_vehicles', $vehicleId);
+    if ($vehicle) {
+        if ($vehicle['status'] === 'Active') {
+            $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
+            $nextDate = $now->modify('+1 month')->format('Y-m-d 08:00:00');
+            insertData('fleet_vehicle_logs', [
+                'vehicle_id' => $vehicleId,
+                'log_type'   => 'maintenance',
+                'details'    => 'Monthly Scheduled Maintenance',
+                'created_at' => $nextDate
+            ]);
+            updateData('fleet_vehicles', $vehicleId, ['status' => 'Active']);
+            $_SESSION['fvm_success'] = 'Vehicle Maintenance Complete! Maintenance successfully rescheduled for next month.';
+        } else if ($vehicle['status'] === 'Under Maintenance') {
+            $_SESSION['fvm_error'] = 'Vehicle is still Under Maintenance.';
+        } else {
+            $_SESSION['fvm_error'] = 'Vehicle status is not eligible for completion.';
+        }
+    }
+    header("Location: {$baseURL}");
+    exit;
+}
+
 function fvm_view($baseURL)
 {
     $vehicles = fetchAll('fleet_vehicles');
@@ -94,7 +227,10 @@ $dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dis
 ?>
     <div>
         <h2 class="text-2xl font-bold mb-4">Fleet & Vehicle Management</h2>
-
+<!-- <?php // Show debug message outside modals, at the top of the main content
+ if (!empty($_SESSION['fvm_debug'])): ?>
+    <div class="alert alert-info mb-2"><?php echo $_SESSION['fvm_debug']; unset($_SESSION['fvm_debug']); ?></div>
+<?php endif; ?> -->
         <!-- Vehicle Logs Modal (Paginated) -->
         <dialog id="vehicle_logs_modal" class="modal">
             <div class="modal-box w-11/12 max-w-5xl">
@@ -159,7 +295,7 @@ $dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dis
                 <form method="dialog">
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
-                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="mb-6 flex flex-col">
+                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="mb-6 flex flex-col" enctype="multipart/form-data">
                     <div class="form-control mb-2">
                         <label class="label">Vehicle Name</label>
                         <input type="text" name="vehicle_name" class="input input-bordered" required>
@@ -167,6 +303,20 @@ $dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dis
                     <div class="form-control mb-2">
                         <label class="label">Plate Number</label>
                         <input type="text" name="plate_number" class="input input-bordered" required>
+                    </div>
+                    <div class="form-control mb-2">
+                        <label class="label">Vehicle Type</label>
+                        <select name="vehicle_type" class="select select-bordered" required>
+                            <option value="">Select type</option>
+                            <option value="Car">Car</option>
+                            <option value="Van">Van</option>
+                            <option value="Truck">Truck</option>
+                            <option value="Pickup">Pickup</option>
+                        </select>
+                    </div>
+                    <div class="form-control mb-2">
+                        <label class="label">Upload Image</label>
+                        <input type="file" name="vehicle_image" accept="image/*" class="file-input file-input-bordered">
                     </div>
                     <button class="btn btn-primary mt-2 btn-outline w-full">Add Vehicle</button>
                 </form>
@@ -196,16 +346,138 @@ $dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dis
     </div>
 </div>
 
+        <?php if (!empty($_SESSION['fvm_success'])): ?>
+            <div class="alert alert-success mb-3">
+                <?= htmlspecialchars($_SESSION['fvm_success']) ?>
+            </div>
+            <?php unset($_SESSION['fvm_success']); ?>
+        <?php endif; ?>
+        <?php if (!empty($_SESSION['fvm_error'])): ?>
+            <div class="alert alert-error mb-3">
+                <?= htmlspecialchars($_SESSION['fvm_error']) ?>
+            </div>
+            <?php unset($_SESSION['fvm_error']); ?>
+        <?php endif; ?>
+        <?php if (!empty($_SESSION['fvm_success'])): ?>
+            <div class="alert alert-success mb-3">
+                <?= htmlspecialchars($_SESSION['fvm_success']) ?>
+            </div>
+            <?php unset($_SESSION['fvm_success']); ?>
+        <?php endif; ?>
+        <?php if (!empty($_SESSION['fvm_error'])): ?>
+            <div class="alert alert-error mb-3">
+                <?= htmlspecialchars($_SESSION['fvm_error']) ?>
+            </div>
+            <?php unset($_SESSION['fvm_error']); ?>
+        <?php endif; ?>
         <div class="flex gap-2 mb-3">
             <!-- Add Vehicle Button -->
             <button class="btn btn-soft btn-primary" onclick="fvm_modal.showModal()">
                 <i data-lucide="plus" class="w-4 h-4 mr-1"></i> Add Vehicle
+            </button>
+            <!-- Schedule Maintenance Button -->
+            <button class="btn btn-soft btn-warning" onclick="schedule_maintenance_modal.showModal()">
+                <i data-lucide="calendar" class="w-4 h-4 mr-1"></i> Schedule Maintenance
             </button>
             <!-- View Vehicle Logs Button -->
             <button class="btn btn-soft btn-info" onclick="vehicle_logs_modal.showModal()">
                 <i data-lucide="clipboard-list" class="w-4 h-4 mr-1"></i> View Maintenance Logs
             </button>
         </div>
+
+        <!-- Schedule Maintenance Modal -->
+        <dialog id="schedule_maintenance_modal" class="modal">
+            <div class="modal-box w-11/12 max-w-3xl">
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                </form>
+                <h3 class="font-bold text-lg mb-4">Scheduled Maintenance Calendar</h3>
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th>Vehicle Name</th>
+                                <th>Plate Number</th>
+                                <th>Car Type</th>
+                                <th>Next Maintenance</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php
+                        $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
+                        foreach ($vehicles as $v):
+                            // Find last maintenance log for this vehicle
+                            $lastMaint = null;
+                            foreach ($vehicle_logs as $log) {
+                                if ($log['vehicle_id'] == $v['id'] && $log['log_type'] === 'maintenance') {
+                                    $lastMaint = $log;
+                                    break;
+                                }
+                            }
+                            $nextMaint = null;
+                            if ($lastMaint) {
+                                $lastDate = new DateTime($lastMaint['created_at'], new DateTimeZone('Asia/Manila'));
+                                $nextMaint = $lastDate->modify('+1 month');
+                            }
+                        ?>
+                        <tr>
+                            <td><?= htmlspecialchars($v['vehicle_name']) ?></td>
+                            <td><?= htmlspecialchars($v['plate_number']) ?></td>
+                            <td><?= htmlspecialchars($v['vehicle_type'] ?? '-') ?></td>
+                            <td><?= $nextMaint ? $nextMaint->format('M d, Y') : '<span class="text-gray-400">No record</span>' ?></td>
+                            <td>
+                                <?php
+                                // Log Monthly Scheduled Maintenance if Needs Maintenance and not already logged for this month
+                                    if ($nextMaint && $now >= $nextMaint) {
+                                        echo '<span title="Needs Maintenance"><i data-lucide="alert-triangle" class="text-red-600" style="width:28px;height:28px;vertical-align:middle;"></i></span>';
+                                    } else {
+                                        echo '<span title="OK"><i data-lucide="check-circle" class="text-green-600" style="width:28px;height:28px;vertical-align:middle;"></i></span>';
+                                    }
+                                ?>
+                            </td>
+                            <td>
+                                <button class="btn btn-xs btn-warning" title="Adjust Maintenance Date" onclick="document.getElementById('adjust_maint_modal_<?= $v['id'] ?>').showModal()">
+                                    <i data-lucide="calendar-clock"></i>
+                                </button>
+                                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" style="display:inline">
+                                    <input type="hidden" name="check_status_vehicle_id" value="<?= $v['id'] ?>">
+                                    <button type="submit" class="btn btn-xs btn-success ml-1" title="Check Status">
+                                        <i data-lucide="file-check-2"></i>
+                                    </button>
+                                </form>
+                                <!-- Adjust Maintenance Modal -->
+                                <dialog id="adjust_maint_modal_<?= $v['id'] ?>" class="modal">
+                                    <div class="modal-box">
+                                        <form method="dialog">
+                                            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                                        </form>
+                                        <h3 class="font-bold text-lg mb-4">Adjust Maintenance Date</h3>
+                                        <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="flex flex-col gap-4" enctype="multipart/form-data">
+                                            <input type="hidden" name="adjust_maintenance_vehicle_id" value="<?= $v['id'] ?>">
+                                            <div class="form-control">
+                                                <label class="label">Set Next Maintenance Date</label>
+                                                <input type="date" name="next_maintenance_date" class="input input-bordered" required>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary">Save</button>
+                                        </form>
+                                    </div>
+                                    <form method="dialog" class="modal-backdrop">
+                                        <button>close</button>
+                                    </form>
+                                </dialog>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>close</button>
+            </form>
+        </dialog>
         <!-- Vehicle Table -->
         <div class="overflow-x-auto">
             <table class="table table-zebra w-full">
@@ -213,6 +485,7 @@ $dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dis
                     <tr>
                         <th>Vehicle Name</th>
                         <th>Plate Number</th>
+                        <th>Vehicle Type</th>
                         <th>Status</th>
                         <th>Actions</th>
                         <th>Logs</th>
@@ -223,6 +496,7 @@ $dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dis
                         <tr>
                             <td><?= htmlspecialchars($v['vehicle_name']) ?></td>
                             <td><?= htmlspecialchars($v['plate_number']) ?></td>
+                            <td><?= htmlspecialchars($v['vehicle_type'] ?? '-') ?></td>
                             <td>
                                 <?php
                                     $status = $v['status'];
@@ -260,7 +534,11 @@ $dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dis
                                         <div class="mb-2"><strong>Name:</strong> <?= htmlspecialchars($v['vehicle_name']) ?></div>
                                         <div class="mb-2"><strong>Plate Number:</strong> <?= htmlspecialchars($v['plate_number']) ?></div>
                                         <div class="mb-2"><strong>Status:</strong> <?= htmlspecialchars($v['status']) ?></div>
-                                        <!-- Add more fields as needed -->
+                                        <?php if (!empty($v['vehicle_image'])): ?>
+                                            <div class="mb-2"><strong>Image:</strong><br>
+                                                <img src="<?= htmlspecialchars($v['vehicle_image']) ?>" alt="Vehicle Image" style="max-width: 220px; max-height: 160px; border-radius: 8px; border: 1px solid #ccc;" />
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                     <form method="dialog" class="modal-backdrop">
                                         <button>close</button>
@@ -274,7 +552,7 @@ $dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dis
                                             <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                                         </form>
                                         <h3 class="font-bold text-lg mb-4">Vehicle Details</h3>
-                                        <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="flex flex-col gap-4">
+                                        <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="flex flex-col gap-4" enctype="multipart/form-data">
                                             <input type="hidden" name="edit_vehicle_id" value="<?= $v['id'] ?>">
                                             <div class="form-control">
                                                 <label class="label">Vehicle Name</label>
@@ -287,6 +565,24 @@ $dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dis
                                                     value="<?= htmlspecialchars($v['plate_number']) ?>" required>
                                             </div>
                                             <div class="form-control">
+                                                <label class="label">Car Type</label>
+                                                <select name="vehicle_type" class="select select-bordered" required>
+                                                    <option value="Car" <?= ($v['vehicle_type'] === 'Car') ? 'selected' : '' ?>>Car</option>
+                                                    <option value="Van" <?= ($v['vehicle_type'] === 'Van') ? 'selected' : '' ?>>Van</option>
+                                                    <option value="Truck" <?= ($v['vehicle_type'] === 'Truck') ? 'selected' : '' ?>>Truck</option>
+                                                    <option value="Pickup" <?= ($v['vehicle_type'] === 'Pickup') ? 'selected' : '' ?>>Pickup</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-control">
+                                                <label class="label">Update Image</label>
+                                                <input type="file" name="vehicle_image" accept="image/*" class="file-input file-input-bordered">
+                                                <?php if (!empty($v['vehicle_image'])): ?>
+                                                    <div class="mt-2">
+                                                        <img src="<?= htmlspecialchars($v['vehicle_image']) ?>" alt="Vehicle Image" style="max-width: 120px; max-height: 80px; border-radius: 6px; border: 1px solid #ccc;" />
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                            <div class="form-control">
                                                 <label class="label">Status</label>
                                                 <select name="status" class="select select-bordered" required>
                                                     <option value="Active" <?= $v['status'] === 'Active' ? 'selected' : '' ?>>Active</option>
@@ -295,12 +591,17 @@ $dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dis
                                                 </select>
                                             </div>
                                             
+
                                             <div class="flex gap-2 mt-4">
                                                 <button type="submit" class="btn btn-primary flex-1">Update Vehicle</button>
                                                 <a href="<?= htmlspecialchars($baseURL . '&delete=' . $v['id']) ?>"
                                                     class="btn btn-error"
                                                     onclick="return confirm('Are you sure you want to delete this vehicle? This action cannot be undone.')">Delete</a>
                                             </div>
+<?php // Show debug message outside modals, at the top of the main content
+ if (!empty($_SESSION['fvm_debug'])): ?>
+    <div class="alert alert-info mb-2"><?php echo $_SESSION['fvm_debug']; unset($_SESSION['fvm_debug']); ?></div>
+<?php endif; ?>
                                         </form>
                                     </div>
                                     <form method="dialog" class="modal-backdrop">
