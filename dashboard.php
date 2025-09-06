@@ -54,7 +54,7 @@ if ($module === 'dashboard') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 
 <head>
   <!-- Meta -->
@@ -129,7 +129,7 @@ if ($module === 'dashboard') {
         <h3 class="font-bold text-lg">Confirm Logout</h3>
       </div>
 
-      <p class="mb-4">Are you sure you want to log out of your account?</p>
+      <p class="mb-4">Are you sure you want to log out?</p>
 
       <div class="modal-action">
         <button type="submit" class="btn btn-error">Logout</button>

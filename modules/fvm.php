@@ -219,11 +219,11 @@ function fvm_view($baseURL)
     // Fetch all logs for each vehicle
     $vehicle_logs = fetchAllQuery("SELECT l.*, v.vehicle_name FROM fleet_vehicle_logs l JOIN fleet_vehicles v ON l.vehicle_id = v.id ORDER BY l.created_at DESC");
 
-$totalVehicles = count($vehicles);
-$activeCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Active'));
-$inactiveCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Inactive'));
-$maintenanceCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Under Maintenance'));
-$dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dispatched')); // if applicable
+    $totalVehicles = count($vehicles);
+    $activeCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Active'));
+    $inactiveCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Inactive'));
+    $maintenanceCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Under Maintenance'));
+    $dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dispatched')); // if applicable
 ?>
     <div>
         <h2 class="text-2xl font-bold mb-4">Fleet & Vehicle Management</h2>
@@ -325,26 +325,26 @@ $dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dis
                 <button>close</button>
             </form>
         </dialog>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-    <!-- Vehicle Status Pie Chart -->
-    <div class="card shadow-lg p-4">
-        <h3 class="text-lg font-bold mb-2">Vehicle Status Distribution</h3>
-        <canvas id="vehicleStatusChart"></canvas>
-    </div>
 
-    <!-- Vehicle Metrics -->
-    <div class="card shadow-lg p-4">
-        <h3 class="text-lg font-bold mb-2">Key Metrics</h3>
-        <ul class="space-y-2">
-            <li>Total Vehicles: <span class="font-semibold"><?= $totalVehicles ?></span></li>
-            <li>Active: <span class="text-green-600 font-semibold"><?= $activeCount ?></span></li>
-            <li>Inactive: <span class="text-red-600 font-semibold"><?= $inactiveCount ?></span></li>
-            <li>Dispatched: <span class="text-blue-600 font-semibold"><?= $dispatchedCount ?></span></li>
-            <li>Under Maintenance: <span class="text-yellow-600 font-semibold"><?= $maintenanceCount ?></span></li>
-        </ul>
-    </div>
-</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- Vehicle Status Pie Chart -->
+            <div class="card shadow-lg p-4">
+                <h3 class="text-lg font-bold mb-2">Vehicle Status Distribution</h3>
+                <canvas id="vehicleStatusChart"></canvas>
+            </div>
+
+            <!-- Vehicle Metrics -->
+            <div class="card shadow-lg p-4">
+                <h3 class="text-lg font-bold mb-2">Key Metrics</h3>
+                <ul class="space-y-2">
+                    <li>Total Vehicles: <span class="font-semibold"><?= $totalVehicles ?></span></li>
+                    <li>Active: <span class="text-green-600 font-semibold"><?= $activeCount ?></span></li>
+                    <li>Inactive: <span class="text-red-600 font-semibold"><?= $inactiveCount ?></span></li>
+                    <li>Dispatched: <span class="text-blue-600 font-semibold"><?= $dispatchedCount ?></span></li>
+                    <li>Under Maintenance: <span class="text-yellow-600 font-semibold"><?= $maintenanceCount ?></span></li>
+                </ul>
+            </div>
+        </div>
 
         <?php if (!empty($_SESSION['fvm_success'])): ?>
             <div class="alert alert-success mb-3">
@@ -499,30 +499,33 @@ $dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dis
                             <td><?= htmlspecialchars($v['vehicle_type'] ?? '-') ?></td>
                             <td>
                                 <?php
-                                    $status = $v['status'];
-                                    $badgeClass = 'badge';
-                                    if ($status === 'Active') {
-                                        $badgeClass .= ' badge-success';
-                                    } elseif ($status === 'Inactive') {
-                                        $badgeClass .= ' badge-error';
-                                    } elseif ($status === 'Under Maintenance') {
-                                        $badgeClass .= ' badge-warning';
-                                    } else {
-                                        $badgeClass .= ' badge-secondary';
-                                    }
+                                $status = $v['status'];
+                                $badgeClass = 'badge p-2 text-nowrap';
+                                if ($status === 'Active') {
+                                    $badgeClass .= ' badge-success';
+                                } elseif ($status === 'Inactive') {
+                                    $badgeClass .= ' badge-error ';
+                                } elseif ($status === 'Under Maintenance') {
+                                    $badgeClass .= ' badge-warning';
+                                } else {
+                                    $badgeClass .= ' badge-secondary';
+                                }
                                 ?>
                                 <span class="<?= $badgeClass ?>"><?= htmlspecialchars($status) ?></span>
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-info mr-2" onclick="document.getElementById('view_modal_<?= $v['id'] ?>').showModal()" title="View">
-                                    <i data-lucide="eye"></i>
-                                </button>
-                                <button class="btn btn-sm btn-primary mr-2" onclick="document.getElementById('manage_modal_<?= $v['id'] ?>').showModal()" title="Edit">
-                                    <i data-lucide="pencil"></i>
-                                </button>
-                                <a href="<?= htmlspecialchars($baseURL . '&delete=' . $v['id']) ?>" class="btn btn-sm btn-error" title="Delete" onclick="return confirm('Delete this vehicle?')">
-                                    <i data-lucide="trash-2"></i>
-                                </a>
+                                <div class="flex flex-col md:flex-row gap-3 items-stretch">
+                                    <button class="btn btn-sm btn-info" onclick="document.getElementById('view_modal_<?= $v['id'] ?>').showModal()" title="View">
+                                        <i data-lucide="eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-primary" onclick="document.getElementById('manage_modal_<?= $v['id'] ?>').showModal()" title="Edit">
+                                        <i data-lucide="pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-error" href="<?= htmlspecialchars($baseURL . '&delete=' . $v['id']) ?>" title="Delete" onclick="return confirm('Delete this vehicle?')">
+                                        <i data-lucide="trash-2"></i>
+                                    </button>
+                                </div>
+
 
                                 <!-- View Vehicle Modal -->
                                 <dialog id="view_modal_<?= $v['id'] ?>" class="modal">
@@ -556,12 +559,12 @@ $dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dis
                                             <input type="hidden" name="edit_vehicle_id" value="<?= $v['id'] ?>">
                                             <div class="form-control">
                                                 <label class="label">Vehicle Name</label>
-                                                <input type="text" name="vehicle_name" class="input input-bordered" 
+                                                <input type="text" name="vehicle_name" class="input input-bordered"
                                                     value="<?= htmlspecialchars($v['vehicle_name']) ?>" required>
                                             </div>
                                             <div class="form-control">
                                                 <label class="label">Plate Number</label>
-                                                <input type="text" name="plate_number" class="input input-bordered" 
+                                                <input type="text" name="plate_number" class="input input-bordered"
                                                     value="<?= htmlspecialchars($v['plate_number']) ?>" required>
                                             </div>
                                             <div class="form-control">
@@ -611,7 +614,7 @@ $dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dis
                             </td>
                             <td>
                                 <!-- Add Log Button -->
-                                <button class="btn btn-xs btn-success" onclick="document.getElementById('log_modal_<?= $v['id'] ?>').showModal()" title="Add Log">
+                                <button class="btn btn-sm btn-success" onclick="document.getElementById('log_modal_<?= $v['id'] ?>').showModal()" title="Add Log">
                                     <i data-lucide="plus"></i>
                                 </button>
                                 <!-- Log Modal -->

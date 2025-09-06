@@ -42,10 +42,11 @@ function recommend_assignment($vehicle_type = null) {
     return ['vehicle' => $vehicle, 'driver' => $driver];
 }
 
-function vrds_logic($baseURL) {
+function vrds_logic($baseURL)
+{
     // 1. Requester submits trip request
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_vehicle'])) {
-    $requester_id = $_SESSION['user_id'] ?? 0;
+        $requester_id = $_SESSION['user_id'] ?? 0;
         if (!$requester_id || !is_numeric($requester_id)) {
             $_SESSION['error_message'] = 'You must be logged in to request a vehicle.';
             header("Location: {$baseURL}");
@@ -67,7 +68,7 @@ function vrds_logic($baseURL) {
             header("Location: {$baseURL}");
             exit;
         }
-    $stmt->bind_param("isssssss", $requester_id, $reservation_date, $expected_return, $purpose, $origin, $destination, $requested_vehicle_type, $notes);
+        $stmt->bind_param("isssssss", $requester_id, $reservation_date, $expected_return, $purpose, $origin, $destination, $requested_vehicle_type, $notes);
         $ok = $stmt->execute();
         if ($ok) {
             log_audit_event('VRDS', 'request_vehicle', $conn->insert_id, $_SESSION['full_name'] ?? 'unknown');
@@ -100,7 +101,7 @@ function vrds_logic($baseURL) {
         $request_id = intval($_POST['request_id'] ?? 0);
         $vehicle_id = intval($_POST['vehicle_id'] ?? 0);
         $driver_id = intval($_POST['driver_id'] ?? 0);
-    $officer_id = $_SESSION['user_id'] ?? 1;
+        $officer_id = $_SESSION['user_id'] ?? 1;
         $request = fetchById('vehicle_requests', $request_id);
         if (!$request || $request['status'] !== 'Pending') {
             $_SESSION['error_message'] = "Request not found or already processed.";
@@ -183,18 +184,19 @@ function vrds_logic($baseURL) {
     }
 }
 
-  if (isset($_GET['remove_request'])) {
-        $remove_id = (int)$_GET['remove_request'];
-        $req = fetchById('vehicle_requests', $remove_id);
-        if ($req && $req['status'] === 'Pending') {
-            deleteData('vehicle_requests', $remove_id);
-            $_SESSION['success_message'] = "Vehicle request removed.";
-        }
-        header("Location: {$baseURL}");
-        exit;
+if (isset($_GET['remove_request'])) {
+    $remove_id = (int)$_GET['remove_request'];
+    $req = fetchById('vehicle_requests', $remove_id);
+    if ($req && $req['status'] === 'Pending') {
+        deleteData('vehicle_requests', $remove_id);
+        $_SESSION['success_message'] = "Vehicle request removed.";
     }
+    header("Location: {$baseURL}");
+    exit;
+}
 
-function vrds_view($baseURL) {
+function vrds_view($baseURL)
+{
     vrds_logic($baseURL);
     $requests = fetchAll('vehicle_requests');
     $dispatches = fetchAll('dispatches');
@@ -260,16 +262,7 @@ function vrds_view($baseURL) {
                 </div>
                 <button class="btn btn-primary btn-outline mt-2 w-full">Submit Request</button>
             </form>
-        </div>
-        <form method="dialog" class="modal-backdrop">
-            <button>close</button>
-        </form>
-    </dialog>
-        <button class="btn btn-info" onclick="dispatch_log_modal.showModal()">
-            <i data-lucide="clipboard-list" class="w-4 h-4 mr-1"></i> View Dispatch
-        </button>
-        
-    </div>
+        </dialog>
 
     <!-- Pending Requests Table (For Transport Officer Approval) -->
     <h3 class="text-xl font-bold mt-6 mb-2">Pending Vehicle Requests</h3>
