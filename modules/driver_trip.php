@@ -2,9 +2,10 @@
 // DRIVER AND TRIP PERFORMANCE MONITORING
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/audit_log.php';
-function validateTripData($data) {
+function validateTripData($data)
+{
     $errors = [];
-    
+
     // Check for required fields
     $required_fields = ['driver_id', 'vehicle_id', 'trip_date', 'start_time', 'distance_traveled', 'fuel_consumed'];
     foreach ($required_fields as $field) {
@@ -43,10 +44,11 @@ function validateTripData($data) {
     return $errors;
 }
 
-function calculatePerformanceScore($tripData) {
+function calculatePerformanceScore($tripData)
+{
     // Calculate based on various metrics
     $score = 100; // Start with perfect score
-    
+
     // Fuel efficiency (km/l)
     $fuelEfficiency = $tripData['distance_traveled'] / $tripData['fuel_consumed'];
     $expectedEfficiency = 10; // Example: 10 km/l is the baseline
@@ -104,12 +106,12 @@ function driver_trip_logic($baseURL)
 
             // Validate the data
             $validationErrors = validateTripData($tripData);
-            
+
             if (empty($validationErrors)) {
                 // Step 4: Data Storage and Processing
                 $tripData['validation_status'] = 'valid';
                 $tripData['performance_score'] = calculatePerformanceScore($tripData);
-                
+
                 $result = insertData('driver_trips', $tripData);
                 if ($result) {
                     global $conn;
@@ -132,7 +134,7 @@ function driver_trip_logic($baseURL)
             error_log('Error processing trip data: ' . $e->getMessage());
             $_SESSION['error_message'] = "An error occurred while processing your request. Please try again.";
         }
-        
+
         header("Location: {$baseURL}");
         exit;
     }
@@ -174,12 +176,12 @@ function driver_trip_view($baseURL)
 
     // Calculate overall statistics
     $totalTrips = count($trips);
-    $avgScore = array_reduce($trips, function($carry, $trip) {
+    $avgScore = array_reduce($trips, function ($carry, $trip) {
         return $carry + $trip['performance_score'];
     }, 0) / max(1, $totalTrips);
 ?>
     <div class="space-y-6">
-        <div class="flex justify-between items-center">
+        <div class="flex flex-col md:flex-row gap-4">
             <h2 class="text-2xl font-bold">Driver & Trip Performance</h2>
             <button class="btn btn-primary" onclick="submit_trip_modal.showModal()">Submit Trip Data</button>
         </div>
@@ -322,8 +324,7 @@ function driver_trip_view($baseURL)
                                 <option value="<?= $cd['id'] ?>"
                                     data-driver_id="<?= $cd['driver_id'] ?>"
                                     data-vehicle_id="<?= $cd['vehicle_id'] ?>"
-                                    data-trip_date="<?= substr($cd['dispatch_date'],0,10) ?>"
-                                >
+                                    data-trip_date="<?= substr($cd['dispatch_date'], 0, 10) ?>">
                                     <?= htmlspecialchars($cd['dispatch_date']) ?> | <?= htmlspecialchars($cd['vehicle_name']) ?> | <?= htmlspecialchars($cd['driver_name']) ?> | <?= htmlspecialchars($cd['purpose']) ?>
                                 </option>
                             <?php endforeach; ?>
@@ -353,12 +354,12 @@ function driver_trip_view($baseURL)
                             <input id="trip_date_field" type="date" name="trip_date" class="input input-bordered" required>
                         </div>
                         <div class="form-control">
-                                <label class="label">Start Time</label>
-                                <input type="time" name="start_time" class="input input-bordered" required>
+                            <label class="label">Start Time</label>
+                            <input type="time" name="start_time" class="input input-bordered" required>
                         </div>
                         <div class="form-control">
-                                <label class="label">End Time</label>
-                                <input type="time" name="end_time" class="input input-bordered">
+                            <label class="label">End Time</label>
+                            <input type="time" name="end_time" class="input input-bordered">
                         </div>
                         <div class="form-control">
                             <label class="label">Distance (km)</label>
@@ -376,13 +377,13 @@ function driver_trip_view($baseURL)
                     <button type="submit" class="btn btn-primary w-full mt-6">Submit Trip Data</button>
                 </form>
                 <script>
-                function fillDispatchFields(sel) {
-                    var opt = sel.options[sel.selectedIndex];
-                    if (!opt || !opt.dataset) return;
-                    document.getElementById('driver_id_field').value = opt.dataset.driver_id || '';
-                    document.getElementById('vehicle_id_field').value = opt.dataset.vehicle_id || '';
-                    document.getElementById('trip_date_field').value = opt.dataset.trip_date || '';
-                }
+                    function fillDispatchFields(sel) {
+                        var opt = sel.options[sel.selectedIndex];
+                        if (!opt || !opt.dataset) return;
+                        document.getElementById('driver_id_field').value = opt.dataset.driver_id || '';
+                        document.getElementById('vehicle_id_field').value = opt.dataset.vehicle_id || '';
+                        document.getElementById('trip_date_field').value = opt.dataset.trip_date || '';
+                    }
                 </script>
             </div>
             <form method="dialog" class="modal-backdrop">
@@ -413,7 +414,7 @@ function driver_trip_view($baseURL)
                             <td>
                                 <div>Date: <?= date('M d, Y', strtotime($t['trip_date'])) ?></div>
                                 <div class="text-sm">
-                                    Time: <?= date('H:i', strtotime($t['start_time'])) ?> - 
+                                    Time: <?= date('H:i', strtotime($t['start_time'])) ?> -
                                     <?= $t['end_time'] ? date('H:i', strtotime($t['end_time'])) : 'Ongoing' ?>
                                 </div>
                                 <div class="text-sm">Distance: <?= number_format($t['distance_traveled'], 1) ?> km</div>
@@ -442,7 +443,7 @@ function driver_trip_view($baseURL)
                             </td>
                             <td>
                                 <?php if ($t['supervisor_review_status'] === 'pending'): ?>
-                                    <button class="btn btn-sm btn-warning" 
+                                    <button class="btn btn-sm btn-warning"
                                         onclick="document.getElementById('review_modal_<?= $t['id'] ?>').showModal()">
                                         Review
                                     </button>
@@ -462,7 +463,7 @@ function driver_trip_view($baseURL)
                                         <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="space-y-4">
                                             <input type="hidden" name="review_trip" value="1">
                                             <input type="hidden" name="trip_id" value="<?= $t['id'] ?>">
-                                            
+
                                             <div class="form-control">
                                                 <label class="label">Review Status</label>
                                                 <select name="review_status" class="select select-bordered" required>
@@ -470,13 +471,13 @@ function driver_trip_view($baseURL)
                                                     <option value="rejected">Reject</option>
                                                 </select>
                                             </div>
-                                            
+
                                             <div class="form-control">
                                                 <label class="label">Remarks</label>
-                                                <textarea name="supervisor_remarks" class="textarea textarea-bordered" 
+                                                <textarea name="supervisor_remarks" class="textarea textarea-bordered"
                                                     placeholder="Enter your review comments..."><?= htmlspecialchars($t['supervisor_remarks'] ?? '') ?></textarea>
                                             </div>
-                                            
+
                                             <div class="flex gap-2">
                                                 <button type="submit" class="btn btn-primary flex-1">Submit Review</button>
                                             </div>
@@ -488,14 +489,14 @@ function driver_trip_view($baseURL)
                                 </dialog>
                             </td>
                             <td>
-                                <div class="flex gap-2">
-                                    <button class="btn btn-sm btn-info" 
+                                <div class="flex flex-col md:flex-row gap-2">
+                                    <button class="btn btn-info whitespace-nowrap flex items-center"
                                         onclick="document.getElementById('details_modal_<?= $t['id'] ?>').showModal()">
                                         <i class="fas fa-info-circle mr-2"></i> View Details
                                     </button>
                                     <?php if ($_SESSION['role'] === 'admin'): ?>
                                         <a href="<?= htmlspecialchars($baseURL . '&delete=' . $t['id']) ?>"
-                                            class="btn btn-sm btn-error"
+                                            class="btn btn-error"
                                             onclick="return confirm('Are you sure you want to delete this trip record?')">
                                             <i class="fas fa-trash-alt mr-2"></i> Delete
                                         </a>
@@ -526,7 +527,7 @@ function driver_trip_view($baseURL)
                                                 <div>
                                                     <div class="font-bold">Duration</div>
                                                     <div>
-                                                        <?= date('H:i', strtotime($t['start_time'])) ?> - 
+                                                        <?= date('H:i', strtotime($t['start_time'])) ?> -
                                                         <?= $t['end_time'] ? date('H:i', strtotime($t['end_time'])) : 'Ongoing' ?>
                                                     </div>
                                                 </div>
@@ -547,9 +548,9 @@ function driver_trip_view($baseURL)
                                                     <div><?= $t['idle_time'] ?? 0 ?> minutes</div>
                                                 </div>
                                             </div>
-                                            
+
                                             <div class="divider"></div>
-                                            
+
                                             <div>
                                                 <div class="font-bold">Performance Score</div>
                                                 <div class="flex items-center gap-4">
@@ -566,7 +567,7 @@ function driver_trip_view($baseURL)
                                                     </div>
                                                 </div>
                                             </div>
-                                            
+
                                             <?php if ($t['supervisor_remarks']): ?>
                                                 <div>
                                                     <div class="font-bold">Supervisor Remarks</div>
