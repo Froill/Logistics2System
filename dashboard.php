@@ -60,6 +60,7 @@ if ($module === 'dashboard') {
   <!-- Meta -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/x-icon" href="images/logo/sonly-2.png">
   <title>Logistics 2 Dashboard</title>
 
   <!-- Theme loader -->
