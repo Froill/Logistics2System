@@ -8,7 +8,7 @@ function fvm_logic($baseURL)
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_maintenance_logs'])) {
         global $conn;
         $conn->query("DELETE FROM fleet_vehicle_logs WHERE log_type = 'maintenance'");
-        log_audit_event('FVM', 'clear_maintenance_logs', null, $_SESSION['username'] ?? 'unknown');
+        log_audit_event('FVM', 'clear_maintenance_logs', null, $_SESSION['full_name'] ?? 'unknown');
         $_SESSION['fvm_success'] = 'All maintenance logs cleared.';
         header("Location: {$baseURL}");
         exit;
@@ -16,7 +16,7 @@ function fvm_logic($baseURL)
     // Handle delete
     if (isset($_GET['delete'])) {
         deleteData('fleet_vehicles', $_GET['delete']);
-        log_audit_event('FVM', 'delete_vehicle', $_GET['delete'], $_SESSION['username'] ?? 'unknown');
+        log_audit_event('FVM', 'delete_vehicle', $_GET['delete'], $_SESSION['full_name'] ?? 'unknown');
         header("Location: {$baseURL}");
         exit;
     }
@@ -31,7 +31,7 @@ function fvm_logic($baseURL)
         if ($result) {
             global $conn;
             $id = $conn->insert_id;
-            log_audit_event('FVM', 'add_vehicle', $id, $_SESSION['username'] ?? 'unknown');
+            log_audit_event('FVM', 'add_vehicle', $id, $_SESSION['full_name'] ?? 'unknown');
         }
         header("Location: {$baseURL}");
         exit;
@@ -44,7 +44,7 @@ function fvm_logic($baseURL)
             'plate_number' => $_POST['plate_number'],
             'status'       => $_POST['status']
         ]);
-        log_audit_event('FVM', 'edit_vehicle', $_POST['edit_vehicle_id'], $_SESSION['username'] ?? 'unknown');
+        log_audit_event('FVM', 'edit_vehicle', $_POST['edit_vehicle_id'], $_SESSION['full_name'] ?? 'unknown');
         header("Location: {$baseURL}");
         exit;
     }
@@ -92,28 +92,26 @@ function fvm_view($baseURL)
     <div>
         <h2 class="text-2xl font-bold mb-4">Fleet & Vehicle Management</h2>
 
-        <div class="flex flex-col md:flex-row gap-2 mb-3">
-            <!-- Add Vehicle Button -->
-            <button class="btn btn-soft btn-primary" onclick="fvm_modal.showModal()">
-                <i data-lucide="plus" class="w-4 h-4 mr-1"></i> Add Vehicle
-            </button>
-            <!-- View Maintenance Logs Button -->
-            <button class="btn btn-soft btn-info" onclick="maintenance_logs_modal.showModal()">
-                <i data-lucide="wrench" class="w-4 h-4 mr-1"></i> View Maintenance Logs
-            </button>
-        </div>
-
-        <!-- View Maintenance Logs Modal -->
-        <dialog id="maintenance_logs_modal" class="modal">
+        <!-- Vehicle Logs Modal (Paginated) -->
+        <dialog id="vehicle_logs_modal" class="modal">
             <div class="modal-box w-11/12 max-w-5xl">
                 <form method="dialog">
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
-                <h3 class="font-bold text-lg mb-4">Vehicle Maintenance Logs</h3>
+                <h3 class="font-bold text-lg mb-4">Vehicle Logs</h3>
                 <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="mb-4">
                     <input type="hidden" name="clear_maintenance_logs" value="1">
-                    <button type="submit" class="btn btn-error" onclick="return confirm('Clear all maintenance logs?')">Clear Logs</button>
+                    <button type="submit" class="btn btn-error" onclick="return confirm('Clear all maintenance logs?')">Clear Maintenance Logs</button>
                 </form>
+                <?php
+                // Pagination logic
+                $page = isset($_GET['log_page']) ? max(1, intval($_GET['log_page'])) : 1;
+                $perPage = 10;
+                $totalLogs = count($vehicle_logs);
+                $totalPages = ceil($totalLogs / $perPage);
+                $start = ($page - 1) * $perPage;
+                $pagedLogs = array_slice($vehicle_logs, $start, $perPage);
+                ?>
                 <div class="overflow-x-auto">
                     <table class="table table-zebra w-full">
                         <thead>
@@ -125,7 +123,7 @@ function fvm_view($baseURL)
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($vehicle_logs as $log): ?>
+                            <?php foreach ($pagedLogs as $log): ?>
                                 <tr>
                                     <td><?= htmlspecialchars($log['vehicle_name']) ?></td>
                                     <td>
@@ -139,6 +137,12 @@ function fvm_view($baseURL)
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                </div>
+                <!-- Pagination Controls -->
+                <div class="flex justify-center mt-4 gap-2">
+                    <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+                        <a href="<?= htmlspecialchars($baseURL . '&log_page=' . $p) ?>" class="btn btn-xs <?= $p == $page ? 'btn-primary' : 'btn-outline' ?>">Page <?= $p ?></a>
+                    <?php endfor; ?>
                 </div>
             </div>
             <form method="dialog" class="modal-backdrop">
@@ -189,6 +193,16 @@ function fvm_view($baseURL)
             </div>
         </div>
 
+        <div class="flex gap-2 mb-3">
+            <!-- Add Vehicle Button -->
+            <button class="btn btn-soft btn-primary" onclick="fvm_modal.showModal()">
+                <i data-lucide="plus" class="w-4 h-4 mr-1"></i> Add Vehicle
+            </button>
+            <!-- View Vehicle Logs Button -->
+            <button class="btn btn-soft btn-info" onclick="vehicle_logs_modal.showModal()">
+                <i data-lucide="clipboard-list" class="w-4 h-4 mr-1"></i> View Maintenance Logs
+            </button>
+        </div>
         <!-- Vehicle Table -->
         <div class="overflow-x-auto">
             <table class="table table-zebra w-full">
@@ -333,44 +347,42 @@ function fvm_view($baseURL)
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        const ctx = document.getElementById('vehicleStatusChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: ['Active', 'Inactive', 'Dispatched', 'Under Maintenance'],
-                datasets: [{
-                    label: 'Vehicles',
-                    data: [
-                        <?= $activeCount ?>,
-                        <?= $inactiveCount ?>,
-                        <?= $dispatchedCount ?>,
-                        <?= $maintenanceCount ?>
-                    ],
-                    backgroundColor: [
-                        'rgba(34,197,94,0.6)', // green
-                        'rgba(239,68,68,0.6)', // red
-                        'rgba(59,130,246,0.6)', // blue
-                        'rgba(234,179,8,0.6)' // yellow
-                    ],
-                    borderColor: [
-                        'rgba(34,197,94,1)',
-                        'rgba(239,68,68,1)',
-                        'rgba(59,130,246,1)',
-                        'rgba(234,179,8,1)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-    </script>
-
+<script>
+const ctx = document.getElementById('vehicleStatusChart').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: ['Active', 'Inactive', 'Dispatched', 'Under Maintenance'],
+        datasets: [{
+            label: 'Vehicles',
+            data: [
+                <?= $activeCount ?>,
+                <?= $inactiveCount ?>,
+                <?= $dispatchedCount ?>,
+                <?= $maintenanceCount ?>
+            ],
+            backgroundColor: [
+                'rgba(34,197,94,0.6)',   // green
+                'rgba(239,68,68,0.6)',   // red
+                'rgba(59,130,246,0.6)',  // blue
+                'rgba(234,179,8,0.6)'    // yellow
+            ],
+            borderColor: [
+                'rgba(34,197,94,1)',
+                'rgba(239,68,68,1)',
+                'rgba(59,130,246,1)',
+                'rgba(234,179,8,1)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { position: 'bottom' }
+        }
+    }
+});
+</script>
+    
 <?php } ?>

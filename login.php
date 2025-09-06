@@ -26,6 +26,7 @@ unset($_SESSION['username']); // Clear username after using it
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
     <link rel="stylesheet" href="./css/style.css">
+    <link rel="icon" type="image/x-icon" href="images/logo/sonly-2.png">
 </head>
 
 <body class="flex items-center justify-center min-h-screen bg-gradient-to-r from-slate-700 to-slate-900">

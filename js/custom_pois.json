@@ -1,0 +1,34 @@
+[
+  {
+    "name": "Main Office",
+    "lat": 14.5995,
+    "lon": 120.9842,
+    "description": "Company Main Office, Manila"
+  },
+  {
+    "name": "Warehouse North",
+    "lat": 14.7510,
+    "lon": 121.0254,
+    "description": "North Warehouse, Quezon City"
+  },
+  {
+    "name": "Warehouse South",
+    "lat": 14.4098,
+    "lon": 121.0415,
+    "description": "South Warehouse, Alabang"
+  },
+
+  {
+    "name": "Warehouse Legit",
+    "lat": 14.651422,
+    "lon": 121.049265,
+    "description": "Main Supplier, Quezon City"
+  },
+
+  {
+    "name": "Bestlink",
+    "lat": 14.726490,
+    "lon": 121.036444,
+    "description": "BESEPE, Quezon City"
+  }
+]

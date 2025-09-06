@@ -76,4 +76,27 @@ function deleteData($table, $id)
     $id = (int)$id;
     return $conn->query("DELETE FROM $table WHERE id = $id");
 }
+/**
+ * Validate trip data for driver trips. Returns array of errors (empty if valid).
+ * @param array $tripData
+ * @return array
+ */
+function validateTripData($tripData) {
+    $errors = [];
+    // Example validation rules (customize as needed)
+    if (empty($tripData['driver_id']) || !is_numeric($tripData['driver_id'])) {
+        $errors[] = 'Invalid or missing driver.';
+    }
+    if (empty($tripData['vehicle_id']) || !is_numeric($tripData['vehicle_id'])) {
+        $errors[] = 'Invalid or missing vehicle.';
+    }
+    if (empty($tripData['trip_date']) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $tripData['trip_date'])) {
+        $errors[] = 'Invalid or missing trip date.';
+    }
+    if (empty($tripData['start_time']) || !preg_match('/^\d{2}:\d{2}/', $tripData['start_time'])) {
+        $errors[] = 'Invalid or missing start time.';
+    }
+    // Add more rules as needed
+    return $errors;
+}
 
