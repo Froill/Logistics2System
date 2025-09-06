@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Aug 31, 2025 at 04:26 PM
+-- Generation Time: Sep 06, 2025 at 04:05 PM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- PHP Version: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -43,7 +43,96 @@ CREATE TABLE `audit_log` (
 
 INSERT INTO `audit_log` (`id`, `module`, `action`, `record_id`, `user`, `details`, `timestamp`) VALUES
 (1, 'TCAO', 'submitted', 8, 'admin', NULL, '2025-08-30 19:11:09'),
-(2, 'VRDS', 'complete_dispatch', 1, 'admin', NULL, '2025-08-30 21:37:44');
+(2, 'VRDS', 'complete_dispatch', 1, 'admin', NULL, '2025-08-30 21:37:44'),
+(3, 'TCAO', 'deleted', 8, 'unknown', NULL, '2025-09-01 22:13:14'),
+(4, 'DTP', 'delete_trip', 1, 'unknown', NULL, '2025-09-01 22:13:19'),
+(5, 'FVM', 'delete_vehicle', 23, 'unknown', NULL, '2025-09-01 22:13:53'),
+(6, 'FVM', 'delete_vehicle', 22, 'unknown', NULL, '2025-09-01 22:13:57'),
+(7, 'FVM', 'delete_vehicle', 21, 'unknown', NULL, '2025-09-01 22:14:01'),
+(8, 'VRDS', 'delete_dispatch', 20, 'unknown', NULL, '2025-09-02 00:14:19'),
+(9, 'TCAO', 'deleted', 10, 'unknown', NULL, '2025-09-02 01:08:39'),
+(10, 'VRDS', 'approve_dispatch', 37, 'unknown', NULL, '2025-09-02 02:07:54'),
+(11, 'VRDS', 'complete_dispatch', 37, 'unknown', NULL, '2025-09-02 02:08:07'),
+(12, 'TCAO', 'submitted', 40, 'unknown', NULL, '2025-09-02 02:22:22'),
+(13, 'DTP', 'add_trip', 33, 'unknown', NULL, '2025-09-02 02:32:38'),
+(14, 'VRDS', 'request_vehicle', 87, 'unknown', NULL, '2025-09-02 02:39:47'),
+(15, 'VRDS', 'approve_dispatch', 38, 'unknown', NULL, '2025-09-02 02:40:45'),
+(16, 'DTP', 'add_trip', 34, 'unknown', NULL, '2025-09-02 03:24:20'),
+(17, 'FVM', 'edit_vehicle', 18, 'unknown', NULL, '2025-09-02 10:21:11'),
+(18, 'FVM', 'edit_vehicle', 4, 'unknown', NULL, '2025-09-02 10:47:34'),
+(19, 'FVM', 'edit_vehicle', 24, 'unknown', NULL, '2025-09-02 10:47:38'),
+(20, 'FVM', 'edit_vehicle', 25, 'unknown', NULL, '2025-09-02 10:47:42'),
+(21, 'FVM', 'edit_vehicle', 26, 'unknown', NULL, '2025-09-02 10:47:47'),
+(22, 'VRDS', 'request_vehicle', 88, 'unknown', NULL, '2025-09-02 12:01:32'),
+(23, 'VRDS', 'request_vehicle', 89, 'unknown', NULL, '2025-09-02 12:39:31'),
+(24, 'Authentication', 'OTP Sent', 1, 'S250701', 'OTP sent for login', '2025-09-05 23:24:05'),
+(25, 'Authentication', 'Successful Login', 1, 'S250701', 'User successfully logged in after OTP verification', '2025-09-05 23:24:27'),
+(26, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-06 16:10:19'),
+(27, 'FVM', 'adjust_maintenance', 2, 'admin', NULL, '2025-09-06 17:21:44'),
+(28, 'FVM', 'adjust_maintenance', 2, 'admin', NULL, '2025-09-06 17:21:55'),
+(29, 'FVM', 'adjust_maintenance', 3, 'admin', NULL, '2025-09-06 17:22:06'),
+(30, 'FVM', 'adjust_maintenance', 3, 'admin', NULL, '2025-09-06 17:22:21'),
+(31, 'FVM', 'adjust_maintenance', 4, 'admin', NULL, '2025-09-06 17:22:59'),
+(32, 'FVM', 'adjust_maintenance', 5, 'admin', NULL, '2025-09-06 17:23:11'),
+(33, 'FVM', 'adjust_maintenance', 24, 'admin', NULL, '2025-09-06 17:23:20'),
+(34, 'FVM', 'adjust_maintenance', 25, 'admin', NULL, '2025-09-06 17:23:29'),
+(35, 'FVM', 'adjust_maintenance', 26, 'admin', NULL, '2025-09-06 17:23:39'),
+(36, 'FVM', 'edit_vehicle', 4, 'admin', NULL, '2025-09-06 17:28:58'),
+(37, 'FVM', 'edit_vehicle', 4, 'admin', NULL, '2025-09-06 17:31:46'),
+(38, 'FVM', 'adjust_maintenance', 4, 'admin', NULL, '2025-09-06 17:51:56'),
+(39, 'FVM', 'adjust_maintenance', 4, 'admin', NULL, '2025-09-06 17:52:11'),
+(40, 'FVM', 'adjust_maintenance', 4, 'admin', NULL, '2025-09-06 17:52:50'),
+(41, 'FVM', 'adjust_maintenance', 4, 'admin', NULL, '2025-09-06 17:53:09'),
+(42, 'FVM', 'adjust_maintenance', 4, 'admin', NULL, '2025-09-06 17:53:28'),
+(43, 'FVM', 'edit_vehicle', 2, 'admin', NULL, '2025-09-06 18:32:45'),
+(44, 'FVM', 'edit_vehicle', 3, 'admin', NULL, '2025-09-06 18:32:54'),
+(45, 'FVM', 'edit_vehicle', 5, 'admin', NULL, '2025-09-06 18:33:08'),
+(46, 'FVM', 'edit_vehicle', 24, 'admin', NULL, '2025-09-06 18:33:16'),
+(47, 'FVM', 'edit_vehicle', 25, 'admin', NULL, '2025-09-06 18:33:22'),
+(48, 'FVM', 'edit_vehicle', 26, 'admin', NULL, '2025-09-06 18:33:29'),
+(49, 'FVM', 'edit_vehicle', 4, 'admin', NULL, '2025-09-06 18:33:47'),
+(50, 'FVM', 'adjust_maintenance', 4, 'admin', NULL, '2025-09-06 18:34:29'),
+(51, 'FVM', 'edit_vehicle', 4, 'admin', NULL, '2025-09-06 18:35:02'),
+(52, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 18:43:11'),
+(53, 'FVM', 'add_vehicle', 28, 'admin', NULL, '2025-09-06 18:46:25'),
+(54, 'FVM', 'delete_vehicle', 28, 'admin', NULL, '2025-09-06 18:46:33'),
+(55, 'VRDS', 'delete_dispatch', 38, 'admin', NULL, '2025-09-06 18:54:15'),
+(56, 'VRDS', 'approve_dispatch', 39, 'admin', NULL, '2025-09-06 18:59:14'),
+(57, 'FVM', 'add_vehicle', 29, 'admin', NULL, '2025-09-06 19:03:12'),
+(58, 'FVM', 'delete_vehicle', 29, 'admin', NULL, '2025-09-06 19:03:37'),
+(59, 'FVM', 'edit_vehicle', 20, 'admin', NULL, '2025-09-06 19:03:48'),
+(60, 'VRDS', 'complete_dispatch', 39, 'admin', NULL, '2025-09-06 19:05:23'),
+(61, 'FVM', 'add_vehicle', 30, 'admin', NULL, '2025-09-06 19:11:57'),
+(62, 'FVM', 'delete_vehicle', 30, 'admin', NULL, '2025-09-06 19:12:06'),
+(63, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 19:40:34'),
+(64, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 19:44:05'),
+(65, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 20:19:51'),
+(66, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 20:22:05'),
+(67, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 20:22:19'),
+(68, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 20:25:40'),
+(69, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 20:27:18'),
+(70, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 20:29:50'),
+(71, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 20:31:01'),
+(72, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 20:36:17'),
+(73, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 20:38:38'),
+(74, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 20:40:07'),
+(75, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 20:43:41'),
+(76, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 20:44:12'),
+(77, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 20:46:36'),
+(78, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 20:47:44'),
+(79, 'FVM', 'edit_vehicle', 2, 'admin', NULL, '2025-09-06 20:48:57'),
+(80, 'FVM', 'edit_vehicle', 3, 'admin', NULL, '2025-09-06 20:49:17'),
+(81, 'FVM', 'edit_vehicle', 4, 'admin', NULL, '2025-09-06 20:49:32'),
+(82, 'FVM', 'adjust_maintenance', 1, 'admin', NULL, '2025-09-06 20:51:17'),
+(83, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 20:51:34'),
+(84, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-06 20:51:46'),
+(85, 'FVM', 'edit_vehicle', 4, 'admin', NULL, '2025-09-06 20:52:07'),
+(86, 'FVM', 'edit_vehicle', 5, 'admin', NULL, '2025-09-06 20:52:29'),
+(87, 'FVM', 'edit_vehicle', 18, 'admin', NULL, '2025-09-06 20:52:52'),
+(88, 'FVM', 'edit_vehicle', 20, 'admin', NULL, '2025-09-06 20:53:02'),
+(89, 'VRDS', 'request_vehicle', 90, 'admin', NULL, '2025-09-06 20:58:28'),
+(90, 'VRDS', 'request_vehicle', 91, 'admin', NULL, '2025-09-06 21:08:53'),
+(91, 'VRDS', 'approve_dispatch', 40, 'admin', NULL, '2025-09-06 21:22:04');
 
 -- --------------------------------------------------------
 
@@ -73,7 +162,12 @@ CREATE TABLE `dispatches` (
 --
 
 INSERT INTO `dispatches` (`id`, `request_id`, `vehicle_id`, `driver_id`, `officer_id`, `dispatch_date`, `return_date`, `status`, `origin`, `destination`, `purpose`, `notes`, `created_at`, `updated_at`) VALUES
-(1, 17, 1, 2, 1, '2025-08-29 07:22:41', NULL, 'Completed', 'Kitchen', 'Supplier', 'Balut Order', '', '2025-08-29 05:22:41', '2025-08-30 13:37:44');
+(24, 37, 1, 2, 1, '2025-08-19 09:00:00', '2025-08-19 09:00:00', 'Completed', 'Warehouse', 'Hotel', 'Dispatch Trip 19', '', '2025-08-19 01:00:00', '2025-08-19 01:00:00'),
+(25, 39, 1, 4, 1, '2025-08-20 09:00:00', '2025-08-20 09:00:00', 'Completed', 'Warehouse', 'Hotel', 'Dispatch Trip 20', '', '2025-08-20 01:00:00', '2025-08-20 01:00:00'),
+(35, 59, 1, 1, 1, '2025-08-30 09:00:00', '2025-08-30 09:00:00', 'Completed', 'Warehouse', 'Hotel', 'Dispatch Trip 30', '', '2025-08-30 01:00:00', '2025-08-30 01:00:00'),
+(37, 34, 20, 19, 1, '2025-09-01 20:07:54', NULL, 'Completed', 'Warehouse', 'Hotel', 'Delivery 5-2', '', '2025-09-01 18:07:54', '2025-09-01 18:08:07'),
+(39, 89, 20, 19, 1, '2025-09-06 12:59:14', NULL, 'Completed', 'Warehouse Legit', 'Bestlink', 'Gala', '', '2025-09-06 10:59:14', '2025-09-06 11:05:23'),
+(40, 28, 4, 19, 1, '2025-09-06 15:22:04', NULL, 'Ongoing', 'Warehouse', 'Hotel', 'Delivery 2-2', '', '2025-09-06 13:22:04', '2025-09-06 13:22:04');
 
 -- --------------------------------------------------------
 
@@ -102,7 +196,13 @@ INSERT INTO `drivers` (`id`, `eid`, `driver_name`, `license_number`, `phone`, `e
 (3, 'D25073', 'Pedro Ramirez', 'PH-DL-2025-003', '09193456789', 'pedro.ramirez@example.com', 'Available', '2025-08-29 02:49:13'),
 (4, 'D25074', 'Ana Villanueva', 'PH-DL-2025-004', '09184561234', 'ana.villanueva@example.com', 'Available', '2025-08-29 02:49:13'),
 (5, 'D25075', 'Ramon Cruz', 'PH-DL-2025-005', '09185672345', 'ramon.cruz@example.com', 'Available', '2025-08-29 02:49:13'),
-(11, 'D250708', 'John Doe', '1234567', NULL, 'johndoe@gmail.com', 'Available', '2025-08-31 22:21:42');
+(11, 'D250708', 'John Doe', '1234567', NULL, 'johndoe@gmail.com', 'Available', '2025-08-31 22:21:42'),
+(14, 'D250701', 'Carlos Reyes', 'PH-DL-2025-101', '09170000001', 'carlos.reyes@example.com', 'Available', '2025-08-01 00:00:00'),
+(15, 'D250702', 'Liza Fernandez', 'PH-DL-2025-102', '09170000002', 'liza.fernandez@example.com', 'Available', '2025-08-01 00:00:00'),
+(16, 'D250703', 'Miguel Cruz', 'PH-DL-2025-103', '09170000003', 'miguel.cruz@example.com', 'Available', '2025-08-01 00:00:00'),
+(17, 'D250704', 'Sofia Santos', 'PH-DL-2025-104', '09170000004', 'sofia.santos@example.com', 'Available', '2025-08-01 00:00:00'),
+(18, 'D250705', 'Rafael Garcia', 'PH-DL-2025-105', '09170000005', 'rafael.garcia@example.com', 'Available', '2025-08-01 00:00:00'),
+(19, 'D250706', 'Jasmine Dela Rosa', 'PH-DL-2025-106', '09170000006', 'jasmine.delarosa@example.com', 'Dispatched', '2025-08-01 00:00:00');
 
 -- --------------------------------------------------------
 
@@ -127,15 +227,47 @@ CREATE TABLE `driver_trips` (
   `supervisor_review_status` enum('pending','approved','rejected') DEFAULT 'pending',
   `supervisor_remarks` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `cargo_weight` decimal(10,2) DEFAULT 0.00,
+  `vehicle_capacity` decimal(10,2) DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `driver_trips`
 --
 
-INSERT INTO `driver_trips` (`id`, `driver_id`, `vehicle_id`, `trip_date`, `start_time`, `end_time`, `distance_traveled`, `fuel_consumed`, `idle_time`, `average_speed`, `performance_score`, `validation_status`, `validation_message`, `supervisor_review_status`, `supervisor_remarks`, `created_at`, `updated_at`) VALUES
-(1, 1, 18, '2025-08-14', '2025-08-13 04:22:00', '2025-08-20 10:28:00', 5.00, 52.00, 90, 0.03, 44.48, 'valid', NULL, 'pending', NULL, '2025-08-28 20:23:16', '2025-08-28 20:23:16');
+INSERT INTO `driver_trips` (`id`, `driver_id`, `vehicle_id`, `trip_date`, `start_time`, `end_time`, `distance_traveled`, `fuel_consumed`, `idle_time`, `average_speed`, `performance_score`, `validation_status`, `validation_message`, `supervisor_review_status`, `supervisor_remarks`, `created_at`, `updated_at`, `cargo_weight`, `vehicle_capacity`) VALUES
+(2, 1, 2, '2025-08-01', '2025-08-01 09:00:00', '2025-08-01 09:00:00', 23.00, 28.00, 15, 54.00, 94.00, 'valid', '', 'pending', '', '2025-09-01 14:14:54', '2025-09-02 01:28:02', 0.00, 0.00),
+(3, 4, 2, '2025-08-02', '2025-08-02 09:00:00', '2025-08-02 09:00:00', 13.00, 20.00, 84, 33.00, 91.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(4, 5, 3, '2025-08-03', '2025-08-03 09:00:00', '2025-08-03 09:00:00', 6.00, 25.00, 16, 37.00, 73.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(5, 1, 2, '2025-08-04', '2025-08-04 09:00:00', '2025-08-04 09:00:00', 24.00, 35.00, 104, 46.00, 86.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(6, 2, 3, '2025-08-05', '2025-08-05 09:00:00', '2025-08-05 09:00:00', 6.00, 24.00, 26, 44.00, 94.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(7, 1, 3, '2025-08-06', '2025-08-06 09:00:00', '2025-08-06 09:00:00', 28.00, 39.00, 22, 33.00, 75.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(8, 3, 3, '2025-08-07', '2025-08-07 09:00:00', '2025-08-07 09:00:00', 26.00, 32.00, 58, 32.00, 97.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(9, 1, 2, '2025-08-08', '2025-08-08 09:00:00', '2025-08-08 09:00:00', 10.00, 19.00, 84, 39.00, 97.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(11, 2, 2, '2025-08-10', '2025-08-10 09:00:00', '2025-08-10 09:00:00', 20.00, 30.00, 66, 46.00, 92.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(12, 1, 3, '2025-08-11', '2025-08-11 09:00:00', '2025-08-11 09:00:00', 9.00, 19.00, 20, 56.00, 87.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(13, 5, 2, '2025-08-12', '2025-08-12 09:00:00', '2025-08-12 09:00:00', 8.00, 37.00, 74, 44.00, 89.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(15, 5, 3, '2025-08-14', '2025-08-14 09:00:00', '2025-08-14 09:00:00', 24.00, 15.00, 46, 47.00, 95.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(16, 2, 1, '2025-08-15', '2025-08-15 09:00:00', '2025-08-15 09:00:00', 11.00, 30.00, 81, 53.00, 98.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(17, 2, 3, '2025-08-16', '2025-08-16 09:00:00', '2025-08-16 09:00:00', 16.00, 37.00, 11, 45.00, 96.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(18, 1, 3, '2025-08-17', '2025-08-17 09:00:00', '2025-08-17 09:00:00', 30.00, 34.00, 44, 39.00, 93.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(19, 4, 1, '2025-08-18', '2025-08-18 09:00:00', '2025-08-18 09:00:00', 21.00, 21.00, 27, 45.00, 87.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(20, 2, 1, '2025-08-19', '2025-08-19 09:00:00', '2025-08-19 09:00:00', 21.00, 32.00, 109, 41.00, 92.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(21, 4, 1, '2025-08-20', '2025-08-20 09:00:00', '2025-08-20 09:00:00', 29.00, 38.00, 39, 45.00, 91.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(22, 2, 3, '2025-08-21', '2025-08-21 09:00:00', '2025-08-21 09:00:00', 7.00, 38.00, 110, 52.00, 75.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(23, 3, 3, '2025-08-22', '2025-08-22 09:00:00', '2025-08-22 09:00:00', 16.00, 40.00, 41, 60.00, 78.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(24, 5, 2, '2025-08-23', '2025-08-23 09:00:00', '2025-08-23 09:00:00', 17.00, 40.00, 98, 36.00, 73.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(25, 4, 1, '2025-08-24', '2025-08-24 09:00:00', '2025-08-24 09:00:00', 10.00, 11.00, 30, 56.00, 84.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(26, 3, 2, '2025-08-25', '2025-08-25 09:00:00', '2025-08-25 09:00:00', 6.00, 10.00, 24, 42.00, 77.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(27, 3, 2, '2025-08-26', '2025-08-26 09:00:00', '2025-08-26 09:00:00', 20.00, 27.00, 89, 52.00, 93.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(28, 1, 3, '2025-08-27', '2025-08-27 09:00:00', '2025-08-27 09:00:00', 6.00, 14.00, 85, 38.00, 99.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(29, 1, 2, '2025-08-28', '2025-08-28 09:00:00', '2025-08-28 09:00:00', 29.00, 14.00, 71, 46.00, 83.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(30, 4, 1, '2025-08-29', '2025-08-29 09:00:00', '2025-08-29 09:00:00', 20.00, 40.00, 117, 51.00, 86.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(31, 1, 1, '2025-08-30', '2025-08-30 09:00:00', '2025-08-30 09:00:00', 10.00, 19.00, 22, 38.00, 83.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(32, 5, 3, '2025-08-31', '2025-08-31 09:00:00', '2025-08-31 09:00:00', 23.00, 27.00, 42, 49.00, 92.00, 'valid', '', 'approved', '', '2025-09-01 14:14:54', '2025-09-01 14:14:54', 0.00, 0.00),
+(33, 19, 20, '2025-09-01', '0000-00-00 00:00:00', '0000-00-00 00:00:00', 9.00, 11.00, 15, 8.85, 54.09, 'valid', NULL, 'rejected', 'too slow', '2025-09-01 18:32:38', '2025-09-01 19:10:47', 40.33, 55.55),
+(34, 19, 20, '2025-09-01', '0000-00-00 00:00:00', '0000-00-00 00:00:00', 11.00, 11.00, 15, 11.00, 55.00, 'valid', NULL, 'pending', NULL, '2025-09-01 19:24:20', '2025-09-01 19:24:20', 11.00, 22.00);
 
 -- --------------------------------------------------------
 
@@ -148,21 +280,26 @@ CREATE TABLE `fleet_vehicles` (
   `vehicle_name` varchar(100) NOT NULL,
   `plate_number` varchar(20) NOT NULL,
   `vehicle_type` enum('Truck','Van','Pickup','Car') DEFAULT NULL,
-  `status` enum('Active','Under Maintenance','Inactive','Dispatched') DEFAULT 'Active'
+  `status` enum('Active','Under Maintenance','Inactive','Dispatched') DEFAULT 'Active',
+  `capacity` decimal(6,2) DEFAULT NULL,
+  `vehicle_image` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `fleet_vehicles`
 --
 
-INSERT INTO `fleet_vehicles` (`id`, `vehicle_name`, `plate_number`, `vehicle_type`, `status`) VALUES
-(1, 'Toyota Hilux', 'ABC-123', 'Car', 'Active'),
-(2, 'Mitsubishi L300', 'XYZ-456', 'Van', 'Active'),
-(3, 'Isuzu D-Max', 'LMN-789', 'Pickup', 'Under Maintenance'),
-(4, 'Hyundai H100', 'JKL-321', 'Truck', 'Dispatched'),
-(5, 'Ford Ranger', 'PQR-654', 'Car', 'Under Maintenance'),
-(18, 'Gold Ship', '69420', 'Car', 'Dispatched'),
-(20, 'Lightning Mcqueen', 'KACHOW', NULL, 'Active');
+INSERT INTO `fleet_vehicles` (`id`, `vehicle_name`, `plate_number`, `vehicle_type`, `status`, `capacity`, `vehicle_image`) VALUES
+(1, 'Toyota Hilux', 'ABC-124', 'Pickup', 'Active', 100.00, 'uploads/vehicle_1757162864_8262.png'),
+(2, 'Mitsubishi L300', 'XYZ-456', 'Van', 'Active', 100.00, 'uploads/vehicle_1757162937_8200.jpg'),
+(3, 'Isuzu D-Max', 'LMN-789', 'Pickup', 'Active', 100.00, 'uploads/vehicle_1757162957_9277.jpg'),
+(4, 'Hyundai H100', 'JKL-321', 'Van', 'Dispatched', 100.00, 'uploads/vehicle_1757162972_2521.jpg'),
+(5, 'Ford Ranger', 'PQR-654', 'Pickup', 'Active', 100.00, 'uploads/vehicle_1757163149_5973.png'),
+(18, 'Gold Ship', '69420', 'Car', 'Inactive', 100.00, 'uploads/vehicle_1757163172_5224.jpg'),
+(20, 'Lightning Mcqueen', 'KACHOW', 'Car', 'Active', 69.90, 'uploads/vehicle_1757163182_9271.png'),
+(24, 'Thunderbolt', 'PLT-888', 'Pickup', 'Active', 100.00, NULL),
+(25, 'Silver Arrow', 'PLT-110', 'Car', 'Active', 100.00, NULL),
+(26, 'Blue Falcon', 'PLT-455', 'Van', 'Active', 100.00, NULL);
 
 -- --------------------------------------------------------
 
@@ -184,11 +321,18 @@ CREATE TABLE `fleet_vehicle_logs` (
 
 INSERT INTO `fleet_vehicle_logs` (`id`, `vehicle_id`, `log_type`, `details`, `created_at`) VALUES
 (1, 1, 'fuel', 'Need Refill', '2025-08-28 17:07:58'),
-(2, 1, 'fuel', 'Needs Refill', '2025-08-28 17:10:25'),
-(3, 1, 'maintenance', 'asdad', '2025-08-28 17:11:39'),
 (4, 18, 'maintenance', 'Training Options restricted', '2025-08-28 18:24:34'),
-(5, 2, 'maintenance', 'Nabuang ang driver, ninakaw ang catalytic converter bago nag resign', '2025-08-30 10:51:43'),
-(6, 20, 'maintenance', 'Change Tires', '2025-08-30 10:56:03');
+(6, 20, 'maintenance', 'Change Tires', '2025-08-30 10:56:03'),
+(7, 2, 'maintenance', 'Manual schedule adjustment', '2025-09-06 08:00:00'),
+(9, 3, 'maintenance', 'Manual schedule adjustment', '2025-09-08 08:00:00'),
+(10, 3, 'maintenance', 'Manual schedule adjustment', '2025-09-06 08:00:00'),
+(11, 4, 'maintenance', 'Manual schedule adjustment', '2025-08-06 08:00:00'),
+(12, 5, 'maintenance', 'Manual schedule adjustment', '2025-09-06 08:00:00'),
+(13, 24, 'maintenance', 'Manual schedule adjustment', '2025-09-10 08:00:00'),
+(14, 25, 'maintenance', 'Manual schedule adjustment', '2025-09-10 08:00:00'),
+(15, 26, 'maintenance', 'Manual schedule adjustment', '2025-09-10 08:00:00'),
+(16, 4, 'maintenance', 'Monthly Scheduled Maintenance', '2025-08-06 08:00:00'),
+(29, 1, 'maintenance', 'Manual schedule adjustment', '2025-09-06 08:00:00');
 
 -- --------------------------------------------------------
 
@@ -303,13 +447,6 @@ CREATE TABLE `tcao_audit_log` (
   `timestamp` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `tcao_audit_log`
---
-
-INSERT INTO `tcao_audit_log` (`id`, `cost_id`, `action`, `user`, `timestamp`) VALUES
-(3, 8, 'submitted', 'admin', '2025-08-30 19:11:09');
-
 -- --------------------------------------------------------
 
 --
@@ -334,7 +471,34 @@ CREATE TABLE `transport_costs` (
 --
 
 INSERT INTO `transport_costs` (`id`, `trip_id`, `fuel_cost`, `toll_fees`, `other_expenses`, `total_cost`, `status`, `receipt`, `created_by`, `created_at`) VALUES
-(8, 1, 12313213.00, 69585745.00, 420.00, 81899378.00, 'submitted', 'receipts_68b2dc4de9835.jpg', 'admin', '2025-08-30 11:11:09.000000');
+(11, 3, 2060.00, 207.00, 149.00, 2416.00, 'submitted', '', 'admin', '2025-08-03 04:00:00.000000'),
+(12, 4, 3489.00, 576.00, 440.00, 4505.00, 'submitted', '', 'admin', '2025-08-04 04:00:00.000000'),
+(13, 5, 3023.00, 586.00, 383.00, 3992.00, 'submitted', '', 'admin', '2025-08-05 04:00:00.000000'),
+(14, 6, 2297.00, 732.00, 201.00, 3230.00, 'submitted', '', 'admin', '2025-08-06 04:00:00.000000'),
+(15, 7, 2756.00, 311.00, 383.00, 3450.00, 'submitted', '', 'admin', '2025-08-07 04:00:00.000000'),
+(16, 8, 2493.00, 528.00, 459.00, 3480.00, 'submitted', '', 'admin', '2025-08-08 04:00:00.000000'),
+(17, 9, 2295.00, 336.00, 182.00, 2813.00, 'submitted', '', 'admin', '2025-08-09 04:00:00.000000'),
+(19, 11, 2210.00, 270.00, 401.00, 2881.00, 'submitted', '', 'admin', '2025-08-11 04:00:00.000000'),
+(20, 12, 2040.00, 525.00, 186.00, 2751.00, 'submitted', '', 'admin', '2025-08-12 04:00:00.000000'),
+(21, 13, 1749.00, 264.00, 237.00, 2250.00, 'submitted', '', 'admin', '2025-08-13 04:00:00.000000'),
+(23, 15, 1759.00, 357.00, 381.00, 2497.00, 'submitted', '', 'admin', '2025-08-15 04:00:00.000000'),
+(24, 16, 1712.00, 495.00, 395.00, 2602.00, 'submitted', '', 'admin', '2025-08-16 04:00:00.000000'),
+(25, 17, 3081.00, 607.00, 166.00, 3854.00, 'submitted', '', 'admin', '2025-08-17 04:00:00.000000'),
+(26, 18, 2016.00, 366.00, 456.00, 2838.00, 'submitted', '', 'admin', '2025-08-18 04:00:00.000000'),
+(27, 19, 1677.00, 326.00, 198.00, 2201.00, 'submitted', '', 'admin', '2025-08-19 04:00:00.000000'),
+(28, 20, 3343.00, 397.00, 477.00, 4217.00, 'submitted', '', 'admin', '2025-08-20 04:00:00.000000'),
+(29, 21, 1824.00, 300.00, 289.00, 2413.00, 'submitted', '', 'admin', '2025-08-21 04:00:00.000000'),
+(30, 22, 2238.00, 300.00, 135.00, 2673.00, 'submitted', '', 'admin', '2025-08-22 04:00:00.000000'),
+(31, 23, 3068.00, 449.00, 350.00, 3867.00, 'submitted', '', 'admin', '2025-08-23 04:00:00.000000'),
+(32, 24, 3000.00, 301.00, 307.00, 3608.00, 'submitted', '', 'admin', '2025-08-24 04:00:00.000000'),
+(33, 25, 2638.00, 402.00, 267.00, 3307.00, 'submitted', '', 'admin', '2025-08-25 04:00:00.000000'),
+(34, 26, 2765.00, 476.00, 382.00, 3623.00, 'submitted', '', 'admin', '2025-08-26 04:00:00.000000'),
+(35, 27, 1547.00, 399.00, 483.00, 2429.00, 'submitted', '', 'admin', '2025-08-27 04:00:00.000000'),
+(36, 28, 3294.00, 203.00, 377.00, 3874.00, 'submitted', '', 'admin', '2025-08-28 04:00:00.000000'),
+(37, 29, 2126.00, 542.00, 442.00, 3110.00, 'submitted', '', 'admin', '2025-08-29 04:00:00.000000'),
+(38, 30, 2968.00, 366.00, 271.00, 3605.00, 'submitted', '', 'admin', '2025-08-30 04:00:00.000000'),
+(39, 31, 2300.00, 649.00, 359.00, 3308.00, 'submitted', '', 'admin', '2025-08-31 04:00:00.000000'),
+(40, 2, 10.00, 20.00, 30.00, 60.00, 'submitted', NULL, 'unknown', '2025-09-01 18:22:22.000000');
 
 -- --------------------------------------------------------
 
@@ -358,11 +522,8 @@ CREATE TABLE `trusted_devices` (
 --
 
 INSERT INTO `trusted_devices` (`id`, `user_id`, `device_token`, `ua_hash`, `ip_net`, `expires_at`, `last_seen`, `created_at`) VALUES
-(2, 5, '41aeeeecb90bb83b0a6b2f46c1d8e3c9cec66ae3e27a472be2f5dc7242204470', 'c872b1a5d8f484c5e37fe7be0753f974e53712ba2d75f667602585626e90101d', '::1::/64', '2025-09-04 21:36:26', '2025-08-29 03:36:26', '2025-08-29 03:36:26'),
-(3, 1, '0c3a8bab846dc5664c359d622417e326d27328eec58f23484af6cefebb34c245', 'c872b1a5d8f484c5e37fe7be0753f974e53712ba2d75f667602585626e90101d', '::1::/64', '2025-09-04 22:19:18', '2025-08-29 04:19:18', '2025-08-29 04:19:18'),
-(4, 6, 'f2e71081f67ea74277a5b132e638e58b2c62dc1f6b13ca0a7d9338e4f60fbea3', 'c872b1a5d8f484c5e37fe7be0753f974e53712ba2d75f667602585626e90101d', '::1::/64', '2025-09-04 22:34:54', '2025-08-29 04:34:54', '2025-08-29 04:34:54'),
-(5, 1, 'cd1408be2ceffb639db9fc926da5db9548b4c0d40c967f0109726e3711ba2e46', 'c872b1a5d8f484c5e37fe7be0753f974e53712ba2d75f667602585626e90101d', '::1::/64', '2025-09-04 22:36:02', '2025-08-29 04:36:02', '2025-08-29 04:36:02'),
-(6, 1, '942c7d912fb8441f8c7a4998a730f3f38866891272ba8a6dbcf725c8f4bac89e', 'c872b1a5d8f484c5e37fe7be0753f974e53712ba2d75f667602585626e90101d', '::1::/64', '2025-09-07 04:45:39', '2025-08-31 10:45:39', '2025-08-31 10:45:39');
+(6, 1, '942c7d912fb8441f8c7a4998a730f3f38866891272ba8a6dbcf725c8f4bac89e', 'c872b1a5d8f484c5e37fe7be0753f974e53712ba2d75f667602585626e90101d', '::1::/64', '2025-09-07 04:45:39', '2025-08-31 10:45:39', '2025-08-31 10:45:39'),
+(7, 1, '63680e0541155dfebf2589741cbd6c539ee7d6950467cde6d99c694e5645352a', 'c872b1a5d8f484c5e37fe7be0753f974e53712ba2d75f667602585626e90101d', '::1::/64', '2025-09-12 09:24:27', '2025-09-05 15:24:27', '2025-09-05 15:24:27');
 
 -- --------------------------------------------------------
 
@@ -387,8 +548,19 @@ CREATE TABLE `users` (
 INSERT INTO `users` (`id`, `eid`, `full_name`, `email`, `password`, `role`, `created_at`) VALUES
 (1, 'S250701', 'admin', 'froilan.respicio2021@gmail.com', '$2y$10$jIX3O6u91NS/77OMfeFYieOa7n2G9MAKSdmYFmz3nMwudlo652XTS', 'admin', '2025-08-30 08:37:43'),
 (6, 'M250706', 'gusion', 'cringey.ch@gmail.com', '$2y$10$EPiNvDrT8aKDFTmHIl5vnuq/UBbmmhOOe7Ov5NpqmETHoYzorZuc6', 'manager', '2025-08-30 09:51:12'),
-(8, 'D250708', 'John Doe', 'johndoe@gmail.com', '$2y$10$.ntimqwMd/xqkVZNc22vd.cqXE5TwsnBPZOKmmPkiDmEDvPYhyQfq', 'driver', '2025-08-31 14:21:41');
-
+(8, 'D250708', 'John Doe', 'johndoe@gmail.com', '$2y$10$.ntimqwMd/xqkVZNc22vd.cqXE5TwsnBPZOKmmPkiDmEDvPYhyQfq', 'driver', '2025-08-31 14:21:41'),
+(9, 'D250701', 'Carlos Reyes', 'carlos.reyes@example.com', 'dummyhash', 'driver', '2025-08-01 00:00:00'),
+(10, 'D250702', 'Liza Fernandez', 'liza.fernandez@example.com', 'dummyhash', 'driver', '2025-08-01 00:00:00'),
+(11, 'D250703', 'Miguel Cruz', 'miguel.cruz@example.com', 'dummyhash', 'driver', '2025-08-01 00:00:00'),
+(12, 'D250704', 'Sofia Santos', 'sofia.santos@example.com', 'dummyhash', 'driver', '2025-08-01 00:00:00'),
+(13, 'D250705', 'Rafael Garcia', 'rafael.garcia@example.com', 'dummyhash', 'driver', '2025-08-01 00:00:00'),
+(14, 'D250706', 'Jasmine Dela Rosa', 'jasmine.delarosa@example.com', 'dummyhash', 'driver', '2025-08-01 00:00:00'),
+(15, 'D250749', 'Juan Dela Cruz', 'juan.dela.cruz@example.com', '$2y$10$xSDgKfhE0ouWpQ9NRXGfmOGmS0s.B3vqi86tRWpNz3OmsDpswjXsi', 'driver', '2025-09-01 14:14:54'),
+(16, 'D250773', 'Maria Santos', 'maria.santos@example.com', '$2y$10$sQA3Rsmz2ICz4YnOjdP9uOnftuAvn4JSUQVymqRDfwlrpxJWrSzQW', 'driver', '2025-09-01 14:14:54'),
+(17, 'D250762', 'Pedro Ramirez', 'pedro.ramirez@example.com', '$2y$10$q75lpaZOxgGUd8wuzs7JIelJQTx6vfEJBbX91s7OhrdrbYxA4EKp2', 'driver', '2025-09-01 14:14:54'),
+(18, 'D250731', 'Ana Villanueva', 'ana.villanueva@example.com', '$2y$10$ANFnS7FS6iBskhZQw37ySeScoNdRTvMcRyrJTRCSOuy3bpwCdBsDW', 'driver', '2025-09-01 14:14:54'),
+(19, 'D250730', 'Ramon Cruz', 'ramon.cruz@example.com', '$2y$10$YAOQJC0Zi.9PlW5BipleV.zxv5vOVv2fEazeoZ3xdDyq7OYb672j.', 'driver', '2025-09-01 14:14:54'),
+(20, 'D250761', 'Josefa Dela Paz', 'josefa.dela.paz@example.com', '$2y$10$BYZNtn8rCrr3s/48Uum4qO8NVB.urcFazJpNpRsWx/7bmLRanSdI.', 'driver', '2025-09-01 14:14:54');
 
 -- --------------------------------------------------------
 
@@ -422,8 +594,25 @@ CREATE TABLE `vehicle_requests` (
 INSERT INTO `vehicle_requests` (`id`, `requester_id`, `request_date`, `reservation_date`, `expected_return`, `purpose`, `origin`, `destination`, `requested_vehicle_type`, `requested_driver_id`, `status`, `approved_by`, `approved_at`, `dispatched_at`, `completed_at`, `notes`) VALUES
 (16, 1, '2025-08-29 12:44:30', '2025-07-23', '2025-08-31', 'Resupply Ketchup', 'Kitchen', 'Warehouse', 'Car', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
 (17, 1, '2025-08-29 12:46:46', '2025-08-29', '2025-08-30', 'Balut Order', 'Kitchen', 'Supplier', 'Car', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
-(19, 1, '2025-08-29 13:32:05', '2025-08-29', '2025-08-30', 'Balut Order', 'Kitchen', 'Supplier', 'Truck', NULL, 'Pending', NULL, NULL, NULL, NULL, ''),
-(20, 1, '2025-08-30 17:16:34', '2025-08-13', '2025-08-31', '100kg chongke', 'Warehouse', 'Supplier', 'Pickup', NULL, 'Pending', NULL, NULL, NULL, NULL, '');
+(28, 1, '2025-08-02 08:00:00', '2025-08-02', '2025-08-02', 'Delivery 2-2', 'Warehouse', 'Hotel', 'Car', 4, 'Approved', NULL, NULL, NULL, NULL, NULL),
+(29, 1, '2025-08-03 08:00:00', '2025-08-03', '2025-08-03', 'Delivery 3-1', 'Warehouse', 'Hotel', 'Pickup', 5, 'Pending', NULL, NULL, NULL, NULL, NULL),
+(34, 1, '2025-08-05 08:00:00', '2025-08-05', '2025-08-05', 'Delivery 5-2', 'Warehouse', 'Hotel', 'Van', 5, 'Approved', NULL, NULL, NULL, NULL, NULL),
+(37, 6, '2025-08-07 08:00:00', '2025-08-07', '2025-08-07', 'Delivery 7-1', 'Warehouse', 'Hotel', 'Truck', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
+(39, 6, '2025-08-08 08:00:00', '2025-08-08', '2025-08-08', 'Delivery 8-1', 'Warehouse', 'Hotel', 'Truck', 4, 'Approved', NULL, NULL, NULL, NULL, NULL),
+(42, 6, '2025-08-09 08:00:00', '2025-08-09', '2025-08-09', 'Delivery 9-2', 'Warehouse', 'Hotel', 'Pickup', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
+(44, 6, '2025-08-10 08:00:00', '2025-08-10', '2025-08-10', 'Delivery 10-2', 'Warehouse', 'Hotel', 'Van', 2, 'Approved', NULL, NULL, NULL, NULL, NULL),
+(46, 1, '2025-08-11 08:00:00', '2025-08-11', '2025-08-11', 'Delivery 11-2', 'Warehouse', 'Hotel', 'Van', 5, 'Approved', NULL, NULL, NULL, NULL, NULL),
+(50, 6, '2025-08-13 08:00:00', '2025-08-13', '2025-08-13', 'Delivery 13-2', 'Warehouse', 'Hotel', 'Van', 5, 'Approved', NULL, NULL, NULL, NULL, NULL),
+(52, 1, '2025-08-14 08:00:00', '2025-08-14', '2025-08-14', 'Delivery 14-2', 'Warehouse', 'Hotel', 'Pickup', 5, 'Approved', NULL, NULL, NULL, NULL, NULL),
+(59, 1, '2025-08-18 08:00:00', '2025-08-18', '2025-08-18', 'Delivery 18-1', 'Warehouse', 'Hotel', 'Pickup', 5, 'Approved', NULL, NULL, NULL, NULL, NULL),
+(67, 6, '2025-08-22 08:00:00', '2025-08-22', '2025-08-22', 'Delivery 22-1', 'Warehouse', 'Hotel', 'Van', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
+(74, 6, '2025-08-25 08:00:00', '2025-08-25', '2025-08-25', 'Delivery 25-2', 'Warehouse', 'Hotel', 'Pickup', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
+(80, 6, '2025-08-28 08:00:00', '2025-08-28', '2025-08-28', 'Delivery 28-2', 'Warehouse', 'Hotel', 'Car', 4, 'Approved', NULL, NULL, NULL, NULL, NULL),
+(83, 1, '2025-08-30 08:00:00', '2025-08-30', '2025-08-30', 'Delivery 30-1', 'Warehouse', 'Hotel', 'Truck', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
+(87, 1, '2025-09-02 02:39:47', '2025-09-01', '2025-09-02', 'Delivery', 'Warehouse', 'Hotel', 'Car', NULL, 'Pending', NULL, NULL, NULL, NULL, ''),
+(88, 1, '2025-09-02 12:01:32', '2025-09-02', '2025-09-03', 'Shabu order', 'Quezon City, Eastern Manila District, Metro Manila, Philippines', 'Barangay 178, Zone 15, Camarin, District 3, Caloocan, Northern Manila District, Metro Manila, Philippines', 'Car', NULL, 'Pending', NULL, NULL, NULL, NULL, ''),
+(89, 1, '2025-09-02 12:39:31', '2025-09-02', '2025-09-03', 'Gala', 'Warehouse Legit', 'Bestlink', 'Van', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
+(91, 1, '2025-09-06 21:08:53', '2025-09-10', '2025-09-30', 'Delivery', 'Warehouse Legit', 'Bestlink', 'Car', NULL, 'Pending', NULL, NULL, NULL, NULL, '');
 
 --
 -- Indexes for dumped tables
@@ -568,37 +757,37 @@ ALTER TABLE `vehicle_requests`
 -- AUTO_INCREMENT for table `audit_log`
 --
 ALTER TABLE `audit_log`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=92;
 
 --
 -- AUTO_INCREMENT for table `dispatches`
 --
 ALTER TABLE `dispatches`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
 -- AUTO_INCREMENT for table `drivers`
 --
 ALTER TABLE `drivers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `driver_trips`
 --
 ALTER TABLE `driver_trips`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
 
 --
 -- AUTO_INCREMENT for table `fleet_vehicles`
 --
 ALTER TABLE `fleet_vehicles`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- AUTO_INCREMENT for table `fleet_vehicle_logs`
 --
 ALTER TABLE `fleet_vehicle_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
 
 --
 -- AUTO_INCREMENT for table `items`
@@ -652,25 +841,25 @@ ALTER TABLE `tcao_audit_log`
 -- AUTO_INCREMENT for table `transport_costs`
 --
 ALTER TABLE `transport_costs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
 -- AUTO_INCREMENT for table `trusted_devices`
 --
 ALTER TABLE `trusted_devices`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `vehicle_requests`
 --
 ALTER TABLE `vehicle_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=92;
 
 --
 -- Constraints for dumped tables
