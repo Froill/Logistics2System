@@ -238,7 +238,7 @@ if (isset($_GET['ajax_trip_log']) && isset($_GET['trip_page']) && isset($_SERVER
 }
 {
     $errors = [];
-    
+
     // Check for required fields
     $required_fields = ['driver_id', 'vehicle_id', 'trip_date', 'start_time', 'distance_traveled', 'fuel_consumed'];
     foreach ($required_fields as $field) {
@@ -276,10 +276,11 @@ if (isset($_GET['ajax_trip_log']) && isset($_GET['trip_page']) && isset($_SERVER
     return $errors;
 }
 
-function calculatePerformanceScore($tripData) {
+function calculatePerformanceScore($tripData)
+{
     // Calculate based on various metrics
     $score = 100; // Start with perfect score
-    
+
     // Fuel efficiency (km/l)
     $fuelEfficiency = $tripData['distance_traveled'] / $tripData['fuel_consumed'];
     $expectedEfficiency = 10; // Example: 10 km/l is the baseline
@@ -340,12 +341,12 @@ function driver_trip_logic($baseURL){
 
             // Validate the data
             $validationErrors = validateTripData($tripData);
-            
+
             if (empty($validationErrors)) {
                 // Step 4: Data Storage and Processing
                 $tripData['validation_status'] = 'valid';
                 $tripData['performance_score'] = calculatePerformanceScore($tripData);
-                
+
                 $result = insertData('driver_trips', $tripData);
                 if ($result) {
                     global $conn;
@@ -368,7 +369,7 @@ function driver_trip_logic($baseURL){
             error_log('Error processing trip data: ' . $e->getMessage());
             $_SESSION['error_message'] = "An error occurred while processing your request. Please try again.";
         }
-        
+
         header("Location: {$baseURL}");
         exit;
     }
@@ -411,12 +412,13 @@ function driver_trip_view($baseURL)
 
     // Calculate overall statistics
     $totalTrips = count($trips);
+
     $avgScore = count($trips) ? array_reduce($trips, function($carry, $trip) {
         return $carry + $trip['performance_score'];
     }, 0) / $totalTrips : 0;
 ?>
     <div class="space-y-6">
-        <div class="flex justify-between items-center">
+        <div class="flex flex-col md:flex-row gap-4">
             <h2 class="text-2xl font-bold">Driver & Trip Performance</h2>
             <span>
             <button class="btn btn-primary" onclick="submit_trip_modal.showModal()">
@@ -605,8 +607,7 @@ function driver_trip_view($baseURL)
                                 <option value="<?= $cd['id'] ?>"
                                     data-driver_id="<?= $cd['driver_id'] ?>"
                                     data-vehicle_id="<?= $cd['vehicle_id'] ?>"
-                                    data-trip_date="<?= substr($cd['dispatch_date'],0,10) ?>"
-                                >
+                                    data-trip_date="<?= substr($cd['dispatch_date'], 0, 10) ?>">
                                     <?= htmlspecialchars($cd['dispatch_date']) ?> | <?= htmlspecialchars($cd['vehicle_name']) ?> | <?= htmlspecialchars($cd['driver_name']) ?> | <?= htmlspecialchars($cd['purpose']) ?>
                                 </option>
                             <?php endforeach; ?>
@@ -646,10 +647,11 @@ function driver_trip_view($baseURL)
                         <div class="form-control">
                                 <label class="label">Start Time</label>
                                 <input type="time" name="start_time" class="input input-bordered" required>
+
                         </div>
                         <div class="form-control">
-                                <label class="label">End Time</label>
-                                <input type="time" name="end_time" class="input input-bordered">
+                            <label class="label">End Time</label>
+                            <input type="time" name="end_time" class="input input-bordered">
                         </div>
                         <div class="form-control">
                             <label class="label">Distance (km)</label>
@@ -667,13 +669,13 @@ function driver_trip_view($baseURL)
                     <button type="submit" class="btn btn-primary w-full mt-6">Submit Trip Data</button>
                 </form>
                 <script>
-                function fillDispatchFields(sel) {
-                    var opt = sel.options[sel.selectedIndex];
-                    if (!opt || !opt.dataset) return;
-                    document.getElementById('driver_id_field').value = opt.dataset.driver_id || '';
-                    document.getElementById('vehicle_id_field').value = opt.dataset.vehicle_id || '';
-                    document.getElementById('trip_date_field').value = opt.dataset.trip_date || '';
-                }
+                    function fillDispatchFields(sel) {
+                        var opt = sel.options[sel.selectedIndex];
+                        if (!opt || !opt.dataset) return;
+                        document.getElementById('driver_id_field').value = opt.dataset.driver_id || '';
+                        document.getElementById('vehicle_id_field').value = opt.dataset.vehicle_id || '';
+                        document.getElementById('trip_date_field').value = opt.dataset.trip_date || '';
+                    }
                 </script>
             </div>
             <form method="dialog" class="modal-backdrop">
@@ -812,7 +814,6 @@ function driver_trip_view($baseURL)
                                                     </a>
                                                 <?php endif; ?>
                                             </div>
-
                                             <!-- Details Modal -->
                                             <dialog id="details_modal_<?= $t['id'] ?>" class="modal">
                                                 <div class="modal-box">
