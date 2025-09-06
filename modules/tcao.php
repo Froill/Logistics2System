@@ -384,7 +384,7 @@ $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED
     </form>
 <!-- end of filters -->
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
     
     <!-- Cost per Trip -->
     <div class="card bg-base-100 shadow-xl">
@@ -419,33 +419,10 @@ $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED
     </div>
 </div>
 
-        <h3 class="text-lg font-bold mt-6">Audit Log</h3>
-        <div class="overflow-x-auto">
-            <table class="table table-compact w-full">
-                <thead>
-                    <tr><th>Cost ID</th><th>Action</th><th>User</th><th>Timestamp</th></tr>
-                </thead>
-                <tbody>
-                    <?php
-                    $logs = fetchAll('tcao_audit_log');
-                    foreach ($logs as $log): ?>
-                        <tr>
-                            <td><?= $log['cost_id'] ?></td>
-                            <td><?= htmlspecialchars($log['action']) ?></td>
-                            <td><?= htmlspecialchars($log['user']) ?></td>
-                            <td><?= htmlspecialchars($log['timestamp']) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
 
-        <h3 class="text-lg font-bold mt-6">Financials/Disbursement (Stub)</h3>
-        <div class="alert alert-info">Finalized costs will be forwarded to the Financials module for disbursement. (Integration pending)</div>
-    </div>
     
-<h3 class="text-lg font-bold mt-6">Transport Cost Analysis</h3>
 <div class="overflow-x-auto mb-6">
+    <h3 class="text-lg font-bold">Transport Cost Analysis</h3>
     <table class="table table-zebra w-full">
         <thead>
             <tr>
@@ -484,6 +461,7 @@ $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED
     </table>
 </div>
 
+<!--
 <h3 class="text-lg font-bold mt-6">Optimization Scenarios (What-If)</h3>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div class="card bg-base-100 shadow p-4">
@@ -503,7 +481,7 @@ $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED
         <p>Compare in-house vs. 3PL rates for long-distance/high-volume routes.</p>
     </div>
 </div>
-
+            -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 const tripLabels = <?= json_encode(array_column($joinedData, 'trip_id')) ?>;
