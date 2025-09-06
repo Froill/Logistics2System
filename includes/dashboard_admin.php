@@ -53,7 +53,7 @@ $audit_count = get_count('audit_log');
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
   <div class="card bg-base-100 shadow p-6">
     <div class="text-xl font-bold mb-2"><i data-lucide="activity" class="inline w-6 h-6 mr-2"></i>Recent Activity</div>
-    <ul class="list-disc ml-6">
+    <ul class=" ml-6">
       <?php
       $result = $conn->query("SELECT action, id, timestamp FROM audit_log ORDER BY timestamp DESC LIMIT 5");
       if ($result) {
@@ -85,7 +85,7 @@ $audit_count = get_count('audit_log');
   </div>
   <div class="card bg-base-100 shadow p-6">
     <div class="text-xl font-bold mb-2"><i data-lucide="clock" class="inline w-6 h-6 mr-2"></i>Pending Approvals</div>
-    <ul class="list-disc ml-6">
+    <ul class="ml-6">
       <?php
       // Always show both pending vehicle requests and trip log reviews
       $pendingVehicleRequests = [];
@@ -178,7 +178,7 @@ $audit_count = get_count('audit_log');
     $maintenance = get_count_where('fleet_vehicles', "status = 'under maintenance'");
     $dispatch = get_count_where('fleet_vehicles', "status = 'dispatched'");
     ?>
-    <ul class="list-disc ml-6">
+    <ul class="ml-6">
       <li>Active: <b><?php echo $active; ?></b></li>
       <li>Inactive: <b><?php echo $inactive; ?></b></li>
       <li>Maintenance: <b><?php echo $maintenance; ?></b></li>
