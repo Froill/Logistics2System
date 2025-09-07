@@ -25,27 +25,27 @@ $audit_count = get_count('audit_log');
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
   <div class="card bg-base-100 shadow p-3 flex flex-col items-center">
-    <i data-lucide="truck" class="w-7 h-7 text-primary mb-1"></i>
+    <i data-lucide="truck" class="w-7 h-7 text-info mb-1"></i>
     <div class="text-base font-bold">Vehicles</div>
     <div class="text-xl mt-1"><?php echo $vehicle_count; ?></div>
   </div>
   <div class="card bg-base-100 shadow p-3 flex flex-col items-center">
-    <i data-lucide="users" class="w-7 h-7 text-primary mb-1"></i>
+    <i data-lucide="users" class="w-7 h-7 text-info mb-1"></i>
     <div class="text-base font-bold">Users</div>
     <div class="text-xl mt-1"><?php echo $user_count; ?></div>
   </div>
   <div class="card bg-base-100 shadow p-3 flex flex-col items-center">
-    <i data-lucide="map" class="w-7 h-7 text-primary mb-1"></i>
+    <i data-lucide="map" class="w-7 h-7 text-info mb-1"></i>
     <div class="text-base font-bold">Trips</div>
     <div class="text-xl mt-1"><?php echo $trip_count; ?></div>
   </div>
   <div class="card bg-base-100 shadow p-3 flex flex-col items-center">
-    <i data-lucide="file-clock" class="w-7 h-7 text-primary mb-1"></i>
+    <i data-lucide="file-clock" class="w-7 h-7 text-info mb-1"></i>
     <div class="text-base font-bold">Vehicle Requests</div>
     <div class="text-xl mt-1"><?php echo $pending_requests; ?></div>
   </div>
   <div class="card bg-base-100 shadow p-3 flex flex-col items-center">
-    <i data-lucide="clipboard-list" class="w-7 h-7 text-primary mb-1"></i>
+    <i data-lucide="clipboard-list" class="w-7 h-7 text-info mb-1"></i>
     <div class="text-base font-bold">Audit Log Entries</div>
     <div class="text-xl mt-1"><?php echo $audit_count; ?></div>
   </div>
@@ -54,7 +54,7 @@ $audit_count = get_count('audit_log');
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
   <div class="card bg-base-100 shadow p-6">
     <div class="text-xl font-bold mb-2"><i data-lucide="activity" class="inline w-6 h-6 mr-2"></i>Recent Activity</div>
-    <ul class=" ml-6">
+    <ul class="grid gap-4 sm:grid-cols-1">
       <?php
       $result = $conn->query("SELECT action, id, timestamp FROM audit_log ORDER BY timestamp DESC LIMIT 5");
       if ($result) {
@@ -78,7 +78,15 @@ $audit_count = get_count('audit_log');
               $ago = $tsObj->format('M d, Y H:i');
             }
           }
-          echo "<li><b>{$row['id']}</b>: {$row['action']} <span class='text-xs text-gray-500'>($ago)</span></li>";
+          echo "
+          <li class='card bg-base-100 shadow-md hover:shadow-lg transition rounded-lg p-4'>
+            <div class='flex flex-col gap-2 md:flex-row md:gap-0  items-center justify-between'>
+              <h2 class='card-title text-lg font-bold badge badge-outline'># {$row['id']}</h2>
+              <span class='text-xs text-center md:text-left opacity-75'>($ago)</span>
+            </div>
+            <p class='text-md mt-2 text-center md:text-left'>{$row['action']}</p>
+          </li>
+          ";
         }
       }
       ?>
@@ -86,7 +94,7 @@ $audit_count = get_count('audit_log');
   </div>
   <div class="card bg-base-100 shadow p-6">
     <div class="text-xl font-bold mb-2"><i data-lucide="clock" class="inline w-6 h-6 mr-2"></i>Pending Approvals</div>
-    <ul class="ml-6">
+    <ul class="grid gap-4 grid-cols-1">
       <?php
       // Always show both pending vehicle requests and trip log reviews
       $pendingVehicleRequests = [];
@@ -124,7 +132,23 @@ $audit_count = get_count('audit_log');
               $ago = $tsObj->format('M d, Y H:i');
             }
           }
-          echo "<li><a href='$vrdsLink' class='text-blue-600 hover:underline'>Vehicle Request #{$row['id']} by <b>{$requesterName}</b></a> <span class='text-xs text-gray-500'>($ago) [Status: {$row['status']}]</span></li>";
+          echo "
+          <li class='card bg-base-100 shadow-md hover:shadow-lg transition rounded-lg p-4'>
+            <div class='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2'>
+              
+              <!-- Left section: Link + requester -->
+              <a href='$vrdsLink' class='text-info font-semibold hover:underline text-sm sm:text-base'>
+                Vehicle Request #{$row['id']} by <b>{$requesterName}</b>
+              </a>
+              
+              <!-- Right section: status + time -->
+              <div class='text-sm opacity-75 flex flex-col md:flex-row items-center gap-2 font-medium'>
+                <span>Status: <span class='badge badge-outline badge-secondary badge-sm p-2'>{$row['status']}</span></span>
+                <span>($ago)</span>
+              </div>
+            </div>
+          </li>
+          ";
         }
       } else {
         echo "<li class='text-gray-400'>No pending vehicle requests.</li>";
@@ -160,7 +184,20 @@ $audit_count = get_count('audit_log');
           } else {
             $ago = date('M d, Y H:i', $ts);
           }
-          echo "<li><a href='$tripLink' class='text-blue-600 hover:underline'>Trip Log #{$row['id']} by <b>{$row['driver_name']}</b></a> <span class='text-xs text-gray-500'>($ago)</span></li>";
+          echo "
+          <li class='card bg-base-100 shadow-md hover:shadow-lg transition rounded-lg p-4'>
+            <div class='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2'>
+              
+              <!-- Left section: link + driver -->
+              <a href='$tripLink' class='text-info font-semibold hover:underline text-sm sm:text-base'>
+              Trip Log #{$row['id']} by <b>{$row['driver_name']}</b>
+              </a>
+              
+              <!-- Right section: timestamp -->
+              <span class='text-sm opacity-75'>($ago)</span>
+            </div>
+          </li>
+          ";
         }
       } else {
         echo "<li class='text-gray-400'>No pending trip log reviews.</li>";
@@ -204,7 +241,7 @@ $audit_count = get_count('audit_log');
 <div class="grid grid-cols-1 gap-6 mt-8">
   <div class="card bg-base-100 shadow p-6 flex flex-col items-center">
     <div class="text-xl font-bold mb-2"><i data-lucide="plus-circle" class="inline w-6 h-6 mr-2"></i>Quick Actions</div>
-    <div class="flex gap-4">
+    <div class="flex flex-col md:flex-row gap-4">
       <a href="dashboard.php?module=fvm" class="btn btn-primary">Add Vehicle</a>
       <a href="dashboard.php?module=driver_trip" class="btn btn-primary">Assign Trip</a>
       <a href="dashboard.php?module=tcao" class="btn btn-primary">View Cost Analysis</a>

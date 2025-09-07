@@ -54,7 +54,7 @@ if ($module === 'dashboard') {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 
 <head>
   <!-- Meta -->
@@ -93,18 +93,18 @@ if ($module === 'dashboard') {
       <!-- Module content -->
       <div class="card mt-4 p-4 shadow rounded">
         <main class="card-body flex-1 p-6">
-              <?php if (!empty($_SESSION['error_message'])): ?>
-        <div class="alert alert-error" style="color: #fff; background: #e3342f; padding: 10px; margin-bottom: 10px; border-radius: 4px;">
-            <?= htmlspecialchars($_SESSION['error_message']) ?>
-        </div>
-        <?php unset($_SESSION['error_message']); ?>
-    <?php endif; ?>
-    <?php if (!empty($_SESSION['success_message'])): ?>
-        <div class="alert alert-success" style="color: #155724; background: #d4edda; padding: 10px; margin-bottom: 10px; border-radius: 4px;">
-            <?= htmlspecialchars($_SESSION['success_message']) ?>
-        </div>
-        <?php unset($_SESSION['success_message']); ?>
-    <?php endif; ?>
+          <?php if (!empty($_SESSION['error_message'])): ?>
+            <div class="alert alert-error" style="color: #fff; background: #e3342f; padding: 10px; margin-bottom: 10px; border-radius: 4px;">
+              <?= htmlspecialchars($_SESSION['error_message']) ?>
+            </div>
+            <?php unset($_SESSION['error_message']); ?>
+          <?php endif; ?>
+          <?php if (!empty($_SESSION['success_message'])): ?>
+            <div class="alert alert-success" style="color: #155724; background: #d4edda; padding: 10px; margin-bottom: 10px; border-radius: 4px;">
+              <?= htmlspecialchars($_SESSION['success_message']) ?>
+            </div>
+            <?php unset($_SESSION['success_message']); ?>
+          <?php endif; ?>
           <?php
           if ($module === 'dashboard') {
             // Show admin or user dashboard summary
