@@ -3,14 +3,15 @@
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
-function get_count($table) {
-    global $conn;
-    $sql = "SELECT COUNT(*) as cnt FROM $table";
-    $result = $conn->query($sql);
-    if ($result && $row = $result->fetch_assoc()) {
-        return $row['cnt'];
-    }
-    return 0;
+function get_count($table)
+{
+  global $conn;
+  $sql = "SELECT COUNT(*) as cnt FROM $table";
+  $result = $conn->query($sql);
+  if ($result && $row = $result->fetch_assoc()) {
+    return $row['cnt'];
+  }
+  return 0;
 }
 
 $vehicle_count = get_count('fleet_vehicles');
@@ -58,26 +59,26 @@ $audit_count = get_count('audit_log');
       $result = $conn->query("SELECT action, id, timestamp FROM audit_log ORDER BY timestamp DESC LIMIT 5");
       if ($result) {
         while ($row = $result->fetch_assoc()) {
-            // Calculate time ago
-            $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
-            $tsObj = DateTime::createFromFormat('Y-m-d H:i:s', $row['timestamp'], new DateTimeZone('Asia/Manila'));
-            if ($tsObj === false) {
+          // Calculate time ago
+          $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
+          $tsObj = DateTime::createFromFormat('Y-m-d H:i:s', $row['timestamp'], new DateTimeZone('Asia/Manila'));
+          if ($tsObj === false) {
+            $ago = 'just now';
+          } else {
+            $diff = $now->getTimestamp() - $tsObj->getTimestamp();
+            if ($diff < 0) {
               $ago = 'just now';
+            } elseif ($diff < 60) {
+              $ago = $diff . 's ago';
+            } elseif ($diff < 3600) {
+              $ago = floor($diff / 60) . 'm ago';
+            } elseif ($diff < 86400) {
+              $ago = floor($diff / 3600) . 'h ago';
             } else {
-              $diff = $now->getTimestamp() - $tsObj->getTimestamp();
-              if ($diff < 0) {
-                $ago = 'just now';
-              } elseif ($diff < 60) {
-                $ago = $diff . 's ago';
-              } elseif ($diff < 3600) {
-                $ago = floor($diff/60) . 'm ago';
-              } elseif ($diff < 86400) {
-                $ago = floor($diff/3600) . 'h ago';
-              } else {
-                $ago = $tsObj->format('M d, Y H:i');
-              }
+              $ago = $tsObj->format('M d, Y H:i');
             }
-            echo "<li><b>{$row['id']}</b>: {$row['action']} <span class='text-xs text-gray-500'>($ago)</span></li>";
+          }
+          echo "<li><b>{$row['id']}</b>: {$row['action']} <span class='text-xs text-gray-500'>($ago)</span></li>";
         }
       }
       ?>
@@ -99,9 +100,9 @@ $audit_count = get_count('audit_log');
         foreach ($pendingVehicleRequests as $row) {
           // Fetch requester name
           $requesterName = '';
-          $userQ = $conn->query("SELECT name FROM users WHERE id = " . intval($row['requester_id']));
+          $userQ = $conn->query("SELECT full_name FROM users WHERE id = " . intval($row['requester_id']));
           if ($userQ && $u = $userQ->fetch_assoc()) {
-            $requesterName = $u['name'];
+            $requesterName = $u['full_name'];
           }
           $vrdsLink = "dashboard.php?module=vrds&highlight_request=" . $row['id'];
           // Calculate time ago (robust)
@@ -116,9 +117,9 @@ $audit_count = get_count('audit_log');
             } elseif ($diff < 60) {
               $ago = $diff . 's ago';
             } elseif ($diff < 3600) {
-              $ago = floor($diff/60) . 'm ago';
+              $ago = floor($diff / 60) . 'm ago';
             } elseif ($diff < 86400) {
-              $ago = floor($diff/3600) . 'h ago';
+              $ago = floor($diff / 3600) . 'h ago';
             } else {
               $ago = $tsObj->format('M d, Y H:i');
             }
@@ -153,9 +154,9 @@ $audit_count = get_count('audit_log');
           if ($diff < 60) {
             $ago = $diff . 's ago';
           } elseif ($diff < 3600) {
-            $ago = floor($diff/60) . 'm ago';
+            $ago = floor($diff / 60) . 'm ago';
           } elseif ($diff < 86400) {
-            $ago = floor($diff/3600) . 'h ago';
+            $ago = floor($diff / 3600) . 'h ago';
           } else {
             $ago = date('M d, Y H:i', $ts);
           }
@@ -213,7 +214,8 @@ $audit_count = get_count('audit_log');
 
 <?php
 // Helper for fleet status widget
-function get_count_where($table, $where) {
+function get_count_where($table, $where)
+{
   global $conn;
   $sql = "SELECT COUNT(*) as cnt FROM $table WHERE $where";
   $result = $conn->query($sql);
