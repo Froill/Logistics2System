@@ -523,7 +523,9 @@ function fvm_view($baseURL)
                                     <button class="btn btn-sm btn-primary" onclick="document.getElementById('manage_modal_<?= $v['id'] ?>').showModal()" title="Edit">
                                         <i data-lucide="pencil"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-error" href="<?= htmlspecialchars($baseURL . '&delete=' . $v['id']) ?>" title="Delete" onclick="return confirm('Delete this vehicle?')">
+                                    <button class="btn btn-sm btn-error"
+                                        title="Delete"
+                                        onclick="if (confirm('Delete this vehicle?')) { window.location.href='<?= htmlspecialchars($baseURL . '&delete=' . $v['id']) ?>'; }">
                                         <i data-lucide="trash-2"></i>
                                     </button>
                                 </div>
