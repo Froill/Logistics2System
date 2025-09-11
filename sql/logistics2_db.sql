@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Sep 06, 2025 at 04:05 PM
+-- Generation Time: Sep 11, 2025 at 02:08 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -132,7 +132,24 @@ INSERT INTO `audit_log` (`id`, `module`, `action`, `record_id`, `user`, `details
 (88, 'FVM', 'edit_vehicle', 20, 'admin', NULL, '2025-09-06 20:53:02'),
 (89, 'VRDS', 'request_vehicle', 90, 'admin', NULL, '2025-09-06 20:58:28'),
 (90, 'VRDS', 'request_vehicle', 91, 'admin', NULL, '2025-09-06 21:08:53'),
-(91, 'VRDS', 'approve_dispatch', 40, 'admin', NULL, '2025-09-06 21:22:04');
+(91, 'VRDS', 'approve_dispatch', 40, 'admin', NULL, '2025-09-06 21:22:04'),
+(92, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-06 22:23:26'),
+(93, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-06 22:38:05'),
+(94, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-06 22:38:14'),
+(95, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-06 23:42:17'),
+(96, 'VRDS', 'request_vehicle', 92, 'admin', NULL, '2025-09-07 00:36:25'),
+(97, 'VRDS', 'approve_dispatch', 41, 'admin', NULL, '2025-09-07 01:38:07'),
+(98, 'VRDS', 'complete_dispatch', 41, 'admin', NULL, '2025-09-07 01:38:28'),
+(99, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-08 22:22:09'),
+(100, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-08 22:23:13'),
+(101, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-08 22:23:30'),
+(102, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-08 22:59:06'),
+(103, 'FVM', 'clear_maintenance_logs', NULL, 'admin', NULL, '2025-09-08 22:59:53'),
+(104, 'FVM', 'adjust_maintenance', 1, 'admin', NULL, '2025-09-08 23:00:11'),
+(105, 'Authentication', 'OTP Sent', 1, 'S250701', 'OTP sent for login', '2025-09-09 00:50:36'),
+(106, 'Authentication', 'Successful Login', 1, 'S250701', 'User successfully logged in after OTP verification', '2025-09-09 00:52:06'),
+(107, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-09 00:52:42'),
+(108, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-11 19:41:56');
 
 -- --------------------------------------------------------
 
@@ -167,7 +184,8 @@ INSERT INTO `dispatches` (`id`, `request_id`, `vehicle_id`, `driver_id`, `office
 (35, 59, 1, 1, 1, '2025-08-30 09:00:00', '2025-08-30 09:00:00', 'Completed', 'Warehouse', 'Hotel', 'Dispatch Trip 30', '', '2025-08-30 01:00:00', '2025-08-30 01:00:00'),
 (37, 34, 20, 19, 1, '2025-09-01 20:07:54', NULL, 'Completed', 'Warehouse', 'Hotel', 'Delivery 5-2', '', '2025-09-01 18:07:54', '2025-09-01 18:08:07'),
 (39, 89, 20, 19, 1, '2025-09-06 12:59:14', NULL, 'Completed', 'Warehouse Legit', 'Bestlink', 'Gala', '', '2025-09-06 10:59:14', '2025-09-06 11:05:23'),
-(40, 28, 4, 19, 1, '2025-09-06 15:22:04', NULL, 'Ongoing', 'Warehouse', 'Hotel', 'Delivery 2-2', '', '2025-09-06 13:22:04', '2025-09-06 13:22:04');
+(40, 28, 4, 19, 1, '2025-09-06 15:22:04', NULL, 'Ongoing', 'Warehouse', 'Hotel', 'Delivery 2-2', '', '2025-09-06 13:22:04', '2025-09-06 13:22:04'),
+(41, 29, 2, 18, 1, '2025-09-06 19:38:07', NULL, 'Completed', 'Warehouse', 'Hotel', 'Delivery 3-1', '', '2025-09-06 17:38:07', '2025-09-06 17:38:28');
 
 -- --------------------------------------------------------
 
@@ -290,7 +308,7 @@ CREATE TABLE `fleet_vehicles` (
 --
 
 INSERT INTO `fleet_vehicles` (`id`, `vehicle_name`, `plate_number`, `vehicle_type`, `status`, `capacity`, `vehicle_image`) VALUES
-(1, 'Toyota Hilux', 'ABC-124', 'Pickup', 'Active', 100.00, 'uploads/vehicle_1757162864_8262.png'),
+(1, 'Toyota Hilux', 'ABC-124', 'Pickup', 'Under Maintenance', 100.00, 'uploads/vehicle_1757162864_8262.png'),
 (2, 'Mitsubishi L300', 'XYZ-456', 'Van', 'Active', 100.00, 'uploads/vehicle_1757162937_8200.jpg'),
 (3, 'Isuzu D-Max', 'LMN-789', 'Pickup', 'Active', 100.00, 'uploads/vehicle_1757162957_9277.jpg'),
 (4, 'Hyundai H100', 'JKL-321', 'Van', 'Dispatched', 100.00, 'uploads/vehicle_1757162972_2521.jpg'),
@@ -321,18 +339,9 @@ CREATE TABLE `fleet_vehicle_logs` (
 
 INSERT INTO `fleet_vehicle_logs` (`id`, `vehicle_id`, `log_type`, `details`, `created_at`) VALUES
 (1, 1, 'fuel', 'Need Refill', '2025-08-28 17:07:58'),
-(4, 18, 'maintenance', 'Training Options restricted', '2025-08-28 18:24:34'),
-(6, 20, 'maintenance', 'Change Tires', '2025-08-30 10:56:03'),
-(7, 2, 'maintenance', 'Manual schedule adjustment', '2025-09-06 08:00:00'),
-(9, 3, 'maintenance', 'Manual schedule adjustment', '2025-09-08 08:00:00'),
-(10, 3, 'maintenance', 'Manual schedule adjustment', '2025-09-06 08:00:00'),
-(11, 4, 'maintenance', 'Manual schedule adjustment', '2025-08-06 08:00:00'),
-(12, 5, 'maintenance', 'Manual schedule adjustment', '2025-09-06 08:00:00'),
-(13, 24, 'maintenance', 'Manual schedule adjustment', '2025-09-10 08:00:00'),
-(14, 25, 'maintenance', 'Manual schedule adjustment', '2025-09-10 08:00:00'),
-(15, 26, 'maintenance', 'Manual schedule adjustment', '2025-09-10 08:00:00'),
-(16, 4, 'maintenance', 'Monthly Scheduled Maintenance', '2025-08-06 08:00:00'),
-(29, 1, 'maintenance', 'Manual schedule adjustment', '2025-09-06 08:00:00');
+(31, 1, 'maintenance', 'Scheduled maintenance adjusted to 2025-09-08', '2025-09-08 08:00:00'),
+(32, 2, 'maintenance', 'Monthly Scheduled Maintenance', '2025-10-08 08:00:00'),
+(33, 3, 'maintenance', 'Monthly Scheduled Maintenance', '2025-10-08 08:00:00');
 
 -- --------------------------------------------------------
 
@@ -436,20 +445,6 @@ CREATE TABLE `suppliers` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `tcao_audit_log`
---
-
-CREATE TABLE `tcao_audit_log` (
-  `id` int(11) NOT NULL,
-  `cost_id` int(11) NOT NULL,
-  `action` varchar(64) NOT NULL,
-  `user` varchar(64) NOT NULL,
-  `timestamp` datetime DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `transport_costs`
 --
 
@@ -522,8 +517,7 @@ CREATE TABLE `trusted_devices` (
 --
 
 INSERT INTO `trusted_devices` (`id`, `user_id`, `device_token`, `ua_hash`, `ip_net`, `expires_at`, `last_seen`, `created_at`) VALUES
-(6, 1, '942c7d912fb8441f8c7a4998a730f3f38866891272ba8a6dbcf725c8f4bac89e', 'c872b1a5d8f484c5e37fe7be0753f974e53712ba2d75f667602585626e90101d', '::1::/64', '2025-09-07 04:45:39', '2025-08-31 10:45:39', '2025-08-31 10:45:39'),
-(7, 1, '63680e0541155dfebf2589741cbd6c539ee7d6950467cde6d99c694e5645352a', 'c872b1a5d8f484c5e37fe7be0753f974e53712ba2d75f667602585626e90101d', '::1::/64', '2025-09-12 09:24:27', '2025-09-05 15:24:27', '2025-09-05 15:24:27');
+(8, 1, '0ff78a42681786814889c6d5fe1244d96e6dee5d8e34a08e947c0ce90ab7f9a9', 'c872b1a5d8f484c5e37fe7be0753f974e53712ba2d75f667602585626e90101d', '::1::/64', '2025-09-15 10:52:06', '2025-09-08 16:52:06', '2025-09-08 16:52:06');
 
 -- --------------------------------------------------------
 
@@ -595,7 +589,7 @@ INSERT INTO `vehicle_requests` (`id`, `requester_id`, `request_date`, `reservati
 (16, 1, '2025-08-29 12:44:30', '2025-07-23', '2025-08-31', 'Resupply Ketchup', 'Kitchen', 'Warehouse', 'Car', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
 (17, 1, '2025-08-29 12:46:46', '2025-08-29', '2025-08-30', 'Balut Order', 'Kitchen', 'Supplier', 'Car', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
 (28, 1, '2025-08-02 08:00:00', '2025-08-02', '2025-08-02', 'Delivery 2-2', 'Warehouse', 'Hotel', 'Car', 4, 'Approved', NULL, NULL, NULL, NULL, NULL),
-(29, 1, '2025-08-03 08:00:00', '2025-08-03', '2025-08-03', 'Delivery 3-1', 'Warehouse', 'Hotel', 'Pickup', 5, 'Pending', NULL, NULL, NULL, NULL, NULL),
+(29, 1, '2025-08-03 08:00:00', '2025-08-03', '2025-08-03', 'Delivery 3-1', 'Warehouse', 'Hotel', 'Pickup', 5, 'Approved', NULL, NULL, NULL, NULL, NULL),
 (34, 1, '2025-08-05 08:00:00', '2025-08-05', '2025-08-05', 'Delivery 5-2', 'Warehouse', 'Hotel', 'Van', 5, 'Approved', NULL, NULL, NULL, NULL, NULL),
 (37, 6, '2025-08-07 08:00:00', '2025-08-07', '2025-08-07', 'Delivery 7-1', 'Warehouse', 'Hotel', 'Truck', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
 (39, 6, '2025-08-08 08:00:00', '2025-08-08', '2025-08-08', 'Delivery 8-1', 'Warehouse', 'Hotel', 'Truck', 4, 'Approved', NULL, NULL, NULL, NULL, NULL),
@@ -609,10 +603,10 @@ INSERT INTO `vehicle_requests` (`id`, `requester_id`, `request_date`, `reservati
 (74, 6, '2025-08-25 08:00:00', '2025-08-25', '2025-08-25', 'Delivery 25-2', 'Warehouse', 'Hotel', 'Pickup', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
 (80, 6, '2025-08-28 08:00:00', '2025-08-28', '2025-08-28', 'Delivery 28-2', 'Warehouse', 'Hotel', 'Car', 4, 'Approved', NULL, NULL, NULL, NULL, NULL),
 (83, 1, '2025-08-30 08:00:00', '2025-08-30', '2025-08-30', 'Delivery 30-1', 'Warehouse', 'Hotel', 'Truck', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
-(87, 1, '2025-09-02 02:39:47', '2025-09-01', '2025-09-02', 'Delivery', 'Warehouse', 'Hotel', 'Car', NULL, 'Pending', NULL, NULL, NULL, NULL, ''),
 (88, 1, '2025-09-02 12:01:32', '2025-09-02', '2025-09-03', 'Shabu order', 'Quezon City, Eastern Manila District, Metro Manila, Philippines', 'Barangay 178, Zone 15, Camarin, District 3, Caloocan, Northern Manila District, Metro Manila, Philippines', 'Car', NULL, 'Pending', NULL, NULL, NULL, NULL, ''),
 (89, 1, '2025-09-02 12:39:31', '2025-09-02', '2025-09-03', 'Gala', 'Warehouse Legit', 'Bestlink', 'Van', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
-(91, 1, '2025-09-06 21:08:53', '2025-09-10', '2025-09-30', 'Delivery', 'Warehouse Legit', 'Bestlink', 'Car', NULL, 'Pending', NULL, NULL, NULL, NULL, '');
+(91, 1, '2025-09-06 21:08:53', '2025-09-10', '2025-09-30', 'Delivery', 'Warehouse Legit', 'Bestlink', 'Car', NULL, 'Pending', NULL, NULL, NULL, NULL, ''),
+(92, 1, '2025-09-07 00:36:25', '2025-09-07', '2025-09-08', 'Delivery', 'adsad', 'sadsad', 'Pickup', NULL, 'Pending', NULL, NULL, NULL, NULL, '');
 
 --
 -- Indexes for dumped tables
@@ -711,13 +705,6 @@ ALTER TABLE `suppliers`
   ADD PRIMARY KEY (`id`);
 
 --
--- Indexes for table `tcao_audit_log`
---
-ALTER TABLE `tcao_audit_log`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `cost_id` (`cost_id`);
-
---
 -- Indexes for table `transport_costs`
 --
 ALTER TABLE `transport_costs`
@@ -757,13 +744,13 @@ ALTER TABLE `vehicle_requests`
 -- AUTO_INCREMENT for table `audit_log`
 --
 ALTER TABLE `audit_log`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=92;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=109;
 
 --
 -- AUTO_INCREMENT for table `dispatches`
 --
 ALTER TABLE `dispatches`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
 
 --
 -- AUTO_INCREMENT for table `drivers`
@@ -787,7 +774,7 @@ ALTER TABLE `fleet_vehicles`
 -- AUTO_INCREMENT for table `fleet_vehicle_logs`
 --
 ALTER TABLE `fleet_vehicle_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT for table `items`
@@ -832,12 +819,6 @@ ALTER TABLE `suppliers`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `tcao_audit_log`
---
-ALTER TABLE `tcao_audit_log`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
-
---
 -- AUTO_INCREMENT for table `transport_costs`
 --
 ALTER TABLE `transport_costs`
@@ -847,7 +828,7 @@ ALTER TABLE `transport_costs`
 -- AUTO_INCREMENT for table `trusted_devices`
 --
 ALTER TABLE `trusted_devices`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -859,7 +840,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `vehicle_requests`
 --
 ALTER TABLE `vehicle_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=92;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=93;
 
 --
 -- Constraints for dumped tables
@@ -904,12 +885,6 @@ ALTER TABLE `order_items`
 --
 ALTER TABLE `password_resets`
   ADD CONSTRAINT `password_resets_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `tcao_audit_log`
---
-ALTER TABLE `tcao_audit_log`
-  ADD CONSTRAINT `tcao_audit_log_ibfk_1` FOREIGN KEY (`cost_id`) REFERENCES `transport_costs` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `transport_costs`

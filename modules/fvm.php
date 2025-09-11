@@ -12,7 +12,7 @@ function fvm_logic($baseURL){
         insertData('fleet_vehicle_logs', [
             'vehicle_id' => $vehicleId,
             'log_type'   => 'maintenance',
-            'details'    => 'Manual schedule adjustment',
+            'details'    => 'Scheduled maintenance adjusted to ' . $nextDate,
             'created_at' => $nextDate . ' 08:00:00' // Default to 8AM
         ]);
         // Optionally update vehicle status
@@ -174,12 +174,12 @@ function fvm_logic($baseURL){
 
         // Auto-update vehicle status
         if ($logType === 'maintenance') {
-            updateData('fleet_vehicles', $vehicleId, ['status' => 'Unavailable']);
+            updateData('fleet_vehicles', $vehicleId, ['status' => 'Under Maintenance']);
         } else {
             // Check if there are any open maintenance logs for this vehicle
             $logs = fetchAllQuery("SELECT * FROM fleet_vehicle_logs WHERE vehicle_id = ? AND log_type = 'maintenance' ORDER BY created_at DESC", [$vehicleId]);
             if (empty($logs)) {
-                updateData('fleet_vehicles', $vehicleId, ['status' => 'Available']);
+                updateData('fleet_vehicles', $vehicleId, ['status' => 'Active']);
             }
         }
 
@@ -478,7 +478,9 @@ function fvm_view($baseURL)
                 <button>close</button>
             </form>
         </dialog>
-        <!-- Vehicle Table -->
+
+
+        <!-- Vehicle Table --><!-- todo : add fuel consumption and capacity columns to vehicle table-->
         <div class="overflow-x-auto">
             <table class="table table-zebra w-full">
                 <thead>
