@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Check if user exists
-    $stmt = $conn->prepare("SELECT id, username FROM users WHERE email = ? LIMIT 1");
+    $stmt = $conn->prepare("SELECT id, full_name FROM users WHERE email = ? LIMIT 1");
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
@@ -33,12 +33,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http");
         $baseUrl .= "://" . $_SERVER['HTTP_HOST'] . dirname($_SERVER['PHP_SELF'], 2);
         $resetLink = $baseUrl . "/reset-password.php?token=$token";
-
         $subject = "Password Reset Request";
-        $body = "Hi {$user['username']},<br><br>
-                 Click the link below to reset your password:<br>
-                 <a href='$resetLink'>$resetLink</a><br><br>
-                 This link will expire in 1 hour.";
+        $firstName = explode(' ', $user['full_name'])[0];
+
+        $body = "Hi {$firstName},<br><br>
+                We received a request to reset your password.  
+                Click the button below to choose a new one:<br><br>
+
+                <a href='$resetLink' 
+                style='display:inline-block;
+                        padding:12px 24px;
+                        font-size:16px;
+                        font-weight:bold;
+                        color:#ffffff;
+                        background-color:#011e56;
+                        text-decoration:none;
+                        border-radius:6px;'>
+                Reset Password
+                </a><br><br>
+
+                If you didn’t request a password reset, you can safely ignore this email.<br><br>
+                This link will expire in 1 hour.<br><br>";
+
 
         sendEmail($email, $subject, $body);
 

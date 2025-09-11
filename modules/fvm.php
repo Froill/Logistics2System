@@ -2,7 +2,8 @@
 //FLEET & VEHICLE MANAGEMENT MODULE
 // Manages fleet vehicles, their statuses, and logs (maintenance, fuel, etc.)
 require_once __DIR__ . '/audit_log.php';
-function fvm_logic($baseURL){
+function fvm_logic($baseURL)
+{
 
     // Handle manual adjustment of next maintenance date
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adjust_maintenance_vehicle_id']) && isset($_POST['next_maintenance_date'])) {
@@ -54,7 +55,7 @@ function fvm_logic($baseURL){
             $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
             $allowed = ['jpg', 'jpeg', 'png', 'gif'];
             if (in_array($fileExt, $allowed)) {
-                $newFileName = 'vehicle_' . time() . '_' . rand(1000,9999) . '.' . $fileExt;
+                $newFileName = 'vehicle_' . time() . '_' . rand(1000, 9999) . '.' . $fileExt;
                 $destPath = $uploadDir . $newFileName;
                 if (move_uploaded_file($fileTmp, $destPath)) {
                     $vehicleImagePath = 'uploads/' . $newFileName;
@@ -108,7 +109,7 @@ function fvm_logic($baseURL){
                 $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
                 $allowed = ['jpg', 'jpeg', 'png', 'gif'];
                 if (in_array($fileExt, $allowed)) {
-                    $newFileName = 'vehicle_' . time() . '_' . rand(1000,9999) . '.' . $fileExt;
+                    $newFileName = 'vehicle_' . time() . '_' . rand(1000, 9999) . '.' . $fileExt;
                     $destPath = $uploadDir . $newFileName;
                     $debugMsg .= "Moving file from $fileTmp to $destPath. ";
                     if (move_uploaded_file($fileTmp, $destPath)) {
@@ -227,9 +228,10 @@ function fvm_view($baseURL)
 ?>
     <div>
         <h2 class="text-2xl font-bold mb-4">Fleet & Vehicle Management</h2>
-<!-- <?php // Show debug message outside modals, at the top of the main content
- if (!empty($_SESSION['fvm_debug'])): ?>
-    <div class="alert alert-info mb-2"><?php echo $_SESSION['fvm_debug']; unset($_SESSION['fvm_debug']); ?></div>
+        <!-- <?php // Show debug message outside modals, at the top of the main content
+                if (!empty($_SESSION['fvm_debug'])): ?>
+    <div class="alert alert-info mb-2"><?php echo $_SESSION['fvm_debug'];
+                                        unset($_SESSION['fvm_debug']); ?></div>
 <?php endif; ?> -->
         <!-- Vehicle Logs Modal (Paginated) -->
         <dialog id="vehicle_logs_modal" class="modal">
@@ -370,7 +372,7 @@ function fvm_view($baseURL)
             </div>
             <?php unset($_SESSION['fvm_error']); ?>
         <?php endif; ?>
-        <div class="flex gap-2 mb-3">
+        <div class="flex flex-col md:flex-row gap-2 mb-3">
             <!-- Add Vehicle Button -->
             <button class="btn btn-soft btn-primary" onclick="fvm_modal.showModal()">
                 <i data-lucide="plus" class="w-4 h-4 mr-1"></i> Add Vehicle
@@ -405,71 +407,71 @@ function fvm_view($baseURL)
                             </tr>
                         </thead>
                         <tbody>
-                        <?php
-                        $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
-                        foreach ($vehicles as $v):
-                            // Find last maintenance log for this vehicle
-                            $lastMaint = null;
-                            foreach ($vehicle_logs as $log) {
-                                if ($log['vehicle_id'] == $v['id'] && $log['log_type'] === 'maintenance') {
-                                    $lastMaint = $log;
-                                    break;
-                                }
-                            }
-                            $nextMaint = null;
-                            if ($lastMaint) {
-                                $lastDate = new DateTime($lastMaint['created_at'], new DateTimeZone('Asia/Manila'));
-                                $nextMaint = $lastDate->modify('+1 month');
-                            }
-                        ?>
-                        <tr>
-                            <td><?= htmlspecialchars($v['vehicle_name']) ?></td>
-                            <td><?= htmlspecialchars($v['plate_number']) ?></td>
-                            <td><?= htmlspecialchars($v['vehicle_type'] ?? '-') ?></td>
-                            <td><?= $nextMaint ? $nextMaint->format('M d, Y') : '<span class="text-gray-400">No record</span>' ?></td>
-                            <td>
-                                <?php
-                                // Log Monthly Scheduled Maintenance if Needs Maintenance and not already logged for this month
-                                    if ($nextMaint && $now >= $nextMaint) {
-                                        echo '<span title="Needs Maintenance"><i data-lucide="alert-triangle" class="text-red-600" style="width:28px;height:28px;vertical-align:middle;"></i></span>';
-                                    } else {
-                                        echo '<span title="OK"><i data-lucide="check-circle" class="text-green-600" style="width:28px;height:28px;vertical-align:middle;"></i></span>';
+                            <?php
+                            $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
+                            foreach ($vehicles as $v):
+                                // Find last maintenance log for this vehicle
+                                $lastMaint = null;
+                                foreach ($vehicle_logs as $log) {
+                                    if ($log['vehicle_id'] == $v['id'] && $log['log_type'] === 'maintenance') {
+                                        $lastMaint = $log;
+                                        break;
                                     }
-                                ?>
-                            </td>
-                            <td>
-                                <button class="btn btn-xs btn-warning" title="Adjust Maintenance Date" onclick="document.getElementById('adjust_maint_modal_<?= $v['id'] ?>').showModal()">
-                                    <i data-lucide="calendar-clock"></i>
-                                </button>
-                                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" style="display:inline">
-                                    <input type="hidden" name="check_status_vehicle_id" value="<?= $v['id'] ?>">
-                                    <button type="submit" class="btn btn-xs btn-success ml-1" title="Check Status">
-                                        <i data-lucide="file-check-2"></i>
-                                    </button>
-                                </form>
-                                <!-- Adjust Maintenance Modal -->
-                                <dialog id="adjust_maint_modal_<?= $v['id'] ?>" class="modal">
-                                    <div class="modal-box">
-                                        <form method="dialog">
-                                            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                                }
+                                $nextMaint = null;
+                                if ($lastMaint) {
+                                    $lastDate = new DateTime($lastMaint['created_at'], new DateTimeZone('Asia/Manila'));
+                                    $nextMaint = $lastDate->modify('+1 month');
+                                }
+                            ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($v['vehicle_name']) ?></td>
+                                    <td><?= htmlspecialchars($v['plate_number']) ?></td>
+                                    <td><?= htmlspecialchars($v['vehicle_type'] ?? '-') ?></td>
+                                    <td><?= $nextMaint ? $nextMaint->format('M d, Y') : '<span class="text-gray-400">No record</span>' ?></td>
+                                    <td>
+                                        <?php
+                                        // Log Monthly Scheduled Maintenance if Needs Maintenance and not already logged for this month
+                                        if ($nextMaint && $now >= $nextMaint) {
+                                            echo '<span title="Needs Maintenance"><i data-lucide="alert-triangle" class="text-red-600" style="width:28px;height:28px;vertical-align:middle;"></i></span>';
+                                        } else {
+                                            echo '<span title="OK"><i data-lucide="check-circle" class="text-green-600" style="width:28px;height:28px;vertical-align:middle;"></i></span>';
+                                        }
+                                        ?>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-xs btn-warning" title="Adjust Maintenance Date" onclick="document.getElementById('adjust_maint_modal_<?= $v['id'] ?>').showModal()">
+                                            <i data-lucide="calendar-clock"></i>
+                                        </button>
+                                        <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" style="display:inline">
+                                            <input type="hidden" name="check_status_vehicle_id" value="<?= $v['id'] ?>">
+                                            <button type="submit" class="btn btn-xs btn-success ml-1" title="Check Status">
+                                                <i data-lucide="file-check-2"></i>
+                                            </button>
                                         </form>
-                                        <h3 class="font-bold text-lg mb-4">Adjust Maintenance Date</h3>
-                                        <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="flex flex-col gap-4" enctype="multipart/form-data">
-                                            <input type="hidden" name="adjust_maintenance_vehicle_id" value="<?= $v['id'] ?>">
-                                            <div class="form-control">
-                                                <label class="label">Set Next Maintenance Date</label>
-                                                <input type="date" name="next_maintenance_date" class="input input-bordered" required>
+                                        <!-- Adjust Maintenance Modal -->
+                                        <dialog id="adjust_maint_modal_<?= $v['id'] ?>" class="modal">
+                                            <div class="modal-box">
+                                                <form method="dialog">
+                                                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                                                </form>
+                                                <h3 class="font-bold text-lg mb-4">Adjust Maintenance Date</h3>
+                                                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="flex flex-col gap-4" enctype="multipart/form-data">
+                                                    <input type="hidden" name="adjust_maintenance_vehicle_id" value="<?= $v['id'] ?>">
+                                                    <div class="form-control">
+                                                        <label class="label">Set Next Maintenance Date</label>
+                                                        <input type="date" name="next_maintenance_date" class="input input-bordered" required>
+                                                    </div>
+                                                    <button type="submit" class="btn btn-primary">Save</button>
+                                                </form>
                                             </div>
-                                            <button type="submit" class="btn btn-primary">Save</button>
-                                        </form>
-                                    </div>
-                                    <form method="dialog" class="modal-backdrop">
-                                        <button>close</button>
-                                    </form>
-                                </dialog>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
+                                            <form method="dialog" class="modal-backdrop">
+                                                <button>close</button>
+                                            </form>
+                                        </dialog>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
@@ -523,7 +525,9 @@ function fvm_view($baseURL)
                                     <button class="btn btn-sm btn-primary" onclick="document.getElementById('manage_modal_<?= $v['id'] ?>').showModal()" title="Edit">
                                         <i data-lucide="pencil"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-error" href="<?= htmlspecialchars($baseURL . '&delete=' . $v['id']) ?>" title="Delete" onclick="return confirm('Delete this vehicle?')">
+                                    <button class="btn btn-sm btn-error"
+                                        title="Delete"
+                                        onclick="if (confirm('Delete this vehicle?')) { window.location.href='<?= htmlspecialchars($baseURL . '&delete=' . $v['id']) ?>'; }">
                                         <i data-lucide="trash-2"></i>
                                     </button>
                                 </div>
@@ -595,7 +599,7 @@ function fvm_view($baseURL)
                                                     <option value="Under Maintenance" <?= $v['status'] === 'Under Maintenance' ? 'selected' : '' ?>>Under Maintenance</option>
                                                 </select>
                                             </div>
-                                            
+
 
                                             <div class="flex gap-2 mt-4">
                                                 <button type="submit" class="btn btn-primary flex-1">Update Vehicle</button>
@@ -603,10 +607,11 @@ function fvm_view($baseURL)
                                                     class="btn btn-error"
                                                     onclick="return confirm('Are you sure you want to delete this vehicle? This action cannot be undone.')">Delete</a>
                                             </div>
-<?php // Show debug message outside modals, at the top of the main content
- if (!empty($_SESSION['fvm_debug'])): ?>
-    <div class="alert alert-info mb-2"><?php echo $_SESSION['fvm_debug']; unset($_SESSION['fvm_debug']); ?></div>
-<?php endif; ?>
+                                            <?php // Show debug message outside modals, at the top of the main content
+                                            if (!empty($_SESSION['fvm_debug'])): ?>
+                                                <div class="alert alert-info mb-2"><?php echo $_SESSION['fvm_debug'];
+                                                                                    unset($_SESSION['fvm_debug']); ?></div>
+                                            <?php endif; ?>
                                         </form>
                                     </div>
                                     <form method="dialog" class="modal-backdrop">
@@ -653,42 +658,44 @@ function fvm_view($baseURL)
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-const ctx = document.getElementById('vehicleStatusChart').getContext('2d');
-new Chart(ctx, {
-    type: 'bar',
-    data: {
-        labels: ['Active', 'Inactive', 'Dispatched', 'Under Maintenance'],
-        datasets: [{
-            label: 'Vehicles',
-            data: [
-                <?= $activeCount ?>,
-                <?= $inactiveCount ?>,
-                <?= $dispatchedCount ?>,
-                <?= $maintenanceCount ?>
-            ],
-            backgroundColor: [
-                'rgba(34,197,94,0.6)',   // green
-                'rgba(239,68,68,0.6)',   // red
-                'rgba(59,130,246,0.6)',  // blue
-                'rgba(234,179,8,0.6)'    // yellow
-            ],
-            borderColor: [
-                'rgba(34,197,94,1)',
-                'rgba(239,68,68,1)',
-                'rgba(59,130,246,1)',
-                'rgba(234,179,8,1)'
-            ],
-            borderWidth: 1
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: { position: 'bottom' }
-        }
-    }
-});
-</script>
-    
+    <script>
+        const ctx = document.getElementById('vehicleStatusChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Active', 'Inactive', 'Dispatched', 'Under Maintenance'],
+                datasets: [{
+                    label: 'Vehicles',
+                    data: [
+                        <?= $activeCount ?>,
+                        <?= $inactiveCount ?>,
+                        <?= $dispatchedCount ?>,
+                        <?= $maintenanceCount ?>
+                    ],
+                    backgroundColor: [
+                        'rgba(34,197,94,0.6)', // green
+                        'rgba(239,68,68,0.6)', // red
+                        'rgba(59,130,246,0.6)', // blue
+                        'rgba(234,179,8,0.6)' // yellow
+                    ],
+                    borderColor: [
+                        'rgba(34,197,94,1)',
+                        'rgba(239,68,68,1)',
+                        'rgba(59,130,246,1)',
+                        'rgba(234,179,8,1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    </script>
+
 <?php } ?>
