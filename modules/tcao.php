@@ -202,7 +202,7 @@ function tcao_view($baseURL)
                     </div>
                     <div class="form-control mb-2">
                         <label class="label">Receipt (PDF/JPG/PNG)</label>
-                        <input type="file" name="receipt" accept=".pdf,.jpg,.jpeg,.png" class="input input-bordered">
+                        <input type="file" name="receipt" accept=".pdf,.jpg,.jpeg,.png" class="file-input file-input-primary">
                     </div>
                     <button class="btn btn-primary btn-outline mt-2 w-full">Submit Cost Entry</button>
                 </form>
@@ -311,7 +311,7 @@ function tcao_view($baseURL)
 
         <h3 class="text-lg font-bold mt-6">Key Performance Indicators</h3>
         <!-- Key Performance Indicators Section to see driver list, vehicle list, and date range-->
-        <?php include __DIR__ . '\..\includes\tcao-kpi.php'; ?>
+        <?php include __DIR__ . '/../includes/tcao-kpi.php'; ?>
         <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-4">
 
             <!-- Avg Cost per km -->
