@@ -49,10 +49,34 @@ if (empty($eid) || empty($password)) {
 $recaptchaResponse = $_POST['g-recaptcha-response'] ?? '';
 $secretKey = "6Lf6lrArAAAAACTLFi57Z6MeWOYCkAQ2cV9kkeyu";
 
-$response = file_get_contents("https://www.google.com/recaptcha/api/siteverify?secret={$secretKey}&response={$recaptchaResponse}");
-$responseData = json_decode($response);
+// Prepare POST data
+$postData = http_build_query([
+    'secret'   => $secretKey,
+    'response' => $recaptchaResponse,
+]);
 
-if (!$responseData->success) {
+// Init cURL
+$ch = curl_init('https://www.google.com/recaptcha/api/siteverify');
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+
+// Execute
+$response = curl_exec($ch);
+curl_close($ch);
+
+$responseData = json_decode($response, true);
+
+if (empty($responseData['success'])) {
+    $errorMessage = "reCAPTCHA failed.";
+    if (!empty($responseData['error-codes'])) {
+        $errorMessage .= " Error codes: " . implode(", ", $responseData['error-codes']);
+    }
+    if (!empty($responseData['hostname'])) {
+        $errorMessage .= " Hostname: " . $responseData['hostname'];
+    }
+    error_log($errorMessage);
+
     $_SESSION['error'] = "reCAPTCHA failed. Please try again.";
     header("Location: ../login.php");
     exit();
