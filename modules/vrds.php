@@ -1,7 +1,11 @@
 <?php
+
 // VEHICLE RESERVATION AND DISPATCH SYSTEM (VRDS)
+
 require_once __DIR__ . '/../includes/functions.php';
+
 require_once __DIR__ . '/../includes/mailer.php';
+
 require_once __DIR__ . '/audit_log.php';
 // Batch delete dispatch logs
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_selected_dispatches']) && !empty($_POST['dispatch_ids'])) {
@@ -24,193 +28,386 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_selected_dispa
 function recommend_assignment($vehicle_type = null)
 {
     // Simple recommender: first available vehicle/driver, optionally by type
+
     $vehicles = fetchAll('fleet_vehicles');
+
     $drivers = fetchAll('drivers');
+
     $vehicle = null;
+
     foreach ($vehicles as $v) {
+
         if ($v['status'] === 'Active' && (!$vehicle_type || stripos($v['vehicle_type'], $vehicle_type) !== false)) {
+
             $vehicle = $v;
+
             break;
+
         }
+
     }
+
     $driver = null;
+
     foreach ($drivers as $d) {
+
         if ($d['status'] === 'Available') {
+
             $driver = $d;
+
             break;
+
         }
+
     }
+
     return ['vehicle' => $vehicle, 'driver' => $driver];
+
 }
 
-function vrds_logic($baseURL)
-{
+
+
+function vrds_logic($baseURL) {
+
     // 1. Requester submits trip request
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_vehicle'])) {
-        $requester_id = $_SESSION['user_id'] ?? 0;
+
+    $requester_id = $_SESSION['user_id'] ?? 0;
+
         if (!$requester_id || !is_numeric($requester_id)) {
+
             $_SESSION['error_message'] = 'You must be logged in to request a vehicle.';
+
             header("Location: {$baseURL}");
+
             exit;
+
         }
+
         $purpose = trim($_POST['purpose'] ?? '');
+
         $origin = trim($_POST['origin'] ?? '');
+
         $destination = trim($_POST['destination'] ?? '');
+
         $requested_vehicle_type = trim($_POST['requested_vehicle_type'] ?? '');
+
         // Fix: use reservation_date and expected_return from form, not trip_date/trip_time
+
         $reservation_date = trim($_POST['reservation_date'] ?? ($_POST['trip_date'] ?? ''));
+
         $expected_return = trim($_POST['expected_return'] ?? '');
+
         $notes = trim($_POST['notes'] ?? '');
+
         global $conn;
+
         $sql = "INSERT INTO vehicle_requests (requester_id, request_date, reservation_date, expected_return, purpose, origin, destination, requested_vehicle_type, status, notes) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, 'Pending', ?)";
+
         $stmt = $conn->prepare($sql);
+
         if (!$stmt) {
+
             $_SESSION['error_message'] = 'Database error: ' . $conn->error;
+
             header("Location: {$baseURL}");
+
             exit;
+
         }
-        $stmt->bind_param("isssssss", $requester_id, $reservation_date, $expected_return, $purpose, $origin, $destination, $requested_vehicle_type, $notes);
+
+    $stmt->bind_param("isssssss", $requester_id, $reservation_date, $expected_return, $purpose, $origin, $destination, $requested_vehicle_type, $notes);
+
         $ok = $stmt->execute();
+
         if ($ok) {
+
             log_audit_event('VRDS', 'request_vehicle', $conn->insert_id, $_SESSION['full_name'] ?? 'unknown');
+
             // 2. System checks availability and recommends
+
             $rec = recommend_assignment($requested_vehicle_type);
+
             $vehicle = $rec['vehicle'];
+
             $driver = $rec['driver'];
+
             $recommendation = ($vehicle && $driver) ? "Vehicle: {$vehicle['vehicle_name']} / Driver: {$driver['driver_name']}" : 'No available match';
+
             // 3. Notify requester
+
             $user = fetchById('users', $requester_id);
+
             if ($vehicle && $driver) {
+
                 $msg = "Your vehicle request has been received. Recommendation: $recommendation. Awaiting officer approval.";
+
                 if ($user && !empty($user['email'])) sendEmail($user['email'], 'Vehicle Request Received', $msg);
+
                 $_SESSION['success_message'] = $msg;
+
             } else {
+
                 $msg = "Your vehicle request cannot be fulfilled at this time. No available vehicle/driver.";
+
                 if ($user && !empty($user['email'])) sendEmail($user['email'], 'Vehicle Request Denied', $msg);
+
                 $_SESSION['error_message'] = $msg;
+
             }
+
         } else {
+
             $_SESSION['error_message'] = 'Failed to submit request: ' . $stmt->error;
+
         }
+
         $stmt->close();
+
         header("Location: {$baseURL}");
+
         exit;
+
     }
+
+
 
     // 4. Officer approves/overrides
+
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approve_request'])) {
+
         $request_id = intval($_POST['request_id'] ?? 0);
+
         $vehicle_id = intval($_POST['vehicle_id'] ?? 0);
+
         $driver_id = intval($_POST['driver_id'] ?? 0);
-        $officer_id = $_SESSION['user_id'] ?? 1;
+
+    $officer_id = $_SESSION['user_id'] ?? 1;
+
         $request = fetchById('vehicle_requests', $request_id);
+
         if (!$request || $request['status'] !== 'Pending') {
+
             $_SESSION['error_message'] = "Request not found or already processed.";
+
             header("Location: {$baseURL}");
+
             exit;
+
         }
+
         // Approve and assign
+
         $ok1 = updateData('vehicle_requests', $request_id, ['status' => 'Approved']);
+
         $ok2 = updateData('fleet_vehicles', $vehicle_id, ['status' => 'Dispatched']);
+
         $ok3 = updateData('drivers', $driver_id, ['status' => 'Dispatched']);
+
         $ok4 = insertData('dispatches', [
+
             'request_id' => $request_id,
+
             'vehicle_id' => $vehicle_id,
+
             'driver_id' => $driver_id,
+
             'officer_id' => $officer_id,
+
             'dispatch_date' => date('Y-m-d H:i:s'),
+
             'status' => 'Ongoing',
+
             'origin' => $request['origin'],
+
             'destination' => $request['destination'],
+
             'purpose' => $request['purpose'],
+
             'notes' => '',
+
         ]);
+
         if ($ok4) {
+
             global $conn;
+
             $dispatch_id = $conn->insert_id;
+
             log_audit_event('VRDS', 'approve_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown');
+
         }
+
         // 5. Notify driver
+
         $driver = fetchById('drivers', $driver_id);
+
         if ($driver && !empty($driver['email'])) {
+
             $msg = "You have been assigned a new trip. Purpose: {$request['purpose']}, Origin: {$request['origin']}, Destination: {$request['destination']}.";
+
             sendEmail($driver['email'], 'New Trip Assignment', $msg);
+
         }
+
         // 6. Notify requester
+
         $user = fetchById('users', $request['requester_id']);
+
+
         $vehicle = fetchById('fleet_vehicles', $vehicle_id);
+
+
         $driver = fetchById('drivers', $driver_id);
+
         if ($user && !empty($user['email'])) {
+
+
+            $msg = "Your vehicle request has been approved and assigned. Vehicle: #$vehicle_id, Driver: #$driver_id.";
+
+
             $vehicleName = $vehicle ? $vehicle['vehicle_name'] : ("ID #$vehicle_id");
+
+
             $driverName = $driver ? $driver['driver_name'] : ("ID #$driver_id");
+
+
             $msg = "Your vehicle request has been approved and assigned. Vehicle: $vehicleName, Driver: $driverName.";
+
             sendEmail($user['email'], 'Vehicle Request Approved', $msg);
+
         }
+
         $_SESSION['success_message'] = "Request approved and dispatch created.";
+
         header("Location: {$baseURL}");
+
         exit;
+
     }
+
+
 
     // 7. Officer can cancel dispatch
+
     if (isset($_GET['delete'])) {
+
         $dispatch_id = (int) $_GET['delete'];
+
         $dispatch = fetchById('dispatches', $dispatch_id);
+
         if ($dispatch) {
+
             updateData('fleet_vehicles', $dispatch['vehicle_id'], ['status' => 'Active']);
+
             updateData('drivers', $dispatch['driver_id'], ['status' => 'Available']);
+
             updateData('vehicle_requests', $dispatch['request_id'], ['status' => 'Pending']);
+
         }
+
         deleteData('dispatches', $dispatch_id);
+
         log_audit_event('VRDS', 'delete_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown');
+
         $_SESSION['success_message'] = "Dispatch cancelled.";
+
         header("Location: {$baseURL}");
+
         exit;
+
     }
+
+
 
     // 8. Officer can complete dispatch
+
     if (isset($_GET['complete'])) {
+
         $dispatch_id = (int) $_GET['complete'];
+
         $dispatch = fetchById('dispatches', $dispatch_id);
+
         if ($dispatch && $dispatch['status'] !== 'Completed') {
+
             updateData('dispatches', $dispatch_id, ['status' => 'Completed']);
+
             updateData('fleet_vehicles', $dispatch['vehicle_id'], ['status' => 'Active']);
+
             updateData('drivers', $dispatch['driver_id'], ['status' => 'Available']);
+
             log_audit_event('VRDS', 'complete_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown');
+
             $_SESSION['success_message'] = "Dispatch marked as completed.";
+
         } else {
+
             $_SESSION['error_message'] = "Dispatch not found or already completed.";
+
         }
+
         header("Location: {$baseURL}");
+
         exit;
+
     }
+
 }
 
-if (isset($_GET['remove_request'])) {
-    $remove_id = (int)$_GET['remove_request'];
-    $req = fetchById('vehicle_requests', $remove_id);
-    if ($req && $req['status'] === 'Pending') {
-        deleteData('vehicle_requests', $remove_id);
-        $_SESSION['success_message'] = "Vehicle request removed.";
-    }
-    header("Location: {$baseURL}");
-    exit;
-}
 
-function vrds_view($baseURL)
-{
-    vrds_logic($baseURL);
-    $requests = fetchAll('vehicle_requests');
-    $dispatches = fetchAll('dispatches');
-    $vehicles = fetchAll('fleet_vehicles');
-    $drivers = fetchAll('drivers');
-    // Get unique vehicle types for dropdown
-    $vehicle_types = [];
-    foreach ($vehicles as $v) {
-        if (!empty($v['vehicle_type']) && !in_array($v['vehicle_type'], $vehicle_types)) {
-            $vehicle_types[] = $v['vehicle_type'];
+
+  if (isset($_GET['remove_request'])) {
+
+        $remove_id = (int)$_GET['remove_request'];
+
+        $req = fetchById('vehicle_requests', $remove_id);
+
+        if ($req && $req['status'] === 'Pending') {
+
+            deleteData('vehicle_requests', $remove_id);
+
+            $_SESSION['success_message'] = "Vehicle request removed.";
+
         }
+
+        header("Location: {$baseURL}");
+
+        exit;
+
     }
+
+
+
+function vrds_view($baseURL) {
+
+    vrds_logic($baseURL);
+
+    $requests = fetchAll('vehicle_requests');
+
+    $dispatches = fetchAll('dispatches');
+
+    $vehicles = fetchAll('fleet_vehicles');
+
+    $drivers = fetchAll('drivers');
+
+    // Get unique vehicle types for dropdown
+
+    $vehicle_types = [];
+
+    foreach ($vehicles as $v) {
+
+        if (!empty($v['vehicle_type']) && !in_array($v['vehicle_type'], $vehicle_types)) {
+
+            $vehicle_types[] = $v['vehicle_type'];
+
+        }
+
+    }
+
 ?>
+
+
 
     <div>
         <h2 class="text-lg md:text-2xl font-bold mb-4">Vehicle Reservation & Dispatch</h2>
