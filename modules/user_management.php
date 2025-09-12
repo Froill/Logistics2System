@@ -133,13 +133,25 @@ function user_management_view($baseURL)
 
         <!-- Pagination -->
         <div class="flex justify-center mt-4 gap-2 join">
+            <?php if ($page > 1): ?>
+                <a href="<?= $baseURL ?>&page=<?= $page - 1 ?>" class="join-item btn btn-sm">Prev</a>
+            <?php endif; ?>
+
             <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                 <a href="<?= $baseURL ?>&page=<?= $i ?>"
-                    class="btn btn-sm join-item <?= $i == $page ? 'btn-primary' : '' ?>">
+                    class="join-item btn btn-sm <?= $i == $page ? 'btn-primary' : '' ?>">
                     <?= $i ?>
                 </a>
             <?php endfor; ?>
+
+            <?php if ($page < $total_pages): ?>
+                <a href="<?= $baseURL ?>&page=<?= $page + 1 ?>" class="join-item btn btn-sm">Next</a>
+            <?php endif; ?>
         </div>
+
+
+
+    </div>
     </div>
 
     <!-- Add User Modal -->

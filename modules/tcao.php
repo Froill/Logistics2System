@@ -428,6 +428,15 @@ function tcao_view($baseURL)
 
             <div class="overflow-x-auto mb-6">
                 <h3 class="text-lg font-bold">Transport Cost Analysis</h3>
+                <?php
+                // Pagination for Transport Cost Analysis
+                $tcPage    = isset($_GET['tc_page']) ? max(1, intval($_GET['tc_page'])) : 1;
+                $tcPerPage = 10; // rows per page
+                $tcTotal   = count($joinedData);
+                $tcPages   = ceil($tcTotal / $tcPerPage);
+                $tcStart   = ($tcPage - 1) * $tcPerPage;
+                $pagedJoinedData = array_slice($joinedData, $tcStart, $tcPerPage);
+                ?>
                 <table class="table table-zebra w-full">
                     <thead>
                         <tr>
@@ -442,10 +451,10 @@ function tcao_view($baseURL)
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($joinedData as $row):
+                        <?php foreach ($pagedJoinedData as $row):
                             $distance = floatval($row['distance_traveled'] ?: 0);
                             $weight   = floatval($row['cargo_weight'] ?: 0);
-                            $capacity = floatval($row['vehicle_capacity'] ?: 1); // avoid div/0
+                            $capacity = floatval($row['vehicle_capacity'] ?: 1);
                             $cost     = floatval($row['total_cost']);
                             $costPerKm = $distance > 0 ? $cost / $distance : 0;
                             $costPerTonKm = ($distance > 0 && $weight > 0) ? $cost / ($weight * $distance / 1000) : 0;
@@ -464,9 +473,26 @@ function tcao_view($baseURL)
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+                <?php
+                // Pagination controls
+                echo '<div class="flex justify-center mt-4 space-x-2 join">';
+                if ($tcPage > 1) {
+                    echo '<a href="dashboard.php?module=tcao&tc_page=' . ($tcPage - 1) . '" class="join-item btn btn-sm">Prev</a>';
+                }
+                for ($p = 1; $p <= $tcPages; $p++) {
+                    $active = ($p == $tcPage) ? 'btn-primary' : '';
+                    echo '<a href="dashboard.php?module=tcao&tc_page=' . $p . '" class="join-item btn btn-sm ' . $active . '">' . $p . '</a>';
+                }
+                if ($tcPage < $tcPages) {
+                    echo '<a href="dashboard.php?module=tcao&tc_page=' . ($tcPage + 1) . '" class="join-item btn btn-sm">Next</a>';
+                }
+                echo '</div>';
+                ?>
             </div>
+        </div>
 
-            <!--
+
+        <!--
 <h3 class="text-lg font-bold mt-6">Optimization Scenarios (What-If)</h3>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div class="card bg-base-100 shadow p-4">
@@ -487,107 +513,107 @@ function tcao_view($baseURL)
     </div>
 </div>
             -->
-            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-            <script>
-                const tripLabels = <?= json_encode(array_column($joinedData, 'trip_id')) ?>;
-                const costData = <?= json_encode(array_column($joinedData, 'total_cost')) ?>;
-                const fuelData = <?= json_encode(array_column($joinedData, 'fuel_cost')) ?>;
-                const tollData = <?= json_encode(array_column($joinedData, 'toll_fees')) ?>;
-                const otherData = <?= json_encode(array_column($joinedData, 'other_expenses')) ?>;
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            const tripLabels = <?= json_encode(array_column($joinedData, 'trip_id')) ?>;
+            const costData = <?= json_encode(array_column($joinedData, 'total_cost')) ?>;
+            const fuelData = <?= json_encode(array_column($joinedData, 'fuel_cost')) ?>;
+            const tollData = <?= json_encode(array_column($joinedData, 'toll_fees')) ?>;
+            const otherData = <?= json_encode(array_column($joinedData, 'other_expenses')) ?>;
 
-                // Derived metrics
-                const distanceData = <?= json_encode(array_column($joinedData, 'distance_traveled')) ?>;
-                const costPerKmData = costData.map((c, i) => distanceData[i] > 0 ? (c / distanceData[i]).toFixed(2) : 0);
-                const weightData = <?= json_encode(array_map(fn($r) => $r['cargo_weight'] ?? 0, $joinedData)) ?>;
-                const capacityData = <?= json_encode(array_map(fn($r) => $r['vehicle_capacity'] ?? 1, $joinedData)) ?>;
-                const loadUtilData = weightData.map((w, i) => capacityData[i] > 0 ? ((w / capacityData[i]) * 100).toFixed(1) : 0);
+            // Derived metrics
+            const distanceData = <?= json_encode(array_column($joinedData, 'distance_traveled')) ?>;
+            const costPerKmData = costData.map((c, i) => distanceData[i] > 0 ? (c / distanceData[i]).toFixed(2) : 0);
+            const weightData = <?= json_encode(array_map(fn($r) => $r['cargo_weight'] ?? 0, $joinedData)) ?>;
+            const capacityData = <?= json_encode(array_map(fn($r) => $r['vehicle_capacity'] ?? 1, $joinedData)) ?>;
+            const loadUtilData = weightData.map((w, i) => capacityData[i] > 0 ? ((w / capacityData[i]) * 100).toFixed(1) : 0);
 
-                // Chart 1: Cost per Trip
-                new Chart(document.getElementById('costPerTripChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: tripLabels,
-                        datasets: [{
-                            label: 'Total Cost',
-                            data: costData,
-                            backgroundColor: 'rgba(59, 130, 246, 0.7)' // Tailwind blue-500
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                display: false
-                            }
+            // Chart 1: Cost per Trip
+            new Chart(document.getElementById('costPerTripChart'), {
+                type: 'bar',
+                data: {
+                    labels: tripLabels,
+                    datasets: [{
+                        label: 'Total Cost',
+                        data: costData,
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)' // Tailwind blue-500
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
                         }
                     }
-                });
+                }
+            });
 
-                // Chart 2: Cost Breakdown
-                new Chart(document.getElementById('costBreakdownChart'), {
-                    type: 'pie',
-                    data: {
-                        labels: ['Fuel', 'Toll', 'Other'],
-                        datasets: [{
-                            data: [
-                                fuelData.reduce((a, b) => a + parseFloat(b), 0),
-                                tollData.reduce((a, b) => a + parseFloat(b), 0),
-                                otherData.reduce((a, b) => a + parseFloat(b), 0)
-                            ],
-                            backgroundColor: [
-                                'rgba(34, 197, 94, 0.7)', // green-500
-                                'rgba(234, 179, 8, 0.7)', // yellow-500
-                                'rgba(239, 68, 68, 0.7)' // red-500
-                            ]
-                        }]
-                    },
-                    options: {
-                        responsive: true
-                    }
-                });
+            // Chart 2: Cost Breakdown
+            new Chart(document.getElementById('costBreakdownChart'), {
+                type: 'pie',
+                data: {
+                    labels: ['Fuel', 'Toll', 'Other'],
+                    datasets: [{
+                        data: [
+                            fuelData.reduce((a, b) => a + parseFloat(b), 0),
+                            tollData.reduce((a, b) => a + parseFloat(b), 0),
+                            otherData.reduce((a, b) => a + parseFloat(b), 0)
+                        ],
+                        backgroundColor: [
+                            'rgba(34, 197, 94, 0.7)', // green-500
+                            'rgba(234, 179, 8, 0.7)', // yellow-500
+                            'rgba(239, 68, 68, 0.7)' // red-500
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
 
-                // Chart 3: Cost per km
-                new Chart(document.getElementById('costPerKmChart'), {
-                    type: 'line',
-                    data: {
-                        labels: tripLabels,
-                        datasets: [{
-                            label: 'Cost per km',
-                            data: costPerKmData,
-                            borderColor: 'rgba(99, 102, 241, 0.9)', // indigo-500
-                            backgroundColor: 'rgba(99, 102, 241, 0.4)',
-                            fill: true,
-                            tension: 0.3
-                        }]
-                    },
-                    options: {
-                        responsive: true
-                    }
-                });
+            // Chart 3: Cost per km
+            new Chart(document.getElementById('costPerKmChart'), {
+                type: 'line',
+                data: {
+                    labels: tripLabels,
+                    datasets: [{
+                        label: 'Cost per km',
+                        data: costPerKmData,
+                        borderColor: 'rgba(99, 102, 241, 0.9)', // indigo-500
+                        backgroundColor: 'rgba(99, 102, 241, 0.4)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
 
-                // Chart 4: Load Utilization
-                new Chart(document.getElementById('loadUtilChart'), {
-                    type: 'bar',
-                    data: {
-                        labels: tripLabels,
-                        datasets: [{
-                            label: 'Utilization %',
-                            data: loadUtilData,
-                            backgroundColor: 'rgba(16, 185, 129, 0.7)' // emerald-500
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100
-                            }
+            // Chart 4: Load Utilization
+            new Chart(document.getElementById('loadUtilChart'), {
+                type: 'bar',
+                data: {
+                    labels: tripLabels,
+                    datasets: [{
+                        label: 'Utilization %',
+                        data: loadUtilData,
+                        backgroundColor: 'rgba(16, 185, 129, 0.7)' // emerald-500
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
                         }
                     }
-                });
-            </script>
+                }
+            });
+        </script>
 
 
-        <?php
-    }
+    <?php
+}

@@ -48,22 +48,6 @@ try {
                 throw new Exception("Full name, email, and role are required.");
             }
 
-            // // --- Generate EID ---
-            // function generateEID($role, $deptID, $userID)
-            // {
-            //     $year = date("y");
-            //     $roleInitial = strtoupper(substr($role, 0, 1));
-            //     return $roleInitial . $year . str_pad($deptID, 2, "0", STR_PAD_LEFT) . str_pad($userID, 2, "0", STR_PAD_LEFT);
-            // }
-
-            // // --- Generate Default Password ---
-            // function generateDefaultPassword($role, $eid)
-            // {
-            //     $roleInitial = strtoupper(substr($role, 0, 1));
-            //     $last2 = substr($eid, -2);
-            //     return '#' . $roleInitial . $last2 . "Log02";
-            // }
-
             // Insert basic user
             $stmt = $conn->prepare("INSERT INTO users (full_name, email, role) VALUES (?, ?, ?)");
             $stmt->bind_param("sss", $full_name, $email, $role);

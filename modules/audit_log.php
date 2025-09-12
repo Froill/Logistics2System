@@ -5,6 +5,14 @@
 
 require_once __DIR__ . '/../includes/functions.php';
 
+function log_audit_event($module, $action, $record_id, $user, $details = null)
+{
+    global $conn;
+    $stmt = $conn->prepare("INSERT INTO audit_log (module, action, record_id, user, details, timestamp) VALUES (?, ?, ?, ?, ?, NOW())");
+    $stmt->bind_param('ssiss', $module, $action, $record_id, $user, $details);
+    $stmt->execute();
+}
+
 function audit_log_view()
 {
     // Access control
