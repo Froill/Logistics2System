@@ -659,7 +659,7 @@ function fvm_view($baseURL)
     <script>
         const ctx = document.getElementById('vehicleStatusChart').getContext('2d');
         new Chart(ctx, {
-            type: 'bar',
+            type: 'doughnut',
             data: {
                 labels: ['Active', 'Inactive', 'Dispatched', 'Under Maintenance'],
                 datasets: [{
