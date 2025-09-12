@@ -7,6 +7,13 @@ require_once __DIR__ . '/../includes/functions.php';
 
 function audit_log_view()
 {
+    // Access control
+    if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+        header("Location: dashboard.php");
+        exit;
+    }
+
+
     global $conn;
 
     // Records per page
