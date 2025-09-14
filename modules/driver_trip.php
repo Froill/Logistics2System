@@ -12,8 +12,14 @@ $filterDriver = isset($_GET['filter_driver']) ? $_GET['filter_driver'] : '';
 $filterVehicle = isset($_GET['filter_vehicle']) ? $_GET['filter_vehicle'] : '';
 $where = [];
 $params = [];
-if ($filterDriver) { $where[] = 't.driver_id = ?'; $params[] = $filterDriver; }
-if ($filterVehicle) { $where[] = 't.vehicle_id = ?'; $params[] = $filterVehicle; }
+if ($filterDriver) {
+    $where[] = 't.driver_id = ?';
+    $params[] = $filterDriver;
+}
+if ($filterVehicle) {
+    $where[] = 't.vehicle_id = ?';
+    $params[] = $filterVehicle;
+}
 $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 $sql = "SELECT t.*, d.driver_name, v.vehicle_name FROM driver_trips t JOIN drivers d ON t.driver_id = d.id JOIN fleet_vehicles v ON t.vehicle_id = v.id $whereSql ORDER BY t.created_at DESC";
 $trips = fetchAllQuery($sql, $params);
@@ -26,7 +32,7 @@ if (isset($_GET['ajax_trip_log']) && isset($_GET['trip_page']) && isset($_SERVER
     $totalPages = ceil($totalTrips / $perPage);
     $start = ($page - 1) * $perPage;
     $pagedTrips = array_slice($trips, $start, $perPage);
-    ?>
+?>
     <div class="modal-box max-w-xl">
         <form method="dialog">
             <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
@@ -59,7 +65,7 @@ if (isset($_GET['ajax_trip_log']) && isset($_GET['trip_page']) && isset($_SERVER
                                 <td>
                                     <div>Date: <?= date('M d, Y', strtotime($t['trip_date'])) ?></div>
                                     <div class="text-sm">
-                                        Time: <?= date('H:i', strtotime($t['start_time'])) ?> - 
+                                        Time: <?= date('H:i', strtotime($t['start_time'])) ?> -
                                         <?= $t['end_time'] ? date('H:i', strtotime($t['end_time'])) : 'Ongoing' ?>
                                     </div>
                                     <div class="text-sm">Distance: <?= number_format($t['distance_traveled'], 1) ?> km</div>
@@ -88,7 +94,7 @@ if (isset($_GET['ajax_trip_log']) && isset($_GET['trip_page']) && isset($_SERVER
                                 </td>
                                 <td>
                                     <?php if ($t['supervisor_review_status'] === 'pending'): ?>
-                                        <button type="button" class="btn btn-sm btn-warning" 
+                                        <button type="button" class="btn btn-sm btn-warning"
                                             onclick="document.getElementById('review_modal_<?= $t['id'] ?>').showModal()">
                                             Review
                                         </button>
@@ -116,7 +122,7 @@ if (isset($_GET['ajax_trip_log']) && isset($_GET['trip_page']) && isset($_SERVER
                                                 </div>
                                                 <div class="form-control">
                                                     <label class="label">Remarks</label>
-                                                    <textarea name="supervisor_remarks" class="textarea textarea-bordered" 
+                                                    <textarea name="supervisor_remarks" class="textarea textarea-bordered"
                                                         placeholder="Enter your review comments..."><?= htmlspecialchars($t['supervisor_remarks'] ?? '') ?></textarea>
                                                 </div>
                                                 <div class="flex gap-2">
@@ -131,7 +137,7 @@ if (isset($_GET['ajax_trip_log']) && isset($_GET['trip_page']) && isset($_SERVER
                                 </td>
                                 <td>
                                     <div class="flex gap-2">
-                                        <button type="button" class="btn btn-sm btn-info" 
+                                        <button type="button" class="btn btn-sm btn-info"
                                             onclick="document.getElementById('details_modal_<?= $t['id'] ?>').showModal()">
                                             <i class="fas fa-info-circle mr-2"></i> View Details
                                         </button>
@@ -166,7 +172,7 @@ if (isset($_GET['ajax_trip_log']) && isset($_GET['trip_page']) && isset($_SERVER
                                                         <div>
                                                             <div class="font-bold">Duration</div>
                                                             <div>
-                                                                <?= date('H:i', strtotime($t['start_time'])) ?> - 
+                                                                <?= date('H:i', strtotime($t['start_time'])) ?> -
                                                                 <?= $t['end_time'] ? date('H:i', strtotime($t['end_time'])) : 'Ongoing' ?>
                                                             </div>
                                                         </div>
@@ -218,25 +224,24 @@ if (isset($_GET['ajax_trip_log']) && isset($_GET['trip_page']) && isset($_SERVER
                                         </dialog>
                                     </div>
                                 </td>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
             </div>
-        </form>
-        <!-- Pagination Controls -->
-        <div class="flex justify-center mt-4 gap-2">
-            <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-                <button type="button" class="btn btn-xs <?= $p == $page ? 'btn-primary' : 'btn-outline' ?>" onclick="openTripLogPage(<?= $p ?>)">Page <?= $p ?></button>
-            <?php endfor; ?>
-        </div>
+            </td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+        </table>
     </div>
-    <?php
+    </form>
+    <!-- Pagination Controls -->
+    <div class="flex justify-center mt-4 gap-2">
+        <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+            <button type="button" class="btn btn-xs <?= $p == $page ? 'btn-primary' : 'btn-outline' ?>" onclick="openTripLogPage(<?= $p ?>)">Page <?= $p ?></button>
+        <?php endfor; ?>
+    </div>
+    </div>
+<?php
     exit;
-}
-{
+} {
     $errors = [];
 
     // Check for required fields
@@ -299,97 +304,96 @@ function calculatePerformanceScore($tripData)
     return max(0, min(100, $score));
 }
 
-function driver_trip_logic($baseURL){
-
-{
-    if (isset($_GET['delete'])) {
-        deleteData('driver_trips', $_GET['delete']);
-        log_audit_event('DTP', 'delete_trip', $_GET['delete'], $_SESSION['full_name'] ?? 'unknown');
-        header("Location: {$baseURL}");
-        exit;
-    }
-
-    // Step 1 & 2: Driver Submits Data & System Validation
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_trip'])) {
-        try {
-            // Debug information
-            error_log('Received POST data: ' . print_r($_POST, true));
-
-            $tripData = [
-                'driver_id' => intval($_POST['driver_id']),
-                'vehicle_id' => intval($_POST['vehicle_id']),
-                'trip_date' => $_POST['trip_date'],
-                'start_time' => $_POST['start_time'],
-                'end_time' => !empty($_POST['end_time']) ? $_POST['end_time'] : null,
-                'distance_traveled' => floatval($_POST['distance_traveled']),
-                'fuel_consumed' => floatval($_POST['fuel_consumed']),
-                'idle_time' => !empty($_POST['idle_time']) ? intval($_POST['idle_time']) : 0,
-                'cargo_weight' => isset($_POST['cargo_weight']) ? floatval($_POST['cargo_weight']) : 0,
-                'vehicle_capacity' => isset($_POST['vehicle_capacity']) ? floatval($_POST['vehicle_capacity']) : 0
-            ];
-
-            // Calculate average speed only if we have both times
-            if (!empty($_POST['end_time'])) {
-                $duration = abs(strtotime($_POST['end_time']) - strtotime($_POST['start_time']));
-                if ($duration > 0) {
-                    $tripData['average_speed'] = ($tripData['distance_traveled'] / $duration) * 3600;
-                }
-            }
-
-            // Debug information
-            error_log('Processed trip data: ' . print_r($tripData, true));
-
-            // Validate the data
-            $validationErrors = validateTripData($tripData);
-
-            if (empty($validationErrors)) {
-                // Step 4: Data Storage and Processing
-                $tripData['validation_status'] = 'valid';
-                $tripData['performance_score'] = calculatePerformanceScore($tripData);
-
-                $result = insertData('driver_trips', $tripData);
-                if ($result) {
-                    global $conn;
-                    $id = $conn->insert_id;
-                    log_audit_event('DTP', 'add_trip', $id, $_SESSION['full_name'] ?? 'unknown');
-                    $_SESSION['success_message'] = "Trip data submitted successfully.";
-                    error_log('Trip data inserted successfully');
-                } else {
-                    $_SESSION['error_message'] = "Failed to save trip data. Please try again.";
-                    error_log('Failed to insert trip data');
-                }
-            } else {
-                // Step 3: Invalid Data Handling
-                $tripData['validation_status'] = 'invalid';
-                $tripData['validation_message'] = implode(", ", $validationErrors);
-                $_SESSION['error_message'] = "Please correct the following errors: " . implode(", ", $validationErrors);
-                error_log('Validation errors: ' . implode(", ", $validationErrors));
-            }
-        } catch (Exception $e) {
-            error_log('Error processing trip data: ' . $e->getMessage());
-            $_SESSION['error_message'] = "An error occurred while processing your request. Please try again.";
+function driver_trip_logic($baseURL)
+{ {
+        if (isset($_GET['delete'])) {
+            deleteData('driver_trips', $_GET['delete']);
+            log_audit_event('DTP', 'delete_trip', $_GET['delete'], $_SESSION['full_name'] ?? 'unknown');
+            header("Location: {$baseURL}");
+            exit;
         }
 
-        header("Location: {$baseURL}");
-        exit;
+        // Step 1 & 2: Driver Submits Data & System Validation
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_trip'])) {
+            try {
+                // Debug information
+                error_log('Received POST data: ' . print_r($_POST, true));
+
+                $tripData = [
+                    'driver_id' => intval($_POST['driver_id']),
+                    'vehicle_id' => intval($_POST['vehicle_id']),
+                    'trip_date' => $_POST['trip_date'],
+                    'start_time' => $_POST['start_time'],
+                    'end_time' => !empty($_POST['end_time']) ? $_POST['end_time'] : null,
+                    'distance_traveled' => floatval($_POST['distance_traveled']),
+                    'fuel_consumed' => floatval($_POST['fuel_consumed']),
+                    'idle_time' => !empty($_POST['idle_time']) ? intval($_POST['idle_time']) : 0,
+                    'cargo_weight' => isset($_POST['cargo_weight']) ? floatval($_POST['cargo_weight']) : 0,
+                    'vehicle_capacity' => isset($_POST['vehicle_capacity']) ? floatval($_POST['vehicle_capacity']) : 0
+                ];
+
+                // Calculate average speed only if we have both times
+                if (!empty($_POST['end_time'])) {
+                    $duration = abs(strtotime($_POST['end_time']) - strtotime($_POST['start_time']));
+                    if ($duration > 0) {
+                        $tripData['average_speed'] = ($tripData['distance_traveled'] / $duration) * 3600;
+                    }
+                }
+
+                // Debug information
+                error_log('Processed trip data: ' . print_r($tripData, true));
+
+                // Validate the data
+                $validationErrors = validateTripData($tripData);
+
+                if (empty($validationErrors)) {
+                    // Step 4: Data Storage and Processing
+                    $tripData['validation_status'] = 'valid';
+                    $tripData['performance_score'] = calculatePerformanceScore($tripData);
+
+                    $result = insertData('driver_trips', $tripData);
+                    if ($result) {
+                        global $conn;
+                        $id = $conn->insert_id;
+                        log_audit_event('DTP', 'add_trip', $id, $_SESSION['full_name'] ?? 'unknown');
+                        $_SESSION['success_message'] = "Trip data submitted successfully.";
+                        error_log('Trip data inserted successfully');
+                    } else {
+                        $_SESSION['error_message'] = "Failed to save trip data. Please try again.";
+                        error_log('Failed to insert trip data');
+                    }
+                } else {
+                    // Step 3: Invalid Data Handling
+                    $tripData['validation_status'] = 'invalid';
+                    $tripData['validation_message'] = implode(", ", $validationErrors);
+                    $_SESSION['error_message'] = "Please correct the following errors: " . implode(", ", $validationErrors);
+                    error_log('Validation errors: ' . implode(", ", $validationErrors));
+                }
+            } catch (Exception $e) {
+                error_log('Error processing trip data: ' . $e->getMessage());
+                $_SESSION['error_message'] = "An error occurred while processing your request. Please try again.";
+            }
+
+            header("Location: {$baseURL}");
+            exit;
+        }
+
+        // Step 5 & 6: Management Review
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_trip'])) {
+            $tripId = $_POST['trip_id'];
+            $reviewStatus = $_POST['review_status'];
+            $remarks = $_POST['supervisor_remarks'];
+
+            updateData('driver_trips', $tripId, [
+                'supervisor_review_status' => $reviewStatus,
+                'supervisor_remarks' => $remarks
+            ]);
+
+            $_SESSION['success_message'] = "Trip review updated successfully.";
+            header("Location: {$baseURL}");
+            exit;
+        }
     }
-
-    // Step 5 & 6: Management Review
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_trip'])) {
-        $tripId = $_POST['trip_id'];
-        $reviewStatus = $_POST['review_status'];
-        $remarks = $_POST['supervisor_remarks'];
-
-        updateData('driver_trips', $tripId, [
-            'supervisor_review_status' => $reviewStatus,
-            'supervisor_remarks' => $remarks
-        ]);
-
-        $_SESSION['success_message'] = "Trip review updated successfully.";
-        header("Location: {$baseURL}");
-        exit;
-    }
-}
 }
 
 function driver_trip_view($baseURL)
@@ -413,24 +417,24 @@ function driver_trip_view($baseURL)
     // Calculate overall statistics
     $totalTrips = count($trips);
 
-    $avgScore = count($trips) ? array_reduce($trips, function($carry, $trip) {
+    $avgScore = count($trips) ? array_reduce($trips, function ($carry, $trip) {
         return $carry + $trip['performance_score'];
     }, 0) / $totalTrips : 0;
 ?>
     <div class="space-y-6">
-        <div class="flex flex-col md:flex-row gap-4">
+        <div class="flex flex-col gap-4">
             <h2 class="text-2xl font-bold">Driver & Trip Performance</h2>
-            <span>
-            <button class="btn btn-primary" onclick="submit_trip_modal.showModal()">
-                <i data-lucide="plus-circle" class="w-4 h-4 mr-1"></i> Submit Trip Data
-            </button>
-            <button class="btn btn-info" onclick="trip_log_modal.showModal()">
-                <i data-lucide="clipboard-list" class="w-4 h-4 mr-1"></i> Trip Log
-            </button>
-            </span>
+            <div class='flex flex-col md:flex-row gap-3'>
+                <button class="btn btn-primary" onclick="submit_trip_modal.showModal()">
+                    <i data-lucide="plus-circle" class="w-4 h-4 mr-1"></i> Submit Trip Data
+                </button>
+                <button class="btn btn-info" onclick="trip_log_modal.showModal()">
+                    <i data-lucide="clipboard-list" class="w-4 h-4 mr-1"></i> Trip Log
+                </button>
+            </div>
         </div>
 
-       
+
 
         <!-- Performance Dashboard -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -473,32 +477,32 @@ function driver_trip_view($baseURL)
             </div>
         </div>
 
-         <!-- Filter form for driver and vehicle -->
-          <div class="flex flex-wrap gap-4 mb-6 items-end">
-        <form method="GET" class="flex flex-wrap gap-4 mb-6 items-end">
-            <input type="hidden" name="module" value="driver_trip">
-            <div>
-                <label class="label">Driver</label>
-                <?php $filterDriver = isset($filterDriver) ? $filterDriver : (isset($_GET['filter_driver']) ? $_GET['filter_driver'] : ''); ?>
-                <select name="filter_driver" class="select select-bordered w-48">
-                    <option value="">All Drivers</option>
-                    <?php foreach ($drivers as $d): ?>
-                        <option value="<?= $d['id'] ?>" <?= ($filterDriver == $d['id'] ? 'selected' : '') ?>><?= htmlspecialchars($d['driver_name']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div>
-                <label class="label">Vehicle</label>
-                <?php $filterVehicle = isset($filterVehicle) ? $filterVehicle : (isset($_GET['filter_vehicle']) ? $_GET['filter_vehicle'] : ''); ?>
-                <select name="filter_vehicle" class="select select-bordered w-48">
-                    <option value="">All Vehicles</option>
-                    <?php foreach ($vehicles as $v): ?>
-                        <option value="<?= $v['id'] ?>" <?= ($filterVehicle == $v['id'] ? 'selected' : '') ?>><?= htmlspecialchars($v['vehicle_name']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary">Apply</button>
-        </form>
+        <!-- Filter form for driver and vehicle -->
+        <div class="flex flex-wrap gap-4 mb-6 items-end">
+            <form method="GET" class="flex flex-wrap gap-4 mb-6 items-end">
+                <input type="hidden" name="module" value="driver_trip">
+                <div>
+                    <label class="label">Driver</label>
+                    <?php $filterDriver = isset($filterDriver) ? $filterDriver : (isset($_GET['filter_driver']) ? $_GET['filter_driver'] : ''); ?>
+                    <select name="filter_driver" class="select select-bordered w-48">
+                        <option value="">All Drivers</option>
+                        <?php foreach ($drivers as $d): ?>
+                            <option value="<?= $d['id'] ?>" <?= ($filterDriver == $d['id'] ? 'selected' : '') ?>><?= htmlspecialchars($d['driver_name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div>
+                    <label class="label">Vehicle</label>
+                    <?php $filterVehicle = isset($filterVehicle) ? $filterVehicle : (isset($_GET['filter_vehicle']) ? $_GET['filter_vehicle'] : ''); ?>
+                    <select name="filter_vehicle" class="select select-bordered w-48">
+                        <option value="">All Vehicles</option>
+                        <?php foreach ($vehicles as $v): ?>
+                            <option value="<?= $v['id'] ?>" <?= ($filterVehicle == $v['id'] ? 'selected' : '') ?>><?= htmlspecialchars($v['vehicle_name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Apply</button>
+            </form>
         </div>
 
         <!-- Charts Section -->
@@ -565,9 +569,9 @@ function driver_trip_view($baseURL)
                         label: 'Trip Count',
                         data: [statusCounts.pending, statusCounts.approved, statusCounts.rejected],
                         backgroundColor: [
-                            'rgba(234,179,8,0.6)',   // yellow
-                            'rgba(34,197,94,0.6)',   // green
-                            'rgba(239,68,68,0.6)'    // red
+                            'rgba(234,179,8,0.6)', // yellow
+                            'rgba(34,197,94,0.6)', // green
+                            'rgba(239,68,68,0.6)' // red
                         ],
                         borderColor: [
                             'rgba(234,179,8,1)',
@@ -580,11 +584,17 @@ function driver_trip_view($baseURL)
                 options: {
                     responsive: true,
                     plugins: {
-                        legend: { display: false },
-                        title: { display: false }
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: false
+                        }
                     },
                     scales: {
-                        y: { beginAtZero: true }
+                        y: {
+                            beginAtZero: true
+                        }
                     }
                 }
             });
@@ -645,8 +655,8 @@ function driver_trip_view($baseURL)
                             <input type="number" name="vehicle_capacity" step="0.01" min="0" class="input input-bordered" required>
                         </div>
                         <div class="form-control">
-                                <label class="label">Start Time</label>
-                                <input type="time" name="start_time" class="input input-bordered" required>
+                            <label class="label">Start Time</label>
+                            <input type="time" name="start_time" class="input input-bordered" required>
 
                         </div>
                         <div class="form-control">
@@ -726,7 +736,7 @@ function driver_trip_view($baseURL)
                                         <td>
                                             <div>Date: <?= date('M d, Y', strtotime($t['trip_date'])) ?></div>
                                             <div class="text-sm">
-                                                Time: <?= date('H:i', strtotime($t['start_time'])) ?> - 
+                                                Time: <?= date('H:i', strtotime($t['start_time'])) ?> -
                                                 <?= $t['end_time'] ? date('H:i', strtotime($t['end_time'])) : 'Ongoing' ?>
                                             </div>
                                             <div class="text-sm">Distance: <?= number_format($t['distance_traveled'], 1) ?> km</div>
@@ -755,7 +765,7 @@ function driver_trip_view($baseURL)
                                         </td>
                                         <td>
                                             <?php if ($t['supervisor_review_status'] === 'pending'): ?>
-                                                <button type="button" class="btn btn-sm btn-warning" 
+                                                <button type="button" class="btn btn-sm btn-warning"
                                                     onclick="document.getElementById('review_modal_<?= $t['id'] ?>').showModal()">
                                                     Review
                                                 </button>
@@ -775,7 +785,7 @@ function driver_trip_view($baseURL)
                                                     <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="space-y-4">
                                                         <input type="hidden" name="review_trip" value="1">
                                                         <input type="hidden" name="trip_id" value="<?= $t['id'] ?>">
-                                                        
+
                                                         <div class="form-control">
                                                             <label class="label">Review Status</label>
                                                             <select name="review_status" class="select select-bordered" required>
@@ -783,13 +793,13 @@ function driver_trip_view($baseURL)
                                                                 <option value="rejected">Reject</option>
                                                             </select>
                                                         </div>
-                                                        
+
                                                         <div class="form-control">
                                                             <label class="label">Remarks</label>
-                                                            <textarea name="supervisor_remarks" class="textarea textarea-bordered" 
+                                                            <textarea name="supervisor_remarks" class="textarea textarea-bordered"
                                                                 placeholder="Enter your review comments..."><?= htmlspecialchars($t['supervisor_remarks'] ?? '') ?></textarea>
                                                         </div>
-                                                        
+
                                                         <div class="flex gap-2">
                                                             <button type="submit" class="btn btn-primary flex-1">Submit Review</button>
                                                         </div>
@@ -802,7 +812,7 @@ function driver_trip_view($baseURL)
                                         </td>
                                         <td>
                                             <div class="flex gap-2">
-                                                <button type="button" class="btn btn-sm btn-info" 
+                                                <button type="button" class="btn btn-sm btn-info"
                                                     onclick="document.getElementById('details_modal_<?= $t['id'] ?>').showModal()">
                                                     <i class="fas fa-info-circle mr-2"></i> View Details
                                                 </button>
@@ -838,7 +848,7 @@ function driver_trip_view($baseURL)
                                                             <div>
                                                                 <div class="font-bold">Duration</div>
                                                                 <div>
-                                                                    <?= date('H:i', strtotime($t['start_time'])) ?> - 
+                                                                    <?= date('H:i', strtotime($t['start_time'])) ?> -
                                                                     <?= $t['end_time'] ? date('H:i', strtotime($t['end_time'])) : 'Ongoing' ?>
                                                                 </div>
                                                             </div>
@@ -900,27 +910,27 @@ function driver_trip_view($baseURL)
                     <?php for ($p = 1; $p <= $totalPages; $p++): ?>
                         <button type="button" class="btn btn-xs <?= $p == $page ? 'btn-primary' : 'btn-outline' ?>" onclick="openTripLogPage(<?= $p ?>)">Page <?= $p ?></button>
                     <?php endfor; ?>
-                <script>
-                function openTripLogPage(page) {
-                    // AJAX fetch modal content for the selected page
-                    var modal = document.getElementById('trip_log_modal');
-                    var xhr = new XMLHttpRequest();
-                    xhr.open('GET', '<?= htmlspecialchars($baseURL) ?>&trip_page=' + page + '&ajax_trip_log=1', true);
-                    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-                    xhr.onload = function() {
-                        if (xhr.status === 200) {
-                            // Replace modal content
-                            var temp = document.createElement('div');
-                            temp.innerHTML = xhr.responseText;
-                            var newBox = temp.querySelector('.modal-box');
-                            if (newBox) {
-                                modal.querySelector('.modal-box').innerHTML = newBox.innerHTML;
-                            }
+                    <script>
+                        function openTripLogPage(page) {
+                            // AJAX fetch modal content for the selected page
+                            var modal = document.getElementById('trip_log_modal');
+                            var xhr = new XMLHttpRequest();
+                            xhr.open('GET', '<?= htmlspecialchars($baseURL) ?>&trip_page=' + page + '&ajax_trip_log=1', true);
+                            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                            xhr.onload = function() {
+                                if (xhr.status === 200) {
+                                    // Replace modal content
+                                    var temp = document.createElement('div');
+                                    temp.innerHTML = xhr.responseText;
+                                    var newBox = temp.querySelector('.modal-box');
+                                    if (newBox) {
+                                        modal.querySelector('.modal-box').innerHTML = newBox.innerHTML;
+                                    }
+                                }
+                            };
+                            xhr.send();
                         }
-                    };
-                    xhr.send();
-                }
-                </script>
+                    </script>
                 </div>
             </div>
             <form method="dialog" class="modal-backdrop">
