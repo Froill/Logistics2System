@@ -744,7 +744,6 @@ function fvm_view($baseURL)
                     <th>Status</th>
                     <th>Assigned Vehicle</th>
                     <th>Contact </th>
-                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -782,10 +781,6 @@ function fvm_view($baseURL)
                         </td>
                         <td><div>Mobile No. : <?= htmlspecialchars($d['phone'] ?? 'N/A') ?></div>
                             <div>Email : <?= htmlspecialchars($d['email'] ?? 'N/A') ?></div>
-                        <td>
-                            <!-- Future: Add driver management actions here -->
-                            <button class="btn btn-xs btn-info" title="View" disabled><i data-lucide="eye"></i></button>
-                        </td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>

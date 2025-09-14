@@ -34,11 +34,28 @@ function vrds_view($baseURL) {
 
     }
 
+
+    // Prepare ongoing dispatches for map (with real coordinates)
+    $ongoingDispatches = array_filter($dispatches, function($d) {
+        return $d['status'] === 'Ongoing' && isset($d['origin_lat'], $d['origin_lon'], $d['destination_lat'], $d['destination_lon']);
+    });
 ?>
 
 
 
     <div>
+        <!-- OSM Map for Ongoing Dispatched Trips -->
+        <div class="mb-6">
+            <h3 class="text-lg font-bold mb-2">Ongoing Dispatched Trips Map</h3>
+            <div class="flex flex-wrap gap-2 mb-2">
+                <input id="mapSearch" class="input input-bordered" style="min-width:220px;max-width:350px;" placeholder="Search a place.."  autocomplete="off">
+                <div id="searchSuggestions" class="osm-suggestions" style="position:absolute;z-index:1000;"></div>
+            </div>
+            <div class="flex flex-wrap gap-2 mb-2">
+            <button id="addPoiBtn" class="btn btn-sm btn-success" type="button"><i data-lucide="map-pin-plus"></i> Add a Custom Location </button>
+            </div>
+            <div id="dispatchMap" style="height: 400px; width: 100%;"></div>
+        </div>
         <h2 class="text-lg md:text-2xl font-bold mb-4">Vehicle Reservation & Dispatch</h2>
         <!-- Vehicle Request Form (Step 1) -->
         <div class="flex flex-col gap-2">
@@ -280,6 +297,170 @@ function vrds_view($baseURL) {
             <!-- Leaflet.js & OSM/Nominatim Autocomplete JS & CSS -->
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
             <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const vehicles = <?php echo json_encode($vehicles); ?>;
+                const drivers = <?php echo json_encode($drivers); ?>;
+                const defaultLat = 14.65067;
+                const defaultLon = 121.04719;
+                const map = L.map('dispatchMap').setView([defaultLat, defaultLon], 17);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+                L.control.scale({
+                    position: 'bottomleft',
+                    metric: true,
+                    imperial: true,
+                    maxWidth: 200
+                }).addTo(map);
+
+                let markers = [];
+                let polylines = [];
+                let poiMarkers = [];
+                let pois = [];
+
+                function clearMap() {
+                    markers.forEach(m => map.removeLayer(m));
+                    polylines.forEach(l => map.removeLayer(l));
+                    markers = [];
+                    polylines = [];
+                }
+                function clearPOIMarkers() {
+                    poiMarkers.forEach(m => map.removeLayer(m));
+                    poiMarkers = [];
+                }
+                function addDispatchMarkers(dispatches) {
+                    dispatches.forEach(function(d) {
+                        const vehicle = vehicles.find(v => v.id == d.vehicle_id);
+                        const driver = drivers.find(dr => dr.id == d.driver_id);
+                        // Origin marker
+                        const originMarker = L.marker([d.origin_lat, d.origin_lon], {
+                            title: 'Origin'
+                        }).addTo(map);
+                        originMarker.bindPopup('<b>Vehicle:</b> ' + (vehicle ? vehicle.vehicle_name : d.vehicle_id) + '<br><b>Driver:</b> ' + (driver ? driver.driver_name : d.driver_id) + '<br><b>Origin:</b> ' + (d.origin || '-') + '<br><b>Destination:</b> ' + (d.destination || '-') + '<br><b>Status:</b> ' + d.status);
+                        markers.push(originMarker);
+                        // Destination marker
+                        const destMarker = L.marker([d.destination_lat, d.destination_lon], {
+                            title: 'Destination',
+                            icon: L.icon({
+                                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+                                iconAnchor: [12, 41],
+                                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+                            })
+                        }).addTo(map);
+                        destMarker.bindPopup('<b>Destination</b><br>' + (d.destination || '-'));
+                        markers.push(destMarker);
+                        // Draw line between origin and destination
+                        const poly = L.polyline([
+                            [d.origin_lat, d.origin_lon],
+                            [d.destination_lat, d.destination_lon]
+                        ], {color: 'blue', weight: 3, opacity: 0.7}).addTo(map);
+                        polylines.push(poly);
+                    });
+                }
+                function addPOIMarkers(poisArr) {
+                    poisArr.forEach(function(poi) {
+                        const marker = L.marker([parseFloat(poi.lat), parseFloat(poi.lon)], {
+                            title: poi.name,
+                            icon: L.icon({
+                                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                                iconAnchor: [12, 41],
+                                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+                            })
+                        }).addTo(map);
+                        marker.bindPopup('<b>' + poi.name + '</b><br>' + (poi.description || ''));
+                        poiMarkers.push(marker);
+                    });
+                }
+                function fetchAndUpdateDispatches() {
+                    fetch(window.location.pathname + '?ajax_ongoing_dispatches=1')
+                        .then(res => res.json())
+                        .then(data => {
+                            clearMap();
+                            addDispatchMarkers(data);
+                        });
+                }
+                function fetchAndShowPOIs() {
+                    fetch('js/custom_pois.json')
+                        .then(res => res.json())
+                        .then(data => {
+                            pois = data;
+                            clearPOIMarkers();
+                            addPOIMarkers(pois);
+                        });
+                }
+                // Add POI button logic
+                document.getElementById('addPoiBtn').onclick = function() {
+                    map.once('click', function(e) {
+                        const lat = e.latlng.lat;
+                        const lon = e.latlng.lng;
+                        const name = prompt('Enter POI name:');
+                        if (!name) return;
+                        const description = prompt('Enter POI description (optional):') || '';
+                        // Save to server via AJAX
+                        fetch(window.location.pathname + '?add_custom_poi=1', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({lat, lon, name, description})
+                        }).then(res => res.json()).then(resp => {
+                            if (resp.success) {
+                                fetchAndShowPOIs();
+                                alert('POI added!');
+                            } else {
+                                alert('Failed to add POI.');
+                            }
+                        });
+                    });
+                    alert('Click on the map to set POI location.');
+                };
+                // Search bar autocomplete
+                const searchInput = document.getElementById('mapSearch');
+                const suggestionsDiv = document.getElementById('searchSuggestions');
+                let searchTimeout = null;
+                searchInput.addEventListener('input', function() {
+                    const query = searchInput.value.trim();
+                    if (searchTimeout) clearTimeout(searchTimeout);
+                    if (query.length < 3) {
+                        suggestionsDiv.style.display = 'none';
+                        return;
+                    }
+                    searchTimeout = setTimeout(() => {
+                        fetch('https://corsproxy.io/?https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&q=' + encodeURIComponent(query))
+                            .then(res => res.json())
+                            .then(data => {
+                                suggestionsDiv.innerHTML = '';
+                                data.slice(0, 8).forEach(place => {
+                                    const div = document.createElement('div');
+                                    div.textContent = place.display_name;
+                                    div.onclick = function() {
+                                        searchInput.value = place.display_name;
+                                        suggestionsDiv.style.display = 'none';
+                                        map.setView([parseFloat(place.lat), parseFloat(place.lon)], 17);
+                                    };
+                                    suggestionsDiv.appendChild(div);
+                                });
+                                if (suggestionsDiv.innerHTML !== '') {
+                                    suggestionsDiv.style.display = 'block';
+                                } else {
+                                    suggestionsDiv.style.display = 'none';
+                                }
+                            });
+                    }, 300);
+                });
+                document.addEventListener('click', function(e) {
+                    if (!suggestionsDiv.contains(e.target) && e.target !== searchInput) {
+                        suggestionsDiv.style.display = 'none';
+                    }
+                });
+                // Initial load
+                addDispatchMarkers(<?php echo json_encode(array_values($ongoingDispatches)); ?>);
+                fetchAndShowPOIs();
+                setInterval(fetchAndUpdateDispatches, 10000);
+            });
+            </script>
             <style>
                 .osm-suggestions {
                     position: absolute;
@@ -476,4 +657,37 @@ function vrds_view($baseURL) {
             </script>
         </div>
     <?php
+    // AJAX endpoint for real-time map updates
+    if (isset($_GET['ajax_ongoing_dispatches']) && $_GET['ajax_ongoing_dispatches'] == 1) {
+        header('Content-Type: application/json');
+        $dispatches = fetchAll('dispatches');
+        $ongoing = array_filter($dispatches, function($d) {
+            return $d['status'] === 'Ongoing' && isset($d['origin_lat'], $d['origin_lon'], $d['destination_lat'], $d['destination_lon']);
+        });
+        echo json_encode(array_values($ongoing));
+        exit;
+    }
+    // AJAX endpoint to add a custom POI
+    if (isset($_GET['add_custom_poi']) && $_GET['add_custom_poi'] == 1 && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $lat = isset($input['lat']) ? floatval($input['lat']) : null;
+        $lon = isset($input['lon']) ? floatval($input['lon']) : null;
+        $name = trim($input['name'] ?? '');
+        $description = trim($input['description'] ?? '');
+        if ($lat && $lon && $name) {
+            $poisFile = __DIR__ . '/../js/custom_pois.json';
+            $pois = file_exists($poisFile) ? json_decode(file_get_contents($poisFile), true) : [];
+            $pois[] = [
+                'lat' => $lat,
+                'lon' => $lon,
+                'name' => $name,
+                'description' => $description
+            ];
+            file_put_contents($poisFile, json_encode($pois, JSON_PRETTY_PRINT));
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false]);
+        }
+        exit;
+    }
 }

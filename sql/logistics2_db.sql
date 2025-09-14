@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Sep 14, 2025 at 08:55 PM
+-- Generation Time: Sep 14, 2025 at 09:57 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -213,7 +213,10 @@ INSERT INTO `audit_log` (`id`, `module`, `action`, `record_id`, `user`, `details
 (169, 'VRDS', 'complete_dispatch', 40, 'admin', NULL, '2025-09-15 00:03:34'),
 (170, 'VRDS', 'clear_dispatch_logs', NULL, 'admin', NULL, '2025-09-15 00:11:22'),
 (171, 'FVM', 'adjust_maintenance', 4, 'admin', NULL, '2025-09-15 02:28:49'),
-(172, 'FVM', 'adjust_maintenance', 5, 'admin', NULL, '2025-09-15 02:29:00');
+(172, 'FVM', 'adjust_maintenance', 5, 'admin', NULL, '2025-09-15 02:29:00'),
+(173, 'FVM', 'edit_vehicle', 4, 'admin', NULL, '2025-09-15 03:42:17'),
+(174, 'FVM', 'edit_vehicle', 5, 'admin', NULL, '2025-09-15 03:42:23'),
+(175, 'FVM', 'edit_vehicle', 5, 'admin', NULL, '2025-09-15 03:42:30');
 
 -- --------------------------------------------------------
 
@@ -232,6 +235,10 @@ CREATE TABLE `dispatches` (
   `status` enum('Ongoing','Completed','Cancelled') DEFAULT 'Ongoing',
   `origin` varchar(255) DEFAULT NULL,
   `destination` varchar(255) DEFAULT NULL,
+  `origin_lat` decimal(8,6) DEFAULT NULL,
+  `origin_long` decimal(9,6) DEFAULT NULL,
+  `destination_lat` decimal(8,6) DEFAULT NULL,
+  `destination_lon` decimal(9,6) DEFAULT NULL,
   `purpose` text DEFAULT NULL,
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -261,17 +268,7 @@ CREATE TABLE `drivers` (
 
 INSERT INTO `drivers` (`id`, `eid`, `driver_name`, `license_number`, `phone`, `email`, `status`, `created_at`) VALUES
 (1, 'D25071', 'Juan Dela Cruz', 'PH-DL-2025-001', '09171234567', 'juan.delacruz@example.com', 'Available', '2025-08-29 02:49:13'),
-(2, 'D25072', 'Maria Santos', 'PH-DL-2025-002', '09182345678', 'maria.santos@example.com', 'Available', '2025-08-29 02:49:13'),
-(3, 'D25073', 'Pedro Ramirez', 'PH-DL-2025-003', '09193456789', 'pedro.ramirez@example.com', 'Available', '2025-08-29 02:49:13'),
-(4, 'D25074', 'Ana Villanueva', 'PH-DL-2025-004', '09184561234', 'ana.villanueva@example.com', 'Available', '2025-08-29 02:49:13'),
-(5, 'D25075', 'Ramon Cruz', 'PH-DL-2025-005', '09185672345', 'ramon.cruz@example.com', 'Available', '2025-08-29 02:49:13'),
-(11, 'D250708', 'John Doe', '1234567', NULL, 'johndoe@gmail.com', 'Available', '2025-08-31 22:21:42'),
-(14, 'D250701', 'Carlos Reyes', 'PH-DL-2025-101', '09170000001', 'carlos.reyes@example.com', 'Available', '2025-08-01 00:00:00'),
-(15, 'D250702', 'Liza Fernandez', 'PH-DL-2025-102', '09170000002', 'liza.fernandez@example.com', 'Available', '2025-08-01 00:00:00'),
-(16, 'D250703', 'Miguel Cruz', 'PH-DL-2025-103', '09170000003', 'miguel.cruz@example.com', 'Available', '2025-08-01 00:00:00'),
-(17, 'D250704', 'Sofia Santos', 'PH-DL-2025-104', '09170000004', 'sofia.santos@example.com', 'Available', '2025-08-01 00:00:00'),
-(18, 'D250705', 'Rafael Garcia', 'PH-DL-2025-105', '09170000005', 'rafael.garcia@example.com', 'Available', '2025-08-01 00:00:00'),
-(19, 'D250706', 'Jasmine Dela Rosa', 'PH-DL-2025-106', '09170000006', 'jasmine.delarosa@example.com', 'Available', '2025-08-01 00:00:00');
+(20, 'D250722', 'Jerome Adrian Ragas', 'A20-52-123456', NULL, 'jeromeadrianragas@gmail.com', 'Available', '2025-09-15 03:56:24');
 
 -- --------------------------------------------------------
 
@@ -326,8 +323,8 @@ INSERT INTO `fleet_vehicles` (`id`, `vehicle_name`, `plate_number`, `vehicle_typ
 (1, 'Toyota Hilux', 'ABC-124', 'Pickup', 'Active', 475.00, 80.00, 'uploads/vehicle_1757162864_8262.png'),
 (2, 'Mitsubishi L300', 'XYZ-456', 'Van', 'Active', 1000.00, 55.00, 'uploads/vehicle_1757162937_8200.jpg'),
 (3, 'Isuzu D-Max', 'LMN-789', 'Pickup', 'Active', 475.00, 76.00, 'uploads/vehicle_1757162957_9277.jpg'),
-(4, 'Hyundai H100', 'JKL-321', 'Van', 'Under Maintenance', 1090.00, 65.00, 'uploads/vehicle_1757162972_2521.jpg'),
-(5, 'Ford Ranger', 'PQR-654', 'Pickup', 'Under Maintenance', 985.00, 80.00, 'uploads/vehicle_1757163149_5973.png');
+(4, 'Hyundai H100', 'JKL-321', 'Van', 'Active', 1090.00, 65.00, 'uploads/vehicle_1757162972_2521.jpg'),
+(5, 'Ford Ranger', 'PQR-654', 'Pickup', 'Active', 985.00, 80.00, 'uploads/vehicle_1757163149_5973.png');
 
 -- --------------------------------------------------------
 
@@ -468,19 +465,9 @@ CREATE TABLE `users` (
 INSERT INTO `users` (`id`, `eid`, `full_name`, `email`, `password`, `role`, `created_at`) VALUES
 (1, 'S250701', 'admin', 'froilan.respicio2021@gmail.com', '$2y$10$jIX3O6u91NS/77OMfeFYieOa7n2G9MAKSdmYFmz3nMwudlo652XTS', 'admin', '2025-08-30 08:37:43'),
 (6, 'M250706', 'gusion', 'cringey.ch@gmail.com', '$2y$10$EPiNvDrT8aKDFTmHIl5vnuq/UBbmmhOOe7Ov5NpqmETHoYzorZuc6', 'manager', '2025-08-30 09:51:12'),
-(8, 'D250708', 'John Doe', 'johndoe@gmail.com', '$2y$10$.ntimqwMd/xqkVZNc22vd.cqXE5TwsnBPZOKmmPkiDmEDvPYhyQfq', 'driver', '2025-08-31 14:21:41'),
-(9, 'D250701', 'Carlos Reyes', 'carlos.reyes@example.com', 'dummyhash', 'driver', '2025-08-01 00:00:00'),
-(10, 'D250702', 'Liza Fernandez', 'liza.fernandez@example.com', 'dummyhash', 'driver', '2025-08-01 00:00:00'),
-(11, 'D250703', 'Miguel Cruz', 'miguel.cruz@example.com', 'dummyhash', 'driver', '2025-08-01 00:00:00'),
-(12, 'D250704', 'Sofia Santos', 'sofia.santos@example.com', 'dummyhash', 'driver', '2025-08-01 00:00:00'),
-(13, 'D250705', 'Rafael Garcia', 'rafael.garcia@example.com', 'dummyhash', 'driver', '2025-08-01 00:00:00'),
-(14, 'D250706', 'Jasmine Dela Rosa', 'jasmine.delarosa@example.com', 'dummyhash', 'driver', '2025-08-01 00:00:00'),
-(15, 'D250749', 'Juan Dela Cruz', 'juan.dela.cruz@example.com', '$2y$10$xSDgKfhE0ouWpQ9NRXGfmOGmS0s.B3vqi86tRWpNz3OmsDpswjXsi', 'driver', '2025-09-01 14:14:54'),
-(16, 'D250773', 'Maria Santos', 'maria.santos@example.com', '$2y$10$sQA3Rsmz2ICz4YnOjdP9uOnftuAvn4JSUQVymqRDfwlrpxJWrSzQW', 'driver', '2025-09-01 14:14:54'),
-(17, 'D250762', 'Pedro Ramirez', 'pedro.ramirez@example.com', '$2y$10$q75lpaZOxgGUd8wuzs7JIelJQTx6vfEJBbX91s7OhrdrbYxA4EKp2', 'driver', '2025-09-01 14:14:54'),
-(18, 'D250731', 'Ana Villanueva', 'ana.villanueva@example.com', '$2y$10$ANFnS7FS6iBskhZQw37ySeScoNdRTvMcRyrJTRCSOuy3bpwCdBsDW', 'driver', '2025-09-01 14:14:54'),
-(19, 'D250730', 'Ramon Cruz', 'ramon.cruz@example.com', '$2y$10$YAOQJC0Zi.9PlW5BipleV.zxv5vOVv2fEazeoZ3xdDyq7OYb672j.', 'driver', '2025-09-01 14:14:54'),
-(20, 'D250761', 'Josefa Dela Paz', 'josefa.dela.paz@example.com', '$2y$10$BYZNtn8rCrr3s/48Uum4qO8NVB.urcFazJpNpRsWx/7bmLRanSdI.', 'driver', '2025-09-01 14:14:54');
+(21, 'R250721', 'Leonard Manicdo', 'leonardomanicdo119@gmail.com', '$2y$10$JrUQhjXMQHfyKrq55oFHrOxxqNX2r0rAY0g8BteDBEYOjli6sE0..', 'requester', '2025-09-14 19:49:20'),
+(22, 'D250722', 'Jerome Adrian Ragas', 'jeromeadrianragas@gmail.com', '$2y$10$5NUbZkgUZ5UBnTKulfrxs.rGBfnfqgmSKHu43Evboa2OdEWUeYfxK', 'driver', '2025-09-14 19:56:24'),
+(23, 'S250723', 'Mariel Jade Jarapan', 'Mianojarapan@gmail.com', '$2y$10$v8Yz.UWo/3.FKA3TREU3augUk.noP/oH2vjDPspRng6Q3KqPmX7pS', 'supervisor', '2025-09-14 19:57:09');
 
 -- --------------------------------------------------------
 
@@ -514,23 +501,12 @@ CREATE TABLE `vehicle_requests` (
 INSERT INTO `vehicle_requests` (`id`, `requester_id`, `request_date`, `reservation_date`, `expected_return`, `purpose`, `origin`, `destination`, `requested_vehicle_type`, `requested_driver_id`, `status`, `approved_by`, `approved_at`, `dispatched_at`, `completed_at`, `notes`) VALUES
 (16, 1, '2025-08-29 12:44:30', '2025-07-23', '2025-08-31', 'Resupply Ketchup', 'Kitchen', 'Warehouse', 'Car', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
 (17, 1, '2025-08-29 12:46:46', '2025-08-29', '2025-08-30', 'Balut Order', 'Kitchen', 'Supplier', 'Car', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
-(28, 1, '2025-08-02 08:00:00', '2025-08-02', '2025-08-02', 'Delivery 2-2', 'Warehouse', 'Hotel', 'Car', 4, 'Approved', NULL, NULL, NULL, NULL, NULL),
-(29, 1, '2025-08-03 08:00:00', '2025-08-03', '2025-08-03', 'Delivery 3-1', 'Warehouse', 'Hotel', 'Pickup', 5, 'Approved', NULL, NULL, NULL, NULL, NULL),
-(34, 1, '2025-08-05 08:00:00', '2025-08-05', '2025-08-05', 'Delivery 5-2', 'Warehouse', 'Hotel', 'Van', 5, 'Approved', NULL, NULL, NULL, NULL, NULL),
 (37, 6, '2025-08-07 08:00:00', '2025-08-07', '2025-08-07', 'Delivery 7-1', 'Warehouse', 'Hotel', 'Truck', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
-(39, 6, '2025-08-08 08:00:00', '2025-08-08', '2025-08-08', 'Delivery 8-1', 'Warehouse', 'Hotel', 'Truck', 4, 'Approved', NULL, NULL, NULL, NULL, NULL),
 (42, 6, '2025-08-09 08:00:00', '2025-08-09', '2025-08-09', 'Delivery 9-2', 'Warehouse', 'Hotel', 'Pickup', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
-(44, 6, '2025-08-10 08:00:00', '2025-08-10', '2025-08-10', 'Delivery 10-2', 'Warehouse', 'Hotel', 'Van', 2, 'Approved', NULL, NULL, NULL, NULL, NULL),
-(46, 1, '2025-08-11 08:00:00', '2025-08-11', '2025-08-11', 'Delivery 11-2', 'Warehouse', 'Hotel', 'Van', 5, 'Approved', NULL, NULL, NULL, NULL, NULL),
-(50, 6, '2025-08-13 08:00:00', '2025-08-13', '2025-08-13', 'Delivery 13-2', 'Warehouse', 'Hotel', 'Van', 5, 'Approved', NULL, NULL, NULL, NULL, NULL),
-(52, 1, '2025-08-14 08:00:00', '2025-08-14', '2025-08-14', 'Delivery 14-2', 'Warehouse', 'Hotel', 'Pickup', 5, 'Approved', NULL, NULL, NULL, NULL, NULL),
-(59, 1, '2025-08-18 08:00:00', '2025-08-18', '2025-08-18', 'Delivery 18-1', 'Warehouse', 'Hotel', 'Pickup', 5, 'Approved', NULL, NULL, NULL, NULL, NULL),
 (67, 6, '2025-08-22 08:00:00', '2025-08-22', '2025-08-22', 'Delivery 22-1', 'Warehouse', 'Hotel', 'Van', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
 (74, 6, '2025-08-25 08:00:00', '2025-08-25', '2025-08-25', 'Delivery 25-2', 'Warehouse', 'Hotel', 'Pickup', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
-(80, 6, '2025-08-28 08:00:00', '2025-08-28', '2025-08-28', 'Delivery 28-2', 'Warehouse', 'Hotel', 'Car', 4, 'Approved', NULL, NULL, NULL, NULL, NULL),
 (83, 1, '2025-08-30 08:00:00', '2025-08-30', '2025-08-30', 'Delivery 30-1', 'Warehouse', 'Hotel', 'Truck', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
-(89, 1, '2025-09-02 12:39:31', '2025-09-02', '2025-09-03', 'Gala', 'Warehouse Legit', 'Bestlink', 'Van', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
-(92, 1, '2025-09-07 00:36:25', '2025-09-07', '2025-09-08', 'Delivery', 'adsad', 'sadsad', 'Pickup', NULL, 'Pending', NULL, NULL, NULL, NULL, '');
+(89, 1, '2025-09-02 12:39:31', '2025-09-02', '2025-09-03', 'Gala', 'Warehouse Legit', 'Bestlink', 'Van', NULL, 'Approved', NULL, NULL, NULL, NULL, '');
 
 --
 -- Indexes for dumped tables
@@ -641,7 +617,7 @@ ALTER TABLE `vehicle_requests`
 -- AUTO_INCREMENT for table `audit_log`
 --
 ALTER TABLE `audit_log`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=173;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=176;
 
 --
 -- AUTO_INCREMENT for table `dispatches`
@@ -653,7 +629,7 @@ ALTER TABLE `dispatches`
 -- AUTO_INCREMENT for table `drivers`
 --
 ALTER TABLE `drivers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `driver_trips`
@@ -707,7 +683,7 @@ ALTER TABLE `trusted_devices`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT for table `vehicle_requests`
