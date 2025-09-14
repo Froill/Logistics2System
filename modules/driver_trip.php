@@ -317,13 +317,34 @@ function driver_trip_view($baseURL)
                 $start = ($page - 1) * $perPage;
                 $pagedTrips = array_slice($trips, $start, $perPage);
                 ?>
-                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>">
-                    <button type="button" class="btn btn-error mb-2" onclick="if(confirm('Clear all trip logs?')) { document.getElementById('clearTripLogsForm').submit(); }">Clear Log</button>
-                    <div class="overflow-x-auto">
-                        <form id="clearTripLogsForm" method="POST" action="<?= htmlspecialchars($baseURL) ?>">
-                            <input type="hidden" name="clear_trip_logs" value="1">
-                        </form>
-                        <table class="table table-zebra w-full">
+                <form id="clearTripLogsForm" method="POST" action="<?= htmlspecialchars($baseURL) ?>">
+                    <input type="hidden" name="clear_trip_logs" value="1">
+                    <button type="button" class="btn btn-error mb-2" onclick="clearTripLogs()">Clear Log</button>
+                </form>
+                <script>
+                function clearTripLogs() {
+                    if (!confirm('Clear all trip logs?')) return;
+                    // If in AJAX modal, submit via AJAX
+                    if (window.location.search.includes('ajax_trip_log=1')) {
+                        var form = document.getElementById('clearTripLogsForm');
+                        var xhr = new XMLHttpRequest();
+                        xhr.open('POST', form.action, true);
+                        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                        xhr.onload = function() {
+                            if (xhr.status === 200) {
+                                // Reload modal content after clearing
+                                openTripLogPage(1);
+                            }
+                        };
+                        var formData = new FormData(form);
+                        xhr.send(formData);
+                    } else {
+                        document.getElementById('clearTripLogsForm').submit();
+                    }
+                }
+                </script>
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra w-full">
                             <thead>
                                 <tr>
                                     <th>Driver & Vehicle</th>

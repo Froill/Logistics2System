@@ -7,6 +7,7 @@ require_once __DIR__ . '/../includes/modules_logic.php';
 function fvm_view($baseURL)
 {
     $vehicles = fetchAll('fleet_vehicles');
+    $drivers = fetchAll('drivers');
     // Fetch all logs for each vehicle
     $vehicle_logs = fetchAllQuery("SELECT l.*, v.vehicle_name FROM fleet_vehicle_logs l JOIN fleet_vehicles v ON l.vehicle_id = v.id ORDER BY l.created_at DESC");
 
@@ -161,7 +162,7 @@ function fvm_view($baseURL)
                         </select>
                     </div>
                     <div class="form-control mb-2">
-                        <label class="label">Weight Capacity (kg)</label>
+                        <label class="label">Payload (kg)</label>
                         <input type="number" name="weight_capacity" class="input input-bordered" min="0" step="any" required>
                     </div>
                     <div class="form-control mb-2">
@@ -180,15 +181,15 @@ function fvm_view($baseURL)
             </form>
         </dialog>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="grid grid-cols-3 gap-6 mb-6">
             <!-- Vehicle Status Pie Chart -->
-            <div class="card shadow-lg p-4">
+            <div class="card bg-grey-500 text-black p-4 shadow-lg p-4">
                 <h3 class="text-lg font-bold mb-2">Vehicle Status Distribution</h3>
                 <canvas id="vehicleStatusChart"></canvas>
             </div>
 
             <!-- Vehicle Metrics -->
-            <div class="card shadow-lg p-4">
+            <div class="card bg-blue-500 text-white p-4 shadow-lg p-4">
                 <h3 class="text-lg font-bold mb-2">Key Metrics</h3>
                 <ul class="space-y-2">
                     <li>Total Vehicles: <span class="font-semibold"><?= $totalVehicles ?></span></li>
@@ -391,6 +392,8 @@ function fvm_view($baseURL)
                 };
                 renderCalendar(calMonth, calYear);
                 </script>
+                <!-- Maintenance Adjustment Table -->
+                <h3 class="font-bold text-lg mb-4">Adjust Maintenance Dates</h3>
                 <div class="overflow-x-auto">
                     <table class="table table-zebra w-full">
                         <thead>
@@ -478,15 +481,15 @@ function fvm_view($baseURL)
         </dialog>
 
 
-        <!-- Vehicle Table --><!-- todo : add fuel consumption and capacity columns to vehicle table-->
+        <!-- Vehicle Table -->
         <div class="overflow-x-auto">
+            <h3 class="text-lg font-bold mb-2">Fleet Vehicles</h3>
             <table class="table table-zebra w-full">
                 <thead>
                     <tr>
                         <th>Vehicle Name</th>
-                        <th>Plate Number</th>
-                        <th>Vehicle Type</th>
-                        <th>Weight Capacity (kg)</th>
+                        <th>License & Type</th>
+                        <th>Payload (kg)</th>
                         <th>Fuel Capacity (L)</th>
                         <th>Fuel Consumption (Last Dispatch)</th>
                         <th>Current Fuel Tank</th>
@@ -499,10 +502,10 @@ function fvm_view($baseURL)
                     <?php foreach ($vehicles as $v): ?>
                         <tr>
                             <td><?= htmlspecialchars($v['vehicle_name']) ?></td>
-                            <td><?= htmlspecialchars($v['plate_number']) ?></td>
-                            <td><?= htmlspecialchars($v['vehicle_type'] ?? '-') ?></td>
-                            <td><?= htmlspecialchars($v['weight_capacity'] ?? '-') ?></td>
-                            <td><?= htmlspecialchars($v['fuel_capacity'] ?? '-') ?></td>
+                             <td><div><?= htmlspecialchars($v['plate_number']) ?></div>
+                            <div><?= htmlspecialchars($v['vehicle_type'] ?? '-') ?></div></td>
+                            <td><?= htmlspecialchars($v['weight_capacity'] ?? '-') ?>kg</td>
+                            <td><?= htmlspecialchars($v['fuel_capacity'] ?? '-') ?>L</td>
                             <td>
                                 <?php
                                 // Fetch most recent completed dispatch trip for this vehicle
@@ -730,6 +733,64 @@ function fvm_view($baseURL)
                 </tbody>
             </table>
         </div>
+        
+    <!-- Drivers Table -->
+    <div class="overflow-x-auto mt-8">
+        <h3 class="text-lg font-bold mb-2">Drivers</h3>
+        <table class="table table-zebra w-full">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Assigned Vehicle</th>
+                    <th>Contact </th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($drivers as $d): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($d['driver_name']) ?></td>
+                        <td>
+                            <?php
+                            $status = $d['status'] ?? 'Unknown';
+                            $badgeClass = 'badge p-2 text-nowrap';
+                            if ($status === 'Available') {
+                                $badgeClass .= ' badge-success';
+                            } elseif ($status === 'Dispatched') {
+                                $badgeClass .= ' badge-info';
+                            } elseif ($status === 'Inactive') {
+                                $badgeClass .= ' badge-error';
+                            } else {
+                                $badgeClass .= ' badge-secondary';
+                            }
+                            ?>
+                            <span class="<?= $badgeClass ?>"><?= htmlspecialchars($status) ?></span>
+                        </td>
+                        <td>
+                            <?php
+                            // Find assigned vehicle if dispatched
+                            $assigned = '';
+                            if ($d['status'] === 'Dispatched') {
+                                $dispatch = fetchOneQuery("SELECT v.vehicle_name FROM dispatches ds JOIN fleet_vehicles v ON ds.vehicle_id = v.id WHERE ds.driver_id = ? AND ds.status = 'Ongoing' ORDER BY ds.dispatch_date DESC LIMIT 1", [$d['id']]);
+                                if ($dispatch && isset($dispatch['vehicle_name'])) {
+                                    $assigned = $dispatch['vehicle_name'];
+                                }
+                            }
+                            echo $assigned ? htmlspecialchars($assigned) : '<span class="text-gray-400">None</span>';
+                            ?>
+                        </td>
+                        <td><div>Mobile No. : <?= htmlspecialchars($d['phone'] ?? 'N/A') ?></div>
+                            <div>Email : <?= htmlspecialchars($d['email'] ?? 'N/A') ?></div>
+                        <td>
+                            <!-- Future: Add driver management actions here -->
+                            <button class="btn btn-xs btn-info" title="View" disabled><i data-lucide="eye"></i></button>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>

@@ -267,6 +267,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['check_status_vehicle_
 /////////////////////////////////////////START OF VRDS LOGIC
 function vrds_logic($baseURL) {
 
+    // Clear all dispatch logs
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_dispatch_logs'])) {
+        global $conn;
+        // Set all vehicles and drivers that are currently dispatched back to Active/Available
+        $result = $conn->query("SELECT vehicle_id, driver_id FROM dispatches");
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                updateData('fleet_vehicles', $row['vehicle_id'], ['status' => 'Active']);
+                updateData('drivers', $row['driver_id'], ['status' => 'Available']);
+            }
+        }
+        $conn->query("DELETE FROM dispatches");
+        log_audit_event('VRDS', 'clear_dispatch_logs', null, $_SESSION['full_name'] ?? 'unknown');
+        $_SESSION['success_message'] = 'All dispatch logs cleared.';
+        header("Location: {$baseURL}");
+        exit;
+    }
+
     // 1. Requester submits trip request
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_vehicle'])) {
@@ -953,6 +971,15 @@ function driver_trip_logic($baseURL)
             exit;
         }
 
+        // Clear all trip logs
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_trip_logs'])) {
+            global $conn;
+            $conn->query("DELETE FROM driver_trips");
+            log_audit_event('DTP', 'clear_trip_logs', null, $_SESSION['full_name'] ?? 'unknown');
+            $_SESSION['success_message'] = 'All trip logs cleared.';
+            header("Location: {$baseURL}");
+            exit;
+        }
         // Step 1 & 2: Driver Submits Data & System Validation
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_trip'])) {
             try {
