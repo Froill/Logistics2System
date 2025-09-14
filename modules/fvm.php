@@ -34,8 +34,28 @@ function fvm_logic($baseURL)
     }
     // Handle delete
     if (isset($_GET['delete'])) {
-        deleteData('fleet_vehicles', $_GET['delete']);
-        log_audit_event('FVM', 'delete_vehicle', $_GET['delete'], $_SESSION['full_name'] ?? 'unknown');
+        $vehicleId = intval($_GET['delete']);
+        global $conn;
+        // Delete all related records in referencing tables
+        $conn->query("DELETE FROM fleet_vehicle_logs WHERE vehicle_id = $vehicleId");
+        $conn->query("DELETE FROM driver_trips WHERE vehicle_id = $vehicleId");
+        $conn->query("DELETE FROM dispatches WHERE vehicle_id = $vehicleId");
+        // Get vehicle image path (if any)
+        $imgResult = $conn->query("SELECT vehicle_image FROM fleet_vehicles WHERE id = $vehicleId");
+        $imgRow = $imgResult ? $imgResult->fetch_assoc() : null;
+        $imgPath = $imgRow && !empty($imgRow['vehicle_image']) ? __DIR__ . '/../' . $imgRow['vehicle_image'] : null;
+        // Delete vehicle
+        $success = deleteData('fleet_vehicles', $vehicleId);
+        if ($success) {
+            // Remove image file if it exists
+            if ($imgPath && file_exists($imgPath)) {
+                @unlink($imgPath);
+            }
+            log_audit_event('FVM', 'delete_vehicle', $vehicleId, $_SESSION['full_name'] ?? 'unknown');
+            $_SESSION['fvm_success'] = 'Vehicle deleted successfully.';
+        } else {
+            $_SESSION['fvm_error'] = 'Failed to delete vehicle.';
+        }
         header("Location: {$baseURL}");
         exit;
     }
@@ -742,7 +762,7 @@ function fvm_view($baseURL)
                                     echo '<span style="position:absolute; left:0; right:0; top:0; text-align:center; font-size:12px; color:#222;">0%</span>';
                                     echo '</div>';
                                 } else {
-                                    echo '<span class="text-gray-400">Not dispatched yet</span>';
+                                    echo '<span class="text-gray-400">No Records Yet</span>';
                                     echo '<div style="margin-top:4px; width:120px; background:#eee; border-radius:6px; height:16px; position:relative;">';
                                     echo '<div style="width:0%; background:#3b82f6; height:100%; border-radius:6px;"></div>';
                                     echo '<span style="position:absolute; left:0; right:0; top:0; text-align:center; font-size:12px; color:#222;">0%</span>';
@@ -972,14 +992,36 @@ function fvm_view($baseURL)
                         'rgba(59,130,246,1)',
                         'rgba(234,179,8,1)'
                     ],
-                    borderWidth: 1
+                    borderWidth: 2,
+
                 }]
             },
             options: {
                 responsive: true,
+                
                 plugins: {
                     legend: {
-                        position: 'bottom'
+                        position: 'bottom',
+                        labels: {
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                                return data.labels.map(function(label, i) {
+                                    const dataset = data.datasets[0]; // Assuming one dataset for simplicity
+                                    const value = dataset.data[i];
+                                    return {
+                                        text: `${label}: ${value}`, // Customize the legend text
+                                        fillStyle: dataset.backgroundColor[i],
+                                        strokeStyle: dataset.borderColor ? dataset.borderColor[i] : undefined,
+                                        lineWidth: dataset.borderWidth ? dataset.borderWidth[i] : undefined,
+                                        hidden: !chart.isDatasetVisible(0) || chart.getDatasetMeta(0).data[i].hidden, // Maintain click functionality
+                                        index: i
+                                    };
+                                });
+                            }
+                            return [];
+                        }
+                        }
                     }
                 }
             }
