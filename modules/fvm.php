@@ -63,10 +63,12 @@ function fvm_logic($baseURL)
             }
         }
         $data = [
-            'vehicle_name' => $_POST['vehicle_name'],
-            'plate_number' => $_POST['plate_number'],
-            'vehicle_type' => $vehicleType,
-            'status'       => 'Active'
+            'vehicle_name'    => $_POST['vehicle_name'],
+            'plate_number'    => $_POST['plate_number'],
+            'vehicle_type'    => $vehicleType,
+            'status'          => 'Active',
+            'weight_capacity' => $_POST['weight_capacity'] ?? null,
+            'fuel_capacity'   => $_POST['fuel_capacity'] ?? null
         ];
         if ($vehicleImagePath) {
             $data['vehicle_image'] = $vehicleImagePath;
@@ -136,10 +138,12 @@ function fvm_logic($baseURL)
             $debugMsg .= 'No vehicle_image in \\$_FILES. ';
         }
         $data = [
-            'vehicle_name' => $_POST['vehicle_name'],
-            'plate_number' => $_POST['plate_number'],
-            'vehicle_type' => $vehicleType,
-            'status'       => $_POST['status']
+            'vehicle_name'    => $_POST['vehicle_name'],
+            'plate_number'    => $_POST['plate_number'],
+            'vehicle_type'    => $vehicleType,
+            'status'          => $_POST['status'],
+            'weight_capacity' => $_POST['weight_capacity'] ?? null,
+            'fuel_capacity'   => $_POST['fuel_capacity'] ?? null
         ];
         if ($vehicleImagePath) {
             $data['vehicle_image'] = $vehicleImagePath;
@@ -253,7 +257,26 @@ function fvm_view($baseURL)
                 $start = ($page - 1) * $perPage;
                 $pagedLogs = array_slice($vehicle_logs, $start, $perPage);
                 ?>
-                <div class="overflow-x-auto">
+                <?php
+                // Separate upcoming and past maintenance logs
+                $upcoming = [];
+                $past = [];
+                $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
+                foreach ($pagedLogs as $log) {
+                    if ($log['log_type'] === 'maintenance') {
+                        $logDate = new DateTime($log['created_at'], new DateTimeZone('Asia/Manila'));
+                        if ($logDate > $now) {
+                            $upcoming[] = $log;
+                        } else {
+                            $past[] = $log;
+                        }
+                    } else {
+                        $past[] = $log;
+                    }
+                }
+                ?>
+                <div class="overflow-x-auto mb-6">
+                    <h4 class="font-semibold text-md mb-2">Upcoming Maintenance Schedule</h4>
                     <table class="table table-zebra w-full">
                         <thead>
                             <tr>
@@ -264,18 +287,53 @@ function fvm_view($baseURL)
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($pagedLogs as $log): ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($log['vehicle_name']) ?></td>
-                                    <td>
-                                        <span class="badge <?= $log['log_type'] === 'maintenance' ? 'badge-warning' : 'badge-info' ?>">
-                                            <?= ucfirst(htmlspecialchars($log['log_type'])) ?>
-                                        </span>
-                                    </td>
-                                    <td><?= htmlspecialchars($log['details']) ?></td>
-                                    <td><?= date('M d, Y H:i', strtotime($log['created_at'])) ?></td>
-                                </tr>
-                            <?php endforeach; ?>
+                            <?php if (count($upcoming) === 0): ?>
+                                <tr><td colspan="4" class="text-center text-gray-400">No upcoming maintenance scheduled.</td></tr>
+                            <?php else: ?>
+                                <?php foreach ($upcoming as $log): ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars($log['vehicle_name']) ?></td>
+                                        <td>
+                                            <span class="badge badge-warning">
+                                                <?= ucfirst(htmlspecialchars($log['log_type'])) ?>
+                                            </span>
+                                        </td>
+                                        <td><?= htmlspecialchars($log['details']) ?></td>
+                                        <td><?= date('M d, Y H:i', strtotime($log['created_at'])) ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="overflow-x-auto">
+                    <h4 class="font-semibold text-md mb-2">Recent & Past Maintenance Records</h4>
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th>Vehicle</th>
+                                <th>Type</th>
+                                <th>Details</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (count($past) === 0): ?>
+                                <tr><td colspan="4" class="text-center text-gray-400">No past maintenance records.</td></tr>
+                            <?php else: ?>
+                                <?php foreach ($past as $log): ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars($log['vehicle_name']) ?></td>
+                                        <td>
+                                            <span class="badge <?= $log['log_type'] === 'maintenance' ? 'badge-warning' : 'badge-info' ?>">
+                                                <?= ucfirst(htmlspecialchars($log['log_type'])) ?>
+                                            </span>
+                                        </td>
+                                        <td><?= htmlspecialchars($log['details']) ?></td>
+                                        <td><?= date('M d, Y H:i', strtotime($log['created_at'])) ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
@@ -315,6 +373,14 @@ function fvm_view($baseURL)
                             <option value="Truck">Truck</option>
                             <option value="Pickup">Pickup</option>
                         </select>
+                    </div>
+                    <div class="form-control mb-2">
+                        <label class="label">Weight Capacity (kg)</label>
+                        <input type="number" name="weight_capacity" class="input input-bordered" min="0" step="any" required>
+                    </div>
+                    <div class="form-control mb-2">
+                        <label class="label">Fuel Capacity (L)</label>
+                        <input type="number" name="fuel_capacity" class="input input-bordered" min="0" step="any" required>
                     </div>
                     <div class="form-control mb-2">
                         <label class="label">Upload Image</label>
@@ -394,6 +460,151 @@ function fvm_view($baseURL)
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
                 <h3 class="font-bold text-lg mb-4">Scheduled Maintenance Calendar</h3>
+                <?php
+                // Gather all upcoming maintenance dates for all vehicles
+                $maintenanceDates = [];
+                foreach ($vehicles as $v) {
+                    $lastMaint = null;
+                    foreach ($vehicle_logs as $log) {
+                        if ($log['vehicle_id'] == $v['id'] && $log['log_type'] === 'maintenance') {
+                            $lastMaint = $log;
+                            break;
+                        }
+                    }
+                    $nextMaint = null;
+                    if ($lastMaint) {
+                        $lastDate = new DateTime($lastMaint['created_at'], new DateTimeZone('Asia/Manila'));
+                        $nextMaint = $lastDate->modify('+1 month');
+                        $maintenanceDates[$nextMaint->format('Y-m-d')][] = [
+                            'vehicle_name' => $v['vehicle_name'],
+                            'plate_number' => $v['plate_number'],
+                            'vehicle_type' => $v['vehicle_type'],
+                        ];
+                    }
+                }
+                ?>
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <button id="calPrevBtn" class="btn btn-xs btn-outline">&lt; Prev</button>
+                        <span id="calMonthLabel" class="font-semibold text-lg"></span>
+                        <button id="calNextBtn" class="btn btn-xs btn-outline">Next &gt;</button>
+                    </div>
+                    <div id="calendarContainer"></div>
+                </div>
+                <script>
+                // Calendar JS logic
+                const maintenanceDates = <?php echo json_encode($maintenanceDates); ?>;
+                const today = new Date();
+                let calMonth = today.getMonth(); // 0-based
+                let calYear = today.getFullYear();
+
+                function escapeHtml(text) {
+                    return text.replace(/[&<>"']/g, function(m) {
+                        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]);
+                    });
+                }
+
+                function renderCalendar(month, year) {
+                    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                    document.getElementById('calMonthLabel').textContent = monthNames[month] + ' ' + year;
+                    const firstDay = new Date(year, month, 1);
+                    const startDayOfWeek = firstDay.getDay();
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                    let html = '<table class="table table-compact w-full border"><thead><tr>';
+                    ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d => html += '<th class="text-center">'+d+'</th>');
+                    html += '</tr></thead><tbody>';
+                    let day = 1;
+                    for (let row = 0; day <= daysInMonth; row++) {
+                        html += '<tr>';
+                        for (let col = 0; col < 7; col++) {
+                            if (row === 0 && col < startDayOfWeek) {
+                                html += '<td></td>';
+                            } else if (day > daysInMonth) {
+                                html += '<td></td>';
+                            } else {
+                                const dateStr = year + '-' + String(month+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+                                const highlight = maintenanceDates[dateStr];
+                                const isToday = (day === today.getDate() && month === today.getMonth() && year === today.getFullYear());
+                                let tdStyle = 'vertical-align:top;';
+                                if (highlight) tdStyle += 'background:#fef08a;';
+                                if (isToday) tdStyle += 'background:#bbf7d0;'; // green shade for today
+                                html += '<td class="text-center align-top" style="'+tdStyle+'">';
+                                html += '<div class="font-bold">' + day + '</div>';
+                                if (highlight) {
+                                    html += '<button class="btn btn-xs btn-info mt-1 maint-show-btn" style="font-size:10px;" data-maint="' + escapeHtml(JSON.stringify(highlight)) + '">Show</button>';
+                                }
+                                html += '</td>';
+                                day++;
+                            }
+                        }
+                        html += '</tr>';
+                    }
+                    html += '</tbody></table>';
+                    document.getElementById('calendarContainer').innerHTML = html;
+
+                    // Attach event listeners for show buttons
+                    document.querySelectorAll('.maint-show-btn').forEach(btn => {
+                        btn.onclick = function(ev) {
+                            showMaintPopup(ev, btn.getAttribute('data-maint'));
+                        };
+                    });
+                }
+
+                // Popup logic
+                function showMaintPopup(e, dataStr) {
+                    e.stopPropagation();
+                    let data;
+                    try { data = JSON.parse(dataStr); } catch { return; }
+                    let html = '<div style="padding:10px 16px;">';
+                    html += '<div class="font-bold mb-1">Scheduled Maintenance:</div>';
+                    data.forEach(info => {
+                        html += '<div class="mb-1">' +
+                            '<span class="font-semibold">' + escapeHtml(info.vehicle_name) + '</span>' +
+                            ' <span class="text-xs text-gray-500">(' + escapeHtml(info.plate_number) + ')</span>' +
+                            '</div>';
+                    });
+                    html += '</div>';
+                    let popup = document.getElementById('maintPopup');
+                    if (!popup) {
+                        popup = document.createElement('div');
+                        popup.id = 'maintPopup';
+                        popup.style.position = 'fixed';
+                        popup.style.zIndex = 99999; // Higher than modal
+                        popup.style.background = '#fff';
+                        popup.style.border = '1px solid #888';
+                        popup.style.borderRadius = '8px';
+                        popup.style.boxShadow = '0 2px 12px rgba(0,0,0,0.15)';
+                        popup.onclick = function(ev) { ev.stopPropagation(); };
+                        document.body.appendChild(popup);
+                    }
+                    popup.innerHTML = html + '<div class="text-center mt-2"><button class="btn btn-xs btn-outline" onclick="closeMaintPopup()">Close</button></div>';
+                    popup.style.display = 'block';
+                    // Position popup near mouse
+                    popup.style.left = (e.clientX + 10) + 'px';
+                    popup.style.top = (e.clientY + 10) + 'px';
+                    // Hide on outside click
+                    document.body.onclick = function() { closeMaintPopup(); };
+                }
+                function closeMaintPopup() {
+                    let popup = document.getElementById('maintPopup');
+                    if (popup) popup.style.display = 'none';
+                    document.body.onclick = null;
+                }
+
+                document.getElementById('calPrevBtn').onclick = function(e) {
+                    e.preventDefault();
+                    calMonth--;
+                    if (calMonth < 0) { calMonth = 11; calYear--; }
+                    renderCalendar(calMonth, calYear);
+                };
+                document.getElementById('calNextBtn').onclick = function(e) {
+                    e.preventDefault();
+                    calMonth++;
+                    if (calMonth > 11) { calMonth = 0; calYear++; }
+                    renderCalendar(calMonth, calYear);
+                };
+                renderCalendar(calMonth, calYear);
+                </script>
                 <div class="overflow-x-auto">
                     <table class="table table-zebra w-full">
                         <thead>
@@ -408,9 +619,9 @@ function fvm_view($baseURL)
                         </thead>
                         <tbody>
                             <?php
-                            $now = new DateTime('now', new DateTimeZone('Asia/Manila'));
+                            // Ensure $today is defined for this scope
+                            $today = new DateTime('now', new DateTimeZone('Asia/Manila'));
                             foreach ($vehicles as $v):
-                                // Find last maintenance log for this vehicle
                                 $lastMaint = null;
                                 foreach ($vehicle_logs as $log) {
                                     if ($log['vehicle_id'] == $v['id'] && $log['log_type'] === 'maintenance') {
@@ -431,8 +642,7 @@ function fvm_view($baseURL)
                                     <td><?= $nextMaint ? $nextMaint->format('M d, Y') : '<span class="text-gray-400">No record</span>' ?></td>
                                     <td>
                                         <?php
-                                        // Log Monthly Scheduled Maintenance if Needs Maintenance and not already logged for this month
-                                        if ($nextMaint && $now >= $nextMaint) {
+                                        if ($nextMaint && $today >= $nextMaint) {
                                             echo '<span title="Needs Maintenance"><i data-lucide="alert-triangle" class="text-red-600" style="width:28px;height:28px;vertical-align:middle;"></i></span>';
                                         } else {
                                             echo '<span title="OK"><i data-lucide="check-circle" class="text-green-600" style="width:28px;height:28px;vertical-align:middle;"></i></span>';
@@ -490,6 +700,10 @@ function fvm_view($baseURL)
                         <th>Vehicle Name</th>
                         <th>Plate Number</th>
                         <th>Vehicle Type</th>
+                        <th>Weight Capacity (kg)</th>
+                        <th>Fuel Capacity (L)</th>
+                        <th>Fuel Consumption (Last Dispatch)</th>
+                        <th>Current Fuel Tank</th>
                         <th>Status</th>
                         <th>Actions</th>
                         <th>Logs</th>
@@ -501,6 +715,70 @@ function fvm_view($baseURL)
                             <td><?= htmlspecialchars($v['vehicle_name']) ?></td>
                             <td><?= htmlspecialchars($v['plate_number']) ?></td>
                             <td><?= htmlspecialchars($v['vehicle_type'] ?? '-') ?></td>
+                            <td><?= htmlspecialchars($v['weight_capacity'] ?? '-') ?></td>
+                            <td><?= htmlspecialchars($v['fuel_capacity'] ?? '-') ?></td>
+                            <td>
+                                <?php
+                                // Fetch most recent completed dispatch trip for this vehicle
+                                $fuelConsumed = null;
+                                $trip = fetchOneQuery(
+                                    "SELECT fuel_consumed FROM driver_trips WHERE vehicle_id = ? ORDER BY id DESC LIMIT 1",
+                                    [$v['id']]
+                                );
+                                $fuelCapacity = isset($v['fuel_capacity']) && is_numeric($v['fuel_capacity']) ? floatval($v['fuel_capacity']) : 0;
+                                if ($trip && isset($trip['fuel_consumed']) && $fuelCapacity > 0) {
+                                    $fuelConsumed = floatval($trip['fuel_consumed']);
+                                    $percent = min(100, max(0, round(($fuelConsumed / $fuelCapacity) * 100)));
+                                    echo htmlspecialchars($fuelConsumed) . ' L / ' . htmlspecialchars($fuelCapacity) . ' L';
+                                    echo '<div style="margin-top:4px; width:120px; background:#eee; border-radius:6px; height:16px; position:relative;">';
+                                    echo '<div style="width:' . $percent . '%; background:#3b82f6; height:100%; border-radius:6px;"></div>';
+                                    echo '<span style="position:absolute; left:0; right:0; top:0; text-align:center; font-size:12px; color:#222;">' . $percent . '%</span>';
+                                    echo '</div>';
+                                } elseif ($trip && isset($trip['fuel_consumed'])) {
+                                    // No capacity info
+                                    echo htmlspecialchars($trip['fuel_consumed']) . ' L / N/A';
+                                    echo '<div style="margin-top:4px; width:120px; background:#eee; border-radius:6px; height:16px; position:relative;">';
+                                    echo '<div style="width:0%; background:#3b82f6; height:100%; border-radius:6px;"></div>';
+                                    echo '<span style="position:absolute; left:0; right:0; top:0; text-align:center; font-size:12px; color:#222;">0%</span>';
+                                    echo '</div>';
+                                } else {
+                                    echo '<span class="text-gray-400">Not dispatched yet</span>';
+                                    echo '<div style="margin-top:4px; width:120px; background:#eee; border-radius:6px; height:16px; position:relative;">';
+                                    echo '<div style="width:0%; background:#3b82f6; height:100%; border-radius:6px;"></div>';
+                                    echo '<span style="position:absolute; left:0; right:0; top:0; text-align:center; font-size:12px; color:#222;">0%</span>';
+                                    echo '</div>';
+                                }
+                                ?>
+                            </td>
+
+                            <td>
+                                <?php
+                                // Current Fuel Tank = fuel_capacity - fuel_consumed
+                                if ($trip && isset($trip['fuel_consumed']) && $fuelCapacity > 0) {
+                                    $fuelConsumed = floatval($trip['fuel_consumed']);
+                                    $fuelLeft = max(0, $fuelCapacity - $fuelConsumed);
+                                    $percentLeft = min(100, max(0, round(($fuelLeft / $fuelCapacity) * 100)));
+                                    echo htmlspecialchars($fuelLeft) . ' L / ' . htmlspecialchars($fuelCapacity) . ' L';
+                                    echo '<div style="margin-top:4px; width:120px; background:#d1fae5; border-radius:6px; height:16px; position:relative;">';
+                                    echo '<div style="width:' . $percentLeft . '%; background:#10b981; height:100%; border-radius:6px;"></div>';
+                                    echo '<span style="position:absolute; left:0; right:0; top:0; text-align:center; font-size:12px; color:#222;">' . $percentLeft . '%</span>';
+                                    echo '</div>';
+                                } elseif ($fuelCapacity > 0) {
+                                    // No dispatch yet, tank is full
+                                    echo htmlspecialchars($fuelCapacity) . ' L / ' . htmlspecialchars($fuelCapacity) . ' L';
+                                    echo '<div style="margin-top:4px; width:120px; background:#d1fae5; border-radius:6px; height:16px; position:relative;">';
+                                    echo '<div style="width:100%; background:#10b981; height:100%; border-radius:6px;"></div>';
+                                    echo '<span style="position:absolute; left:0; right:0; top:0; text-align:center; font-size:12px; color:#222;">100%</span>';
+                                    echo '</div>';
+                                } else {
+                                    echo '<span class="text-gray-400">N/A</span>';
+                                    echo '<div style="margin-top:4px; width:120px; background:#d1fae5; border-radius:6px; height:16px; position:relative;">';
+                                    echo '<div style="width:0%; background:#10b981; height:100%; border-radius:6px;"></div>';
+                                    echo '<span style="position:absolute; left:0; right:0; top:0; text-align:center; font-size:12px; color:#222;">0%</span>';
+                                    echo '</div>';
+                                }
+                                ?>
+                            </td>
                             <td>
                                 <?php
                                 $status = $v['status'];
@@ -581,6 +859,16 @@ function fvm_view($baseURL)
                                                     <option value="Truck" <?= ($v['vehicle_type'] === 'Truck') ? 'selected' : '' ?>>Truck</option>
                                                     <option value="Pickup" <?= ($v['vehicle_type'] === 'Pickup') ? 'selected' : '' ?>>Pickup</option>
                                                 </select>
+                                            </div>
+                                            <div class="form-control">
+                                                <label class="label">Weight Capacity (kg)</label>
+                                                <input type="number" name="weight_capacity" class="input input-bordered"
+                                                    value="<?= htmlspecialchars($v['weight_capacity']) ?>" min="0" step="any" required>
+                                            </div>
+                                            <div class="form-control">
+                                                <label class="label">Fuel Capacity (L)</label>
+                                                <input type="number" name="fuel_capacity" class="input input-bordered"
+                                                    value="<?= htmlspecialchars($v['fuel_capacity']) ?>" min="0" step="any" required>
                                             </div>
                                             <div class="form-control">
                                                 <label class="label">Update Image</label>

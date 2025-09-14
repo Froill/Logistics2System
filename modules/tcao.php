@@ -212,97 +212,95 @@ function tcao_view($baseURL)
             </form>
         </dialog>
 
-        <!-- Cost Log Modal -->
         <dialog id="cost_log_modal" class="modal">
-            <div class="modal-box w-11/12 max-w-5xl">
+            <div class="modal-box w-11/12 max-w-5xl cost-log-content">
                 <form method="dialog">
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
                 <h3 class="font-bold text-lg mb-4">Cost Log</h3>
-                <?php
-                // Pagination logic
-                $page = isset($_GET['cost_page']) ? max(1, intval($_GET['cost_page'])) : 1;
-                $perPage = 10;
-                $totalCosts = count($costs);
-                $totalPages = ceil($totalCosts / $perPage);
-                $start = ($page - 1) * $perPage;
-                $pagedCosts = array_slice($costs, $start, $perPage);
-                ?>
-                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>">
-                    <button type="submit" name="clear_cost_logs" class="btn btn-error mb-2" onclick="return confirm('Clear all cost logs?')">Clear Log</button>
-                    <div class="overflow-x-auto">
-                        <table class="table table-zebra w-full">
-                            <thead>
-                                <tr>
-                                    <th>Trip ID</th>
-                                    <th>Fuel</th>
-                                    <th>Toll</th>
-                                    <th>Other</th>
-                                    <th>Total</th>
-                                    <th>Receipt</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($pagedCosts as $c): ?>
+                    <?php
+                    // Pagination logic
+                    $page = isset($_GET['cost_page']) ? max(1, intval($_GET['cost_page'])) : 1;
+                    $perPage = 10;
+                    $totalCosts = count($costs);
+                    $totalPages = ceil($totalCosts / $perPage);
+                    $start = ($page - 1) * $perPage;
+                    $pagedCosts = array_slice($costs, $start, $perPage);
+                    ?>
+                    <form method="POST" action="<?= htmlspecialchars($baseURL) ?>">
+                        <button type="submit" name="clear_cost_logs" class="btn btn-error mb-2" onclick="return confirm('Clear all cost logs?')">Clear Log</button>
+                        <div class="overflow-x-auto">
+                            <table class="table table-zebra w-full">
+                                <thead>
                                     <tr>
-                                        <td><?= htmlspecialchars($c['trip_id']) ?></td>
-                                        <td><?= $currency, number_format($c['fuel_cost'], 2) ?></td>
-                                        <td><?= $currency, number_format($c['toll_fees'], 2) ?></td>
-                                        <td><?= $currency, number_format($c['other_expenses'], 2) ?></td>
-                                        <td><?= $currency, number_format($c['total_cost'], 2) ?></td>
-                                        <td>
-                                            <?php if (!empty($c['receipt'])): ?>
-                                                <a href="./uploads/<?= htmlspecialchars($c['receipt']) ?>" target="_blank">View</a>
-                                            <?php else: ?>
-                                                <span class="text-gray-400">None</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <span class="badge badge-<?=
-                                                                        $c['status'] === 'submitted' ? 'info' : ($c['status'] === 'supervisor_approved' ? 'primary' : ($c['status'] === 'finalized' ? 'success' : ($c['status'] === 'returned' ? 'error' : 'secondary')))
-                                                                        ?>">
-                                                <?= htmlspecialchars(ucwords(str_replace('_', ' ', $c['status']))) ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <?php if ($role === 'supervisor' && $c['status'] === 'submitted'): ?>
-                                                <a href="<?= htmlspecialchars($baseURL . '&approve=' . $c['id'] . '&role=supervisor') ?>" class="btn btn-xs btn-success">Approve</a>
-                                                <a href="<?= htmlspecialchars($baseURL . '&return=' . $c['id'] . '&role=supervisor') ?>" class="btn btn-xs btn-warning">Return</a>
-                                            <?php elseif ($role === 'accountant' && $c['status'] === 'supervisor_approved'): ?>
-                                                <a href="<?= htmlspecialchars($baseURL . '&approve=' . $c['id'] . '&role=accountant') ?>" class="btn btn-xs btn-success">Finalize</a>
-                                                <a href="<?= htmlspecialchars($baseURL . '&return=' . $c['id'] . '&role=accountant') ?>" class="btn btn-xs btn-warning">Return</a>
-                                            <?php elseif ($role === 'driver' && $c['status'] === 'returned' && $c['created_by'] === $user): ?>
-                                                <span class="text-warning">Returned for correction</span>
-                                            <?php endif; ?>
-                                            <?php if ($role === 'admin'): ?>
-                                                <a href="<?= htmlspecialchars($baseURL . '&delete=' . $c['id']) ?>" class="btn btn-xs btn-error" onclick="return confirm('Delete this cost record?')">Delete</a>
-                                            <?php endif; ?>
-                                        </td>
+                                        <th>Trip ID</th>
+                                        <th>Fuel</th>
+                                        <th>Toll</th>
+                                        <th>Other</th>
+                                        <th>Total</th>
+                                        <th>Receipt</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
                                     </tr>
-                                <?php endforeach; ?>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($pagedCosts as $c): ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($c['trip_id']) ?></td>
+                                            <td><?= $currency, number_format($c['fuel_cost'], 2) ?></td>
+                                            <td><?= $currency, number_format($c['toll_fees'], 2) ?></td>
+                                            <td><?= $currency, number_format($c['other_expenses'], 2) ?></td>
+                                            <td>
+                                                <?php if (!empty($c['receipt'])): ?>
+                                                    <a href="./uploads/<?= htmlspecialchars($c['receipt']) ?>" target="_blank">View</a>
+                                                <?php else: ?>
+                                                    <span class="text-gray-400">None</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-<?=
+                                                    $c['status'] === 'submitted' ? 'info' : ($c['status'] === 'supervisor_approved' ? 'primary' : ($c['status'] === 'finalized' ? 'success' : ($c['status'] === 'returned' ? 'error' : 'secondary')))
+                                                ?>">
+                                                    <?= htmlspecialchars(ucwords(str_replace('_', ' ', $c['status']))) ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <?php if ($role === 'supervisor' && $c['status'] === 'submitted'): ?>
+                                                    <a href="<?= htmlspecialchars($baseURL . '&approve=' . $c['id'] . '&role=supervisor') ?>" class="btn btn-xs btn-success">Approve</a>
+                                                    <a href="<?= htmlspecialchars($baseURL . '&return=' . $c['id'] . '&role=supervisor') ?>" class="btn btn-xs btn-warning">Return</a>
+                                                <?php elseif ($role === 'accountant' && $c['status'] === 'supervisor_approved'): ?>
+                                                    <a href="<?= htmlspecialchars($baseURL . '&approve=' . $c['id'] . '&role=accountant') ?>" class="btn btn-xs btn-success">Finalize</a>
+                                                    <a href="<?= htmlspecialchars($baseURL . '&return=' . $c['id'] . '&role=accountant') ?>" class="btn btn-xs btn-warning">Return</a>
+                                                <?php elseif ($role === 'driver' && $c['status'] === 'returned' && $c['created_by'] === $user): ?>
+                                                    <span class="text-warning">Returned for correction</span>
+                                                <?php endif; ?>
+                                                <?php if ($role === 'admin'): ?>
+                                                    <a href="<?= htmlspecialchars($baseURL . '&delete=' . $c['id']) ?>" class="btn btn-xs btn-error" onclick="return confirm('Delete this cost record?')">Delete</a>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
+                    <!-- Pagination Controls -->
+                    <div class="flex justify-center mt-4 gap-2" id="costLogPagination">
+                        <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+                            <a href="#" onclick="openCostLogPage(<?= $p ?>); return false;" class="btn btn-xs <?= $p == $page ? 'btn-primary' : 'btn-outline' ?>">Page <?= $p ?></a>
+                        <?php endfor; ?>
+                    </div>
+                </div>
+                <script src="./js/ajax-pagination.js"></script>
+                <script>
+                function openCostLogPage(page) {
+                    ajaxPaginateModal('cost_log_modal', '<?= htmlspecialchars($baseURL) ?>', 'cost_page', page, '.cost-log-content');
+                }
+                </script>
                             </tbody>
                         </table>
                     </div>
                 </form>
-                <!-- Pagination Controls -->
-                <div class="flex justify-center mt-4 gap-2">
-                    <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-                        <a href="#" onclick="openCostLogPage(<?= $p ?>); return false;" class="btn btn-xs <?= $p == $page ? 'btn-primary' : 'btn-outline' ?>">Page <?= $p ?></a>
-                    <?php endfor; ?>
-                </div>
-                <script>
-                    function openCostLogPage(page) {
-                        const url = new URL(window.location.href);
-                        url.searchParams.set('cost_page', page);
-                        window.history.replaceState({}, '', url);
-                        setTimeout(() => {
-                            document.getElementById('cost_log_modal').showModal();
-                        }, 100);
-                    }
-                </script>
-            </div>
             <form method="dialog" class="modal-backdrop">
                 <button>close</button>
             </form>
