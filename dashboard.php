@@ -92,7 +92,7 @@ if ($module === 'dashboard') {
 
       <!-- Module content -->
       <div class="card mt-4 p-4 shadow rounded">
-        <main class="card-body flex-1 p-6">
+        <main class="card-body flex-1 p-5">
           <?php if (!empty($_SESSION['error_message'])): ?>
             <div class="alert alert-error" style="color: #fff; background: #e3342f; padding: 10px; margin-bottom: 10px; border-radius: 4px;">
               <?= htmlspecialchars($_SESSION['error_message']) ?>

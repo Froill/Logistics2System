@@ -1,4 +1,4 @@
-<script>
+
 const tripLabels = <?= json_encode(array_column($joinedData, 'trip_id')) ?>;
 const costData = <?= json_encode(array_column($joinedData, 'total_cost')) ?>;
 const fuelData = <?= json_encode(array_column($joinedData, 'fuel_cost')) ?>;
@@ -80,4 +80,3 @@ new Chart(document.getElementById('loadUtilChart'), {
         scales: { y: { beginAtZero: true, max: 100 } }
     }
 });
-</script>

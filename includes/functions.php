@@ -100,3 +100,15 @@ function validateTripData($tripData) {
     return $errors;
 }
 
+//fetch one row from a custom query with parameters (prepared statement)
+function fetchOneQuery($sql, $params = []) {
+    global $conn;
+    $stmt = $conn->prepare($sql);
+    if ($params) {
+        $types = str_repeat('s', count($params));
+        $stmt->bind_param($types, ...$params);
+    }
+    $stmt->execute();
+    $result = $stmt->get_result();
+    return $result ? $result->fetch_assoc() : null;
+}

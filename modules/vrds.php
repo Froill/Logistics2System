@@ -3,380 +3,9 @@
 // VEHICLE RESERVATION AND DISPATCH SYSTEM (VRDS)
 
 require_once __DIR__ . '/../includes/functions.php';
-
 require_once __DIR__ . '/../includes/mailer.php';
-
 require_once __DIR__ . '/audit_log.php';
-// Batch delete dispatch logs
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_selected_dispatches']) && !empty($_POST['dispatch_ids'])) {
-    $ids = array_map('intval', $_POST['dispatch_ids']);
-    global $conn;
-    foreach ($ids as $dispatch_id) {
-        $dispatch = fetchById('dispatches', $dispatch_id);
-        if ($dispatch) {
-            updateData('fleet_vehicles', $dispatch['vehicle_id'], ['status' => 'Active']);
-            updateData('drivers', $dispatch['driver_id'], ['status' => 'Available']);
-            updateData('vehicle_requests', $dispatch['request_id'], ['status' => 'Pending']);
-        }
-        deleteData('dispatches', $dispatch_id);
-        log_audit_event('VRDS', 'delete_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown');
-    }
-    $_SESSION['success_message'] = count($ids) . " dispatch log(s) deleted.";
-    header("Location: {$baseURL}");
-    exit;
-}
-function recommend_assignment($vehicle_type = null)
-{
-    // Simple recommender: first available vehicle/driver, optionally by type
-
-    $vehicles = fetchAll('fleet_vehicles');
-
-    $drivers = fetchAll('drivers');
-
-    $vehicle = null;
-
-    foreach ($vehicles as $v) {
-
-        if ($v['status'] === 'Active' && (!$vehicle_type || stripos($v['vehicle_type'], $vehicle_type) !== false)) {
-
-            $vehicle = $v;
-
-            break;
-
-        }
-
-    }
-
-    $driver = null;
-
-    foreach ($drivers as $d) {
-
-        if ($d['status'] === 'Available') {
-
-            $driver = $d;
-
-            break;
-
-        }
-
-    }
-
-    return ['vehicle' => $vehicle, 'driver' => $driver];
-
-}
-
-
-
-function vrds_logic($baseURL) {
-
-    // 1. Requester submits trip request
-
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_vehicle'])) {
-
-    $requester_id = $_SESSION['user_id'] ?? 0;
-
-        if (!$requester_id || !is_numeric($requester_id)) {
-
-            $_SESSION['error_message'] = 'You must be logged in to request a vehicle.';
-
-            header("Location: {$baseURL}");
-
-            exit;
-
-        }
-
-        $purpose = trim($_POST['purpose'] ?? '');
-
-        $origin = trim($_POST['origin'] ?? '');
-
-        $destination = trim($_POST['destination'] ?? '');
-
-        $requested_vehicle_type = trim($_POST['requested_vehicle_type'] ?? '');
-
-        // Fix: use reservation_date and expected_return from form, not trip_date/trip_time
-
-        $reservation_date = trim($_POST['reservation_date'] ?? ($_POST['trip_date'] ?? ''));
-
-        $expected_return = trim($_POST['expected_return'] ?? '');
-
-        $notes = trim($_POST['notes'] ?? '');
-
-        global $conn;
-
-        $sql = "INSERT INTO vehicle_requests (requester_id, request_date, reservation_date, expected_return, purpose, origin, destination, requested_vehicle_type, status, notes) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, 'Pending', ?)";
-
-        $stmt = $conn->prepare($sql);
-
-        if (!$stmt) {
-
-            $_SESSION['error_message'] = 'Database error: ' . $conn->error;
-
-            header("Location: {$baseURL}");
-
-            exit;
-
-        }
-
-    $stmt->bind_param("isssssss", $requester_id, $reservation_date, $expected_return, $purpose, $origin, $destination, $requested_vehicle_type, $notes);
-
-        $ok = $stmt->execute();
-
-        if ($ok) {
-
-            log_audit_event('VRDS', 'request_vehicle', $conn->insert_id, $_SESSION['full_name'] ?? 'unknown');
-
-            // 2. System checks availability and recommends
-
-            $rec = recommend_assignment($requested_vehicle_type);
-
-            $vehicle = $rec['vehicle'];
-
-            $driver = $rec['driver'];
-
-            $recommendation = ($vehicle && $driver) ? "Vehicle: {$vehicle['vehicle_name']} / Driver: {$driver['driver_name']}" : 'No available match';
-
-            // 3. Notify requester
-
-            $user = fetchById('users', $requester_id);
-
-            if ($vehicle && $driver) {
-
-                $msg = "Your vehicle request has been received. Recommendation: $recommendation. Awaiting officer approval.";
-
-                if ($user && !empty($user['email'])) sendEmail($user['email'], 'Vehicle Request Received', $msg);
-
-                $_SESSION['success_message'] = $msg;
-
-            } else {
-
-                $msg = "Your vehicle request cannot be fulfilled at this time. No available vehicle/driver.";
-
-                if ($user && !empty($user['email'])) sendEmail($user['email'], 'Vehicle Request Denied', $msg);
-
-                $_SESSION['error_message'] = $msg;
-
-            }
-
-        } else {
-
-            $_SESSION['error_message'] = 'Failed to submit request: ' . $stmt->error;
-
-        }
-
-        $stmt->close();
-
-        header("Location: {$baseURL}");
-
-        exit;
-
-    }
-
-
-
-    // 4. Officer approves/overrides
-
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approve_request'])) {
-
-        $request_id = intval($_POST['request_id'] ?? 0);
-
-        $vehicle_id = intval($_POST['vehicle_id'] ?? 0);
-
-        $driver_id = intval($_POST['driver_id'] ?? 0);
-
-    $officer_id = $_SESSION['user_id'] ?? 1;
-
-        $request = fetchById('vehicle_requests', $request_id);
-
-        if (!$request || $request['status'] !== 'Pending') {
-
-            $_SESSION['error_message'] = "Request not found or already processed.";
-
-            header("Location: {$baseURL}");
-
-            exit;
-
-        }
-
-        // Approve and assign
-
-        $ok1 = updateData('vehicle_requests', $request_id, ['status' => 'Approved']);
-
-        $ok2 = updateData('fleet_vehicles', $vehicle_id, ['status' => 'Dispatched']);
-
-        $ok3 = updateData('drivers', $driver_id, ['status' => 'Dispatched']);
-
-        $ok4 = insertData('dispatches', [
-
-            'request_id' => $request_id,
-
-            'vehicle_id' => $vehicle_id,
-
-            'driver_id' => $driver_id,
-
-            'officer_id' => $officer_id,
-
-            'dispatch_date' => date('Y-m-d H:i:s'),
-
-            'status' => 'Ongoing',
-
-            'origin' => $request['origin'],
-
-            'destination' => $request['destination'],
-
-            'purpose' => $request['purpose'],
-
-            'notes' => '',
-
-        ]);
-
-        if ($ok4) {
-
-            global $conn;
-
-            $dispatch_id = $conn->insert_id;
-
-            log_audit_event('VRDS', 'approve_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown');
-
-        }
-
-        // 5. Notify driver
-
-        $driver = fetchById('drivers', $driver_id);
-
-        if ($driver && !empty($driver['email'])) {
-
-            $msg = "You have been assigned a new trip. Purpose: {$request['purpose']}, Origin: {$request['origin']}, Destination: {$request['destination']}.";
-
-            sendEmail($driver['email'], 'New Trip Assignment', $msg);
-
-        }
-
-        // 6. Notify requester
-
-        $user = fetchById('users', $request['requester_id']);
-
-
-        $vehicle = fetchById('fleet_vehicles', $vehicle_id);
-
-
-        $driver = fetchById('drivers', $driver_id);
-
-        if ($user && !empty($user['email'])) {
-
-
-            $msg = "Your vehicle request has been approved and assigned. Vehicle: #$vehicle_id, Driver: #$driver_id.";
-
-
-            $vehicleName = $vehicle ? $vehicle['vehicle_name'] : ("ID #$vehicle_id");
-
-
-            $driverName = $driver ? $driver['driver_name'] : ("ID #$driver_id");
-
-
-            $msg = "Your vehicle request has been approved and assigned. Vehicle: $vehicleName, Driver: $driverName.";
-
-            sendEmail($user['email'], 'Vehicle Request Approved', $msg);
-
-        }
-
-        $_SESSION['success_message'] = "Request approved and dispatch created.";
-
-        header("Location: {$baseURL}");
-
-        exit;
-
-    }
-
-
-
-    // 7. Officer can cancel dispatch
-
-    if (isset($_GET['delete'])) {
-
-        $dispatch_id = (int) $_GET['delete'];
-
-        $dispatch = fetchById('dispatches', $dispatch_id);
-
-        if ($dispatch) {
-
-            updateData('fleet_vehicles', $dispatch['vehicle_id'], ['status' => 'Active']);
-
-            updateData('drivers', $dispatch['driver_id'], ['status' => 'Available']);
-
-            updateData('vehicle_requests', $dispatch['request_id'], ['status' => 'Pending']);
-
-        }
-
-        deleteData('dispatches', $dispatch_id);
-
-        log_audit_event('VRDS', 'delete_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown');
-
-        $_SESSION['success_message'] = "Dispatch cancelled.";
-
-        header("Location: {$baseURL}");
-
-        exit;
-
-    }
-
-
-
-    // 8. Officer can complete dispatch
-
-    if (isset($_GET['complete'])) {
-
-        $dispatch_id = (int) $_GET['complete'];
-
-        $dispatch = fetchById('dispatches', $dispatch_id);
-
-        if ($dispatch && $dispatch['status'] !== 'Completed') {
-
-            updateData('dispatches', $dispatch_id, ['status' => 'Completed']);
-
-            updateData('fleet_vehicles', $dispatch['vehicle_id'], ['status' => 'Active']);
-
-            updateData('drivers', $dispatch['driver_id'], ['status' => 'Available']);
-
-            log_audit_event('VRDS', 'complete_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown');
-
-            $_SESSION['success_message'] = "Dispatch marked as completed.";
-
-        } else {
-
-            $_SESSION['error_message'] = "Dispatch not found or already completed.";
-
-        }
-
-        header("Location: {$baseURL}");
-
-        exit;
-
-    }
-
-}
-
-
-
-  if (isset($_GET['remove_request'])) {
-
-        $remove_id = (int)$_GET['remove_request'];
-
-        $req = fetchById('vehicle_requests', $remove_id);
-
-        if ($req && $req['status'] === 'Pending') {
-
-            deleteData('vehicle_requests', $remove_id);
-
-            $_SESSION['success_message'] = "Vehicle request removed.";
-
-        }
-
-        header("Location: {$baseURL}");
-
-        exit;
-
-    }
-
+require_once __DIR__ . '/../includes/modules_logic.php';
 
 
 function vrds_view($baseURL) {
@@ -405,17 +34,39 @@ function vrds_view($baseURL) {
 
     }
 
+
+    // Prepare ongoing dispatches for map (with real coordinates)
+    $ongoingDispatches = array_filter($dispatches, function($d) {
+        return $d['status'] === 'Ongoing' && isset($d['origin_lat'], $d['origin_lon'], $d['destination_lat'], $d['destination_lon']);
+    });
 ?>
 
 
 
     <div>
+        <!-- OSM Map for Ongoing Dispatched Trips -->
+        <div class="mb-6">
+            <h3 class="text-lg font-bold mb-2">Ongoing Dispatched Trips Map</h3>
+            <div class="flex flex-wrap gap-2 mb-2">
+                <input id="mapSearch" class="input input-bordered" style="min-width:220px;max-width:350px;" placeholder="Search a place.."  autocomplete="off">
+                <div id="searchSuggestions" class="osm-suggestions" style="position:absolute;z-index:1000;"></div>
+            </div>
+            <div class="flex flex-wrap gap-2 mb-2">
+            <button id="addPoiBtn" class="btn btn-sm btn-success" type="button"><i data-lucide="map-pin-plus"></i> Add a Custom Location </button>
+            </div>
+            <div id="dispatchMap" style="height: 400px; width: 100%;"></div>
+        </div>
         <h2 class="text-lg md:text-2xl font-bold mb-4">Vehicle Reservation & Dispatch</h2>
         <!-- Vehicle Request Form (Step 1) -->
         <div class="flex flex-col gap-2">
+            <div class="flex gap-2 flex-wrap">
             <button class="btn btn-primary w-max" onclick="request_modal.showModal()">
                 <i data-lucide="plus-circle" class="w-4 h-4 mr-1"></i> Request Vehicle
             </button>
+            <button class="btn btn-secondary w-max" onclick="dispatch_log_modal.showModal()">
+                <i data-lucide="list" class="w-4 h-4 mr-1"></i> View Dispatch Log
+            </button>
+            </div>
             <dialog id="request_modal" class="modal">
                 <div class="modal-box">
                     <form method="dialog">
@@ -646,6 +297,170 @@ function vrds_view($baseURL) {
             <!-- Leaflet.js & OSM/Nominatim Autocomplete JS & CSS -->
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
             <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const vehicles = <?php echo json_encode($vehicles); ?>;
+                const drivers = <?php echo json_encode($drivers); ?>;
+                const defaultLat = 14.65067;
+                const defaultLon = 121.04719;
+                const map = L.map('dispatchMap').setView([defaultLat, defaultLon], 17);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+                L.control.scale({
+                    position: 'bottomleft',
+                    metric: true,
+                    imperial: true,
+                    maxWidth: 200
+                }).addTo(map);
+
+                let markers = [];
+                let polylines = [];
+                let poiMarkers = [];
+                let pois = [];
+
+                function clearMap() {
+                    markers.forEach(m => map.removeLayer(m));
+                    polylines.forEach(l => map.removeLayer(l));
+                    markers = [];
+                    polylines = [];
+                }
+                function clearPOIMarkers() {
+                    poiMarkers.forEach(m => map.removeLayer(m));
+                    poiMarkers = [];
+                }
+                function addDispatchMarkers(dispatches) {
+                    dispatches.forEach(function(d) {
+                        const vehicle = vehicles.find(v => v.id == d.vehicle_id);
+                        const driver = drivers.find(dr => dr.id == d.driver_id);
+                        // Origin marker
+                        const originMarker = L.marker([d.origin_lat, d.origin_lon], {
+                            title: 'Origin'
+                        }).addTo(map);
+                        originMarker.bindPopup('<b>Vehicle:</b> ' + (vehicle ? vehicle.vehicle_name : d.vehicle_id) + '<br><b>Driver:</b> ' + (driver ? driver.driver_name : d.driver_id) + '<br><b>Origin:</b> ' + (d.origin || '-') + '<br><b>Destination:</b> ' + (d.destination || '-') + '<br><b>Status:</b> ' + d.status);
+                        markers.push(originMarker);
+                        // Destination marker
+                        const destMarker = L.marker([d.destination_lat, d.destination_lon], {
+                            title: 'Destination',
+                            icon: L.icon({
+                                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+                                iconAnchor: [12, 41],
+                                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+                            })
+                        }).addTo(map);
+                        destMarker.bindPopup('<b>Destination</b><br>' + (d.destination || '-'));
+                        markers.push(destMarker);
+                        // Draw line between origin and destination
+                        const poly = L.polyline([
+                            [d.origin_lat, d.origin_lon],
+                            [d.destination_lat, d.destination_lon]
+                        ], {color: 'blue', weight: 3, opacity: 0.7}).addTo(map);
+                        polylines.push(poly);
+                    });
+                }
+                function addPOIMarkers(poisArr) {
+                    poisArr.forEach(function(poi) {
+                        const marker = L.marker([parseFloat(poi.lat), parseFloat(poi.lon)], {
+                            title: poi.name,
+                            icon: L.icon({
+                                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                                iconAnchor: [12, 41],
+                                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+                            })
+                        }).addTo(map);
+                        marker.bindPopup('<b>' + poi.name + '</b><br>' + (poi.description || ''));
+                        poiMarkers.push(marker);
+                    });
+                }
+                function fetchAndUpdateDispatches() {
+                    fetch(window.location.pathname + '?ajax_ongoing_dispatches=1')
+                        .then(res => res.json())
+                        .then(data => {
+                            clearMap();
+                            addDispatchMarkers(data);
+                        });
+                }
+                function fetchAndShowPOIs() {
+                    fetch('js/custom_pois.json')
+                        .then(res => res.json())
+                        .then(data => {
+                            pois = data;
+                            clearPOIMarkers();
+                            addPOIMarkers(pois);
+                        });
+                }
+                // Add POI button logic
+                document.getElementById('addPoiBtn').onclick = function() {
+                    map.once('click', function(e) {
+                        const lat = e.latlng.lat;
+                        const lon = e.latlng.lng;
+                        const name = prompt('Enter POI name:');
+                        if (!name) return;
+                        const description = prompt('Enter POI description (optional):') || '';
+                        // Save to server via AJAX
+                        fetch(window.location.pathname + '?add_custom_poi=1', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({lat, lon, name, description})
+                        }).then(res => res.json()).then(resp => {
+                            if (resp.success) {
+                                fetchAndShowPOIs();
+                                alert('POI added!');
+                            } else {
+                                alert('Failed to add POI.');
+                            }
+                        });
+                    });
+                    alert('Click on the map to set POI location.');
+                };
+                // Search bar autocomplete
+                const searchInput = document.getElementById('mapSearch');
+                const suggestionsDiv = document.getElementById('searchSuggestions');
+                let searchTimeout = null;
+                searchInput.addEventListener('input', function() {
+                    const query = searchInput.value.trim();
+                    if (searchTimeout) clearTimeout(searchTimeout);
+                    if (query.length < 3) {
+                        suggestionsDiv.style.display = 'none';
+                        return;
+                    }
+                    searchTimeout = setTimeout(() => {
+                        fetch('https://corsproxy.io/?https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&q=' + encodeURIComponent(query))
+                            .then(res => res.json())
+                            .then(data => {
+                                suggestionsDiv.innerHTML = '';
+                                data.slice(0, 8).forEach(place => {
+                                    const div = document.createElement('div');
+                                    div.textContent = place.display_name;
+                                    div.onclick = function() {
+                                        searchInput.value = place.display_name;
+                                        suggestionsDiv.style.display = 'none';
+                                        map.setView([parseFloat(place.lat), parseFloat(place.lon)], 17);
+                                    };
+                                    suggestionsDiv.appendChild(div);
+                                });
+                                if (suggestionsDiv.innerHTML !== '') {
+                                    suggestionsDiv.style.display = 'block';
+                                } else {
+                                    suggestionsDiv.style.display = 'none';
+                                }
+                            });
+                    }, 300);
+                });
+                document.addEventListener('click', function(e) {
+                    if (!suggestionsDiv.contains(e.target) && e.target !== searchInput) {
+                        suggestionsDiv.style.display = 'none';
+                    }
+                });
+                // Initial load
+                addDispatchMarkers(<?php echo json_encode(array_values($ongoingDispatches)); ?>);
+                fetchAndShowPOIs();
+                setInterval(fetchAndUpdateDispatches, 10000);
+            });
+            </script>
             <style>
                 .osm-suggestions {
                     position: absolute;
@@ -842,4 +657,37 @@ function vrds_view($baseURL) {
             </script>
         </div>
     <?php
+    // AJAX endpoint for real-time map updates
+    if (isset($_GET['ajax_ongoing_dispatches']) && $_GET['ajax_ongoing_dispatches'] == 1) {
+        header('Content-Type: application/json');
+        $dispatches = fetchAll('dispatches');
+        $ongoing = array_filter($dispatches, function($d) {
+            return $d['status'] === 'Ongoing' && isset($d['origin_lat'], $d['origin_lon'], $d['destination_lat'], $d['destination_lon']);
+        });
+        echo json_encode(array_values($ongoing));
+        exit;
+    }
+    // AJAX endpoint to add a custom POI
+    if (isset($_GET['add_custom_poi']) && $_GET['add_custom_poi'] == 1 && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $lat = isset($input['lat']) ? floatval($input['lat']) : null;
+        $lon = isset($input['lon']) ? floatval($input['lon']) : null;
+        $name = trim($input['name'] ?? '');
+        $description = trim($input['description'] ?? '');
+        if ($lat && $lon && $name) {
+            $poisFile = __DIR__ . '/../js/custom_pois.json';
+            $pois = file_exists($poisFile) ? json_decode(file_get_contents($poisFile), true) : [];
+            $pois[] = [
+                'lat' => $lat,
+                'lon' => $lon,
+                'name' => $name,
+                'description' => $description
+            ];
+            file_put_contents($poisFile, json_encode($pois, JSON_PRETTY_PRINT));
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false]);
+        }
+        exit;
+    }
 }

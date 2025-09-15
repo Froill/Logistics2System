@@ -4,7 +4,7 @@ require 'db.php';
 $query = "
     SELECT t.id, t.distance_traveled, t.cargo_weight, 
            c.fuel_cost, c.toll_fees, c.other_expenses, c.total_cost, 
-           v    .capacity AS vehicle_capacity
+           v.weight_capacity AS vehicle_capacity
     FROM driver_trips t
     LEFT JOIN transport_costs c ON t.id = c.trip_id
     LEFT JOIN fleet_vehicles v ON t.vehicle_id = v.id
