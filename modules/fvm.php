@@ -185,24 +185,65 @@ function fvm_view($baseURL)
             </form>
         </dialog>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6">
             <!-- Vehicle Status Pie Chart -->
             <div class="card shadow-lg p-4">
                 <h3 class="text-lg font-bold mb-2">Vehicle Status Distribution</h3>
-                <canvas id="vehicleStatusChart"></canvas>
+                <div class="w-full max-w-sm mx-auto">
+                    <canvas id="vehicleStatusChart" class="w-full h-64"></canvas>
+                </div>
             </div>
 
             <!-- Vehicle Metrics -->
-            <div class="card shadow-lg p-4">
-                <h3 class="text-lg font-bold mb-2">Key Metrics</h3>
-                <ul class="space-y-2">
-                    <li>Total Vehicles: <span class="font-semibold"><?= $totalVehicles ?></span></li>
-                    <li>Active: <span class="text-green-600 font-semibold"><?= $activeCount ?></span></li>
-                    <li>Inactive: <span class="text-red-600 font-semibold"><?= $inactiveCount ?></span></li>
-                    <li>Dispatched: <span class="text-blue-600 font-semibold"><?= $dispatchedCount ?></span></li>
-                    <li>Under Maintenance: <span class="text-yellow-600 font-semibold"><?= $maintenanceCount ?></span></li>
-                </ul>
-            </div>
+            <section class="card shadow-lg p-4">
+                <h3 class="text-lg text-center md:text-left font-bold mb-2">Key Metrics</h3>
+                <div class="stats stats-vertical md:stats-horizontal shadow">
+                    <div class="stat text-primary">
+                        <div class="stat-figure">
+                            <i data-lucide="car" class="inline-block h-10 w-auto stroke-current"></i>
+                        </div>
+                        <div class="stat-title">Total Vehicles</div>
+                        <div class="stat-value"><?= $totalVehicles ?></div>
+                        <div class="stat-desc">Fleet size across all operations</div>
+                    </div>
+
+                    <div class="stat text-success">
+                        <div class="stat-figure">
+                            <i data-lucide="circle-check" class="inline-block h-10 w-auto stroke-current"></i>
+                        </div>
+                        <div class="stat-title">Active</div>
+                        <div class="stat-value"><?= $activeCount ?></div>
+                        <div class="stat-desc">Currently available for dispatch</div>
+                    </div>
+
+                    <div class="stat text-error">
+                        <div class="stat-figure">
+                            <i data-lucide="pause-circle" class="inline-block h-10 w-auto stroke-current"></i>
+                        </div>
+                        <div class="stat-title">Inactive</div>
+                        <div class="stat-value"><?= $inactiveCount ?></div>
+                        <div class="stat-desc">Idle or temporarily unused</div>
+                    </div>
+
+                    <div class="stat text-info">
+                        <div class="stat-figure">
+                            <i data-lucide="navigation" class="inline-block h-10 w-auto stroke-current"></i>
+                        </div>
+                        <div class="stat-title">Dispatched</div>
+                        <div class="stat-value"><?= $dispatchedCount ?></div>
+                        <div class="stat-desc">On an active trip or delivery</div>
+                    </div>
+
+                    <div class="stat text-secondary">
+                        <div class="stat-figure">
+                            <i data-lucide="wrench" class="inline-block h-10 w-auto stroke-current"></i>
+                        </div>
+                        <div class="stat-title">Under Maintenance</div>
+                        <div class="stat-value"><?= $maintenanceCount ?></div>
+                        <div class="stat-desc">Scheduled or ongoing repairs</div>
+                    </div>
+                </div>
+            </section>
         </div>
 
         <?php if (!empty($_SESSION['fvm_success'])): ?>
@@ -602,7 +643,7 @@ function fvm_view($baseURL)
                                 } elseif ($status === 'Under Maintenance') {
                                     $badgeClass .= ' badge-warning';
                                 } else {
-                                    $badgeClass .= ' badge-secondary';
+                                    $badgeClass .= ' badge-info';
                                 }
                                 ?>
                                 <span class="<?= $badgeClass ?>"><?= htmlspecialchars($status) ?></span>
