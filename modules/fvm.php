@@ -195,7 +195,7 @@ function fvm_view($baseURL)
             </div>
 
             <!-- Vehicle Metrics -->
-            <section class="card shadow-lg p-4">
+            <section class="card shadow-lg p-4 ">
                 <h3 class="text-lg text-center md:text-left font-bold mb-2">Key Metrics</h3>
                 <div class="stats stats-vertical md:stats-horizontal shadow">
                     <div class="stat text-primary">
@@ -550,7 +550,7 @@ function fvm_view($baseURL)
         <!-- Vehicle Table -->
         <div class="overflow-x-auto">
             <h3 class="text-lg font-bold mb-2">Fleet Vehicles</h3>
-            <table class="table table-zebra w-full">
+            <table class="table table-zebra w-full" id="vehicleTable">
                 <thead>
                     <tr>
                         <th>Vehicle Name</th>
@@ -564,7 +564,7 @@ function fvm_view($baseURL)
                         <th>Logs</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="vehicleBody">
                     <?php foreach ($vehicles as $v): ?>
                         <tr>
                             <td><?= htmlspecialchars($v['vehicle_name']) ?></td>
@@ -574,7 +574,7 @@ function fvm_view($baseURL)
                             </td>
                             <td><?= htmlspecialchars($v['weight_capacity'] ?? '-') ?>kg</td>
                             <td><?= htmlspecialchars($v['fuel_capacity'] ?? '-') ?>L</td>
-                            <td class="text-center">
+                            <td class=" text-center">
                                 <?php
                                 $trip = fetchOneQuery(
                                     "SELECT fuel_consumed FROM driver_trips WHERE vehicle_id = ? ORDER BY id DESC LIMIT 1",
@@ -796,6 +796,45 @@ function fvm_view($baseURL)
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            <!-- Pagination Controls -->
+            <div class="flex justify-center mt-4 gap-2" id="paginationControls"></div>
+
+            <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    const rowsPerPage = 5; // adjust per page
+                    const tableBody = document.getElementById("vehicleBody");
+                    const rows = tableBody.querySelectorAll("tr");
+                    const paginationControls = document.getElementById("paginationControls");
+                    const totalPages = Math.ceil(rows.length / rowsPerPage);
+                    let currentPage = 1;
+
+                    function showPage(page) {
+                        currentPage = page;
+                        let start = (page - 1) * rowsPerPage;
+                        let end = start + rowsPerPage;
+
+                        rows.forEach((row, i) => {
+                            row.style.display = (i >= start && i < end) ? "" : "none";
+                        });
+
+                        renderPagination();
+                    }
+
+                    function renderPagination() {
+                        paginationControls.innerHTML = "";
+
+                        for (let i = 1; i <= totalPages; i++) {
+                            const btn = document.createElement("button");
+                            btn.textContent = i;
+                            btn.className = "btn btn-sm " + (i === currentPage ? "btn-primary" : "btn-outline");
+                            btn.onclick = () => showPage(i);
+                            paginationControls.appendChild(btn);
+                        }
+                    }
+
+                    showPage(1);
+                });
+            </script>
         </div>
 
         <!-- Drivers Table -->
