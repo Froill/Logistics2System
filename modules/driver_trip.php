@@ -3,11 +3,18 @@
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/audit_log.php';
 require_once __DIR__ . '/../includes/fvm_logic.php';
+require_once __DIR__ . '/../includes/db.php';
 
 function driver_trip_view($baseURL)
 {
-    // Fetch required data
-    $trips = fetchAllQuery("
+    global $conn; // use the mysqli connection
+
+    // Collect filters from GET request
+    $filterDriver = isset($_GET['filter_driver']) ? trim($_GET['filter_driver']) : '';
+    $filterVehicle = isset($_GET['filter_vehicle']) ? trim($_GET['filter_vehicle']) : '';
+
+    // Base query
+    $query = "
         SELECT 
             t.*,
             d.driver_name,
@@ -15,18 +22,71 @@ function driver_trip_view($baseURL)
         FROM driver_trips t
         JOIN drivers d ON t.driver_id = d.id
         JOIN fleet_vehicles v ON t.vehicle_id = v.id
-        ORDER BY t.created_at DESC
-    ");
-    $drivers = fetchAll('drivers');
-    $vehicles = fetchAll('fleet_vehicles');
-    // Fetch completed dispatches for trip submission
-    $completedDispatches = fetchAllQuery("SELECT d.*, v.vehicle_name, dr.driver_name FROM dispatches d JOIN fleet_vehicles v ON d.vehicle_id = v.id JOIN drivers dr ON d.driver_id = dr.id WHERE d.status = 'Completed' ORDER BY d.dispatch_date DESC");
+        WHERE 1=1
+    ";
+
+    // Add filters if valid
+    if ($filterDriver !== '' && ctype_digit($filterDriver)) {
+        $query .= " AND t.driver_id = " . (int)$filterDriver;
+    }
+
+    if ($filterVehicle !== '' && ctype_digit($filterVehicle)) {
+        $query .= " AND t.vehicle_id = " . (int)$filterVehicle;
+    }
+
+    $query .= " ORDER BY t.created_at DESC";
+
+    // Execute query
+    $trips = [];
+    if ($result = $conn->query($query)) {
+        while ($row = $result->fetch_assoc()) {
+            $trips[] = $row;
+        }
+        $result->free();
+    } else {
+        error_log("Query failed: " . $conn->error);
+    }
+
+    // Fetch drivers for filter dropdown
+    $drivers = [];
+    if ($result = $conn->query("SELECT * FROM drivers ORDER BY driver_name ASC")) {
+        while ($row = $result->fetch_assoc()) {
+            $drivers[] = $row;
+        }
+        $result->free();
+    }
+
+    // Fetch vehicles for filter dropdown
+    $vehicles = [];
+    if ($result = $conn->query("SELECT * FROM fleet_vehicles ORDER BY vehicle_name ASC")) {
+        while ($row = $result->fetch_assoc()) {
+            $vehicles[] = $row;
+        }
+        $result->free();
+    }
+
+    // Fetch completed dispatches
+    $completedDispatches = [];
+    $dispatchQuery = "
+        SELECT d.*, v.vehicle_name, dr.driver_name 
+        FROM dispatches d 
+        JOIN fleet_vehicles v ON d.vehicle_id = v.id 
+        JOIN drivers dr ON d.driver_id = dr.id 
+        WHERE d.status = 'Completed' 
+        ORDER BY d.dispatch_date DESC
+    ";
+    if ($result = $conn->query($dispatchQuery)) {
+        while ($row = $result->fetch_assoc()) {
+            $completedDispatches[] = $row;
+        }
+        $result->free();
+    }
 
     // Calculate overall statistics
     $totalTrips = count($trips);
 
-    $avgScore = count($trips) ? array_reduce($trips, function ($carry, $trip) {
-        return $carry + $trip['performance_score'];
+    $avgScore = $totalTrips ? array_reduce($trips, function ($carry, $trip) {
+        return $carry + (float)$trip['performance_score'];
     }, 0) / $totalTrips : 0;
 ?>
     <div class="space-y-6">
@@ -41,8 +101,6 @@ function driver_trip_view($baseURL)
                 </button>
             </div>
         </div>
-
-
 
         <!-- Performance Dashboard -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -85,33 +143,77 @@ function driver_trip_view($baseURL)
             </div>
         </div>
 
-        <!-- Filter form for driver and vehicle -->
+        <!-- Filter Form -->
         <div class="flex flex-wrap gap-4 mb-6 items-end">
             <form method="GET" class="flex flex-wrap gap-4 mb-6 items-end">
                 <input type="hidden" name="module" value="driver_trip">
+
+                <!-- Driver Filter -->
                 <div>
                     <label class="label">Driver</label>
-                    <?php $filterDriver = isset($filterDriver) ? $filterDriver : (isset($_GET['filter_driver']) ? $_GET['filter_driver'] : ''); ?>
                     <select name="filter_driver" class="select select-bordered w-48">
                         <option value="">All Drivers</option>
                         <?php foreach ($drivers as $d): ?>
-                            <option value="<?= $d['id'] ?>" <?= ($filterDriver == $d['id'] ? 'selected' : '') ?>><?= htmlspecialchars($d['driver_name']) ?></option>
+                            <option value="<?= $d['id'] ?>" <?= ($filterDriver == $d['id'] ? 'selected' : '') ?>>
+                                <?= htmlspecialchars($d['driver_name']) ?>
+                            </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
+
+                <!-- Vehicle Filter -->
                 <div>
                     <label class="label">Vehicle</label>
-                    <?php $filterVehicle = isset($filterVehicle) ? $filterVehicle : (isset($_GET['filter_vehicle']) ? $_GET['filter_vehicle'] : ''); ?>
                     <select name="filter_vehicle" class="select select-bordered w-48">
                         <option value="">All Vehicles</option>
                         <?php foreach ($vehicles as $v): ?>
-                            <option value="<?= $v['id'] ?>" <?= ($filterVehicle == $v['id'] ? 'selected' : '') ?>><?= htmlspecialchars($v['vehicle_name']) ?></option>
+                            <option value="<?= $v['id'] ?>" <?= ($filterVehicle == $v['id'] ? 'selected' : '') ?>>
+                                <?= htmlspecialchars($v['vehicle_name']) ?>
+                            </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
+
                 <button type="submit" class="btn btn-primary">Apply</button>
             </form>
         </div>
+
+
+        <!-- Trips Table / No Results -->
+        <?php if (empty($trips)): ?>
+            <div class="alert alert-warning shadow-lg my-4">
+                <div>
+                    <i data-lucide="info" class="h-5 w-5 stroke-current"></i>
+                    <span>
+                        No trips found
+                        <?php if ($filterDriver || $filterVehicle): ?>
+                            for the selected filters.
+                        <?php endif; ?>
+                    </span>
+                </div>
+            </div>
+        <?php else: ?>
+            <table class="table table-zebra w-full">
+                <thead>
+                    <tr>
+                        <th>Driver</th>
+                        <th>Vehicle</th>
+                        <th>Performance Score</th>
+                        <th>Created At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($trips as $trip): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($trip['driver_name']) ?></td>
+                            <td><?= htmlspecialchars($trip['vehicle_name']) ?></td>
+                            <td><?= htmlspecialchars($trip['performance_score']) ?></td>
+                            <td><?= htmlspecialchars($trip['created_at']) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
 
         <!-- Charts Section -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -322,217 +424,217 @@ function driver_trip_view($baseURL)
                     <button type="button" class="btn btn-error mb-2" onclick="clearTripLogs()">Clear Log</button>
                 </form>
                 <script>
-                function clearTripLogs() {
-                    if (!confirm('Clear all trip logs?')) return;
-                    // If in AJAX modal, submit via AJAX
-                    if (window.location.search.includes('ajax_trip_log=1')) {
-                        var form = document.getElementById('clearTripLogsForm');
-                        var xhr = new XMLHttpRequest();
-                        xhr.open('POST', form.action, true);
-                        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-                        xhr.onload = function() {
-                            if (xhr.status === 200) {
-                                // Reload modal content after clearing
-                                openTripLogPage(1);
-                            }
-                        };
-                        var formData = new FormData(form);
-                        xhr.send(formData);
-                    } else {
-                        document.getElementById('clearTripLogsForm').submit();
+                    function clearTripLogs() {
+                        if (!confirm('Clear all trip logs?')) return;
+                        // If in AJAX modal, submit via AJAX
+                        if (window.location.search.includes('ajax_trip_log=1')) {
+                            var form = document.getElementById('clearTripLogsForm');
+                            var xhr = new XMLHttpRequest();
+                            xhr.open('POST', form.action, true);
+                            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                            xhr.onload = function() {
+                                if (xhr.status === 200) {
+                                    // Reload modal content after clearing
+                                    openTripLogPage(1);
+                                }
+                            };
+                            var formData = new FormData(form);
+                            xhr.send(formData);
+                        } else {
+                            document.getElementById('clearTripLogsForm').submit();
+                        }
                     }
-                }
                 </script>
                 <div class="overflow-x-auto">
                     <table class="table table-zebra w-full">
-                            <thead>
-                                <tr>
-                                    <th>Driver & Vehicle</th>
-                                    <th>Trip Details</th>
-                                    <th>Performance Metrics</th>
-                                    <th>Validation</th>
-                                    <th>Review Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($pagedTrips as $t): ?>
-                                    <tr class="hover">
-                                        <td>
-                                            <div class="font-bold"><?= htmlspecialchars($t['driver_name']) ?></div>
-                                            <div class="text-sm opacity-80"><?= htmlspecialchars($t['vehicle_name']) ?></div>
-                                        </td>
-                                        <td>
-                                            <div>Date: <?= date('M d, Y', strtotime($t['trip_date'])) ?></div>
-                                            <div class="text-sm">
-                                                Time: <?= date('H:i', strtotime($t['start_time'])) ?> -
-                                                <?= $t['end_time'] ? date('H:i', strtotime($t['end_time'])) : 'Ongoing' ?>
+                        <thead>
+                            <tr>
+                                <th>Driver & Vehicle</th>
+                                <th>Trip Details</th>
+                                <th>Performance Metrics</th>
+                                <th>Validation</th>
+                                <th>Review Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($pagedTrips as $t): ?>
+                                <tr class="hover">
+                                    <td>
+                                        <div class="font-bold"><?= htmlspecialchars($t['driver_name']) ?></div>
+                                        <div class="text-sm opacity-80"><?= htmlspecialchars($t['vehicle_name']) ?></div>
+                                    </td>
+                                    <td>
+                                        <div>Date: <?= date('M d, Y', strtotime($t['trip_date'])) ?></div>
+                                        <div class="text-sm">
+                                            Time: <?= date('H:i', strtotime($t['start_time'])) ?> -
+                                            <?= $t['end_time'] ? date('H:i', strtotime($t['end_time'])) : 'Ongoing' ?>
+                                        </div>
+                                        <div class="text-sm">Distance: <?= number_format($t['distance_traveled'], 1) ?> km</div>
+                                    </td>
+                                    <td>
+                                        <div class="flex items-center gap-2">
+                                            <div class="radial-progress text-primary" style="--value:<?= $t['performance_score'] ?>; --size:2rem">
+                                                <?= number_format($t['performance_score'], 0) ?>
                                             </div>
-                                            <div class="text-sm">Distance: <?= number_format($t['distance_traveled'], 1) ?> km</div>
-                                        </td>
-                                        <td>
-                                            <div class="flex items-center gap-2">
-                                                <div class="radial-progress text-primary" style="--value:<?= $t['performance_score'] ?>; --size:2rem">
-                                                    <?= number_format($t['performance_score'], 0) ?>
-                                                </div>
-                                                <div class="flex flex-col text-sm">
-                                                    <span>Fuel: <?= number_format($t['fuel_consumed'], 1) ?>L</span>
-                                                    <span>Idle: <?= $t['idle_time'] ?? 0 ?>min</span>
-                                                </div>
+                                            <div class="flex flex-col text-sm">
+                                                <span>Fuel: <?= number_format($t['fuel_consumed'], 1) ?>L</span>
+                                                <span>Idle: <?= $t['idle_time'] ?? 0 ?>min</span>
                                             </div>
-                                        </td>
-                                        <td>
-                                            <?php if ($t['validation_status'] === 'valid'): ?>
-                                                <div class="badge badge-success">Valid</div>
-                                            <?php elseif ($t['validation_status'] === 'invalid'): ?>
-                                                <div class="badge badge-error" title="<?= htmlspecialchars($t['validation_message']) ?>">
-                                                    Invalid
-                                                </div>
-                                            <?php else: ?>
-                                                <div class="badge badge-warning">Pending</div>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php if ($t['supervisor_review_status'] === 'pending'): ?>
-                                                <button type="button" class="btn btn-sm btn-warning"
-                                                    onclick="document.getElementById('review_modal_<?= $t['id'] ?>').showModal()">
-                                                    Review
-                                                </button>
-                                            <?php elseif ($t['supervisor_review_status'] === 'approved'): ?>
-                                                <div class="badge badge-success">Approved</div>
-                                            <?php else: ?>
-                                                <div class="badge badge-error">Rejected</div>
-                                            <?php endif; ?>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <?php if ($t['validation_status'] === 'valid'): ?>
+                                            <div class="badge badge-success">Valid</div>
+                                        <?php elseif ($t['validation_status'] === 'invalid'): ?>
+                                            <div class="badge badge-error" title="<?= htmlspecialchars($t['validation_message']) ?>">
+                                                Invalid
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="badge badge-warning">Pending</div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?php if ($t['supervisor_review_status'] === 'pending'): ?>
+                                            <button type="button" class="btn btn-sm btn-warning"
+                                                onclick="document.getElementById('review_modal_<?= $t['id'] ?>').showModal()">
+                                                Review
+                                            </button>
+                                        <?php elseif ($t['supervisor_review_status'] === 'approved'): ?>
+                                            <div class="badge badge-success">Approved</div>
+                                        <?php else: ?>
+                                            <div class="badge badge-error">Rejected</div>
+                                        <?php endif; ?>
 
-                                            <!-- Review Modal -->
-                                            <dialog id="review_modal_<?= $t['id'] ?>" class="modal">
-                                                <div class="modal-box">
-                                                    <form method="dialog">
-                                                        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                                                    </form>
-                                                    <h3 class="font-bold text-lg mb-4">Review Trip Record</h3>
-                                                    <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="space-y-4">
-                                                        <input type="hidden" name="review_trip" value="1">
-                                                        <input type="hidden" name="trip_id" value="<?= $t['id'] ?>">
-
-                                                        <div class="form-control">
-                                                            <label class="label">Review Status</label>
-                                                            <select name="review_status" class="select select-bordered" required>
-                                                                <option value="approved">Approve</option>
-                                                                <option value="rejected">Reject</option>
-                                                            </select>
-                                                        </div>
-
-                                                        <div class="form-control">
-                                                            <label class="label">Remarks</label>
-                                                            <textarea name="supervisor_remarks" class="textarea textarea-bordered"
-                                                                placeholder="Enter your review comments..."><?= htmlspecialchars($t['supervisor_remarks'] ?? '') ?></textarea>
-                                                        </div>
-
-                                                        <div class="flex gap-2">
-                                                            <button type="submit" class="btn btn-primary flex-1">Submit Review</button>
-                                                        </div>
-                                                    </form>
-                                                </div>
-                                                <form method="dialog" class="modal-backdrop">
-                                                    <button>close</button>
+                                        <!-- Review Modal -->
+                                        <dialog id="review_modal_<?= $t['id'] ?>" class="modal">
+                                            <div class="modal-box">
+                                                <form method="dialog">
+                                                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                                                 </form>
-                                            </dialog>
-                                        </td>
-                                        <td>
-                                            <div class="flex gap-2">
-                                                <button type="button" class="btn btn-sm btn-info"
-                                                    onclick="document.getElementById('details_modal_<?= $t['id'] ?>').showModal()">
-                                                    <i class="fas fa-info-circle mr-2"></i> View Details
-                                                </button>
-                                                <?php if ($_SESSION['role'] === 'admin'): ?>
-                                                    <a href="<?= htmlspecialchars($baseURL . '&delete=' . $t['id']) ?>"
-                                                        class="btn btn-sm btn-error"
-                                                        onclick="return confirm('Are you sure you want to delete this trip record?')">
-                                                        <i class="fas fa-trash-alt mr-2"></i> Delete
-                                                    </a>
-                                                <?php endif; ?>
-                                            </div>
-                                            <!-- Details Modal -->
-                                            <dialog id="details_modal_<?= $t['id'] ?>" class="modal">
-                                                <div class="modal-box">
-                                                    <form method="dialog">
-                                                        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                                                    </form>
-                                                    <h3 class="font-bold text-lg mb-4">Trip Details</h3>
-                                                    <div class="space-y-4">
-                                                        <div class="grid grid-cols-2 gap-4">
-                                                            <div>
-                                                                <div class="font-bold">Driver</div>
-                                                                <div><?= htmlspecialchars($t['driver_name']) ?></div>
-                                                            </div>
-                                                            <div>
-                                                                <div class="font-bold">Vehicle</div>
-                                                                <div><?= htmlspecialchars($t['vehicle_name']) ?></div>
-                                                            </div>
-                                                            <div>
-                                                                <div class="font-bold">Trip Date</div>
-                                                                <div><?= date('M d, Y', strtotime($t['trip_date'])) ?></div>
-                                                            </div>
-                                                            <div>
-                                                                <div class="font-bold">Duration</div>
-                                                                <div>
-                                                                    <?= date('H:i', strtotime($t['start_time'])) ?> -
-                                                                    <?= $t['end_time'] ? date('H:i', strtotime($t['end_time'])) : 'Ongoing' ?>
-                                                                </div>
-                                                            </div>
-                                                            <div>
-                                                                <div class="font-bold">Distance</div>
-                                                                <div><?= number_format($t['distance_traveled'], 1) ?> km</div>
-                                                            </div>
-                                                            <div>
-                                                                <div class="font-bold">Fuel Consumed</div>
-                                                                <div><?= number_format($t['fuel_consumed'], 1) ?> L</div>
-                                                            </div>
-                                                            <div>
-                                                                <div class="font-bold">Average Speed</div>
-                                                                <div><?= number_format($t['average_speed'], 1) ?> km/h</div>
-                                                            </div>
-                                                            <div>
-                                                                <div class="font-bold">Idle Time</div>
-                                                                <div><?= $t['idle_time'] ?? 0 ?> minutes</div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="divider"></div>
-                                                        <div>
-                                                            <div class="font-bold">Performance Score</div>
-                                                            <div class="flex items-center gap-4">
-                                                                <div class="radial-progress text-primary" style="--value:<?= $t['performance_score'] ?>; --size:4rem">
-                                                                    <?= number_format($t['performance_score'], 0) ?>
-                                                                </div>
-                                                                <div>
-                                                                    <?php
-                                                                    if ($t['performance_score'] >= 90) echo "Excellent";
-                                                                    elseif ($t['performance_score'] >= 80) echo "Good";
-                                                                    elseif ($t['performance_score'] >= 70) echo "Average";
-                                                                    else echo "Needs Improvement";
-                                                                    ?>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <?php if ($t['supervisor_remarks']): ?>
-                                                            <div>
-                                                                <div class="font-bold">Supervisor Remarks</div>
-                                                                <div class="text-sm"><?= nl2br(htmlspecialchars($t['supervisor_remarks'])) ?></div>
-                                                            </div>
-                                                        <?php endif; ?>
+                                                <h3 class="font-bold text-lg mb-4">Review Trip Record</h3>
+                                                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="space-y-4">
+                                                    <input type="hidden" name="review_trip" value="1">
+                                                    <input type="hidden" name="trip_id" value="<?= $t['id'] ?>">
+
+                                                    <div class="form-control">
+                                                        <label class="label">Review Status</label>
+                                                        <select name="review_status" class="select select-bordered" required>
+                                                            <option value="approved">Approve</option>
+                                                            <option value="rejected">Reject</option>
+                                                        </select>
                                                     </div>
-                                                </div>
-                                                <form method="dialog" class="modal-backdrop">
-                                                    <button>close</button>
+
+                                                    <div class="form-control">
+                                                        <label class="label">Remarks</label>
+                                                        <textarea name="supervisor_remarks" class="textarea textarea-bordered"
+                                                            placeholder="Enter your review comments..."><?= htmlspecialchars($t['supervisor_remarks'] ?? '') ?></textarea>
+                                                    </div>
+
+                                                    <div class="flex gap-2">
+                                                        <button type="submit" class="btn btn-primary flex-1">Submit Review</button>
+                                                    </div>
                                                 </form>
-                                            </dialog>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
+                                            </div>
+                                            <form method="dialog" class="modal-backdrop">
+                                                <button>close</button>
+                                            </form>
+                                        </dialog>
+                                    </td>
+                                    <td>
+                                        <div class="flex gap-2">
+                                            <button type="button" class="btn btn-sm btn-info"
+                                                onclick="document.getElementById('details_modal_<?= $t['id'] ?>').showModal()">
+                                                <i class="fas fa-info-circle mr-2"></i> View Details
+                                            </button>
+                                            <?php if ($_SESSION['role'] === 'admin'): ?>
+                                                <a href="<?= htmlspecialchars($baseURL . '&delete=' . $t['id']) ?>"
+                                                    class="btn btn-sm btn-error"
+                                                    onclick="return confirm('Are you sure you want to delete this trip record?')">
+                                                    <i class="fas fa-trash-alt mr-2"></i> Delete
+                                                </a>
+                                            <?php endif; ?>
+                                        </div>
+                                        <!-- Details Modal -->
+                                        <dialog id="details_modal_<?= $t['id'] ?>" class="modal">
+                                            <div class="modal-box">
+                                                <form method="dialog">
+                                                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                                                </form>
+                                                <h3 class="font-bold text-lg mb-4">Trip Details</h3>
+                                                <div class="space-y-4">
+                                                    <div class="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <div class="font-bold">Driver</div>
+                                                            <div><?= htmlspecialchars($t['driver_name']) ?></div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="font-bold">Vehicle</div>
+                                                            <div><?= htmlspecialchars($t['vehicle_name']) ?></div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="font-bold">Trip Date</div>
+                                                            <div><?= date('M d, Y', strtotime($t['trip_date'])) ?></div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="font-bold">Duration</div>
+                                                            <div>
+                                                                <?= date('H:i', strtotime($t['start_time'])) ?> -
+                                                                <?= $t['end_time'] ? date('H:i', strtotime($t['end_time'])) : 'Ongoing' ?>
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="font-bold">Distance</div>
+                                                            <div><?= number_format($t['distance_traveled'], 1) ?> km</div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="font-bold">Fuel Consumed</div>
+                                                            <div><?= number_format($t['fuel_consumed'], 1) ?> L</div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="font-bold">Average Speed</div>
+                                                            <div><?= number_format($t['average_speed'], 1) ?> km/h</div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="font-bold">Idle Time</div>
+                                                            <div><?= $t['idle_time'] ?? 0 ?> minutes</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="divider"></div>
+                                                    <div>
+                                                        <div class="font-bold">Performance Score</div>
+                                                        <div class="flex items-center gap-4">
+                                                            <div class="radial-progress text-primary" style="--value:<?= $t['performance_score'] ?>; --size:4rem">
+                                                                <?= number_format($t['performance_score'], 0) ?>
+                                                            </div>
+                                                            <div>
+                                                                <?php
+                                                                if ($t['performance_score'] >= 90) echo "Excellent";
+                                                                elseif ($t['performance_score'] >= 80) echo "Good";
+                                                                elseif ($t['performance_score'] >= 70) echo "Average";
+                                                                else echo "Needs Improvement";
+                                                                ?>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <?php if ($t['supervisor_remarks']): ?>
+                                                        <div>
+                                                            <div class="font-bold">Supervisor Remarks</div>
+                                                            <div class="text-sm"><?= nl2br(htmlspecialchars($t['supervisor_remarks'])) ?></div>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                            <form method="dialog" class="modal-backdrop">
+                                                <button>close</button>
+                                            </form>
+                                        </dialog>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
                 </form>
                 <!-- Pagination Controls -->
                 <div class="flex justify-center mt-4 gap-2">
