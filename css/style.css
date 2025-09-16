@@ -3,30 +3,30 @@
 [data-theme="light"] {
   color-scheme: light; /* from your config */
 
-  --b1: 98% 0.003 247.858; /* base-100 */
+  --b1: 100% 0 0; /* base-100 */
   --b2: 98% 0 0; /* base-200 */
-  --b3: 98% 0.002 247.839; /* base-300 */
+  --b3: 95% 0 0; /* base-300 */
   --bc: 21% 0.006 285.885; /* base-content */
 
   --p: 0.2577 0.1035 259.71; /* primary */
-  --pc: 100% 0 0; /* primary-content */
+  --pc: 93% 0.034 272.788; /* primary-content */
 
-  --s: 0.5002 0.118 184.704; /* secondary */
-  --sc: 12% 0.042 264.695; /* secondary-content */
+  --s: 47% 0.114 61.907; /* secondary */
+  --sc: 96% 0.015 12.422; /* secondary-content */
 
-  --a: 0.8102 0.1577 78.92; /* accent */
-  --ac: 0.0694 0.0217 265.72; /* accent-content */
+  --a: 77% 0.152 181.912; /* accent */
+  --ac: 38% 0.063 188.416; /* accent-content */
 
-  --n: 0.3064 0.0875 265.72; /* neutral */
-  --nc: 98% 0.003 247.858; /* neutral-content */
+  --n: 14% 0.005 285.823; /* neutral */
+  --nc: 92% 0.004 286.32; /* neutral-content */
 
-  --in: 50% 0.16 232.661; /* info */
-  --inc: 100% 0 0; /* info-content */
+  --in: 74% 0.16 232.661; /* info */
+  --inc: 29% 0.066 243.157; /* info-content */
 
   --su: 76% 0.177 163.223; /* success */
   --suc: 37% 0.077 168.94; /* success-content */
 
-  --wa: 87% 0.169 91.605; /* warning */
+  --wa: 82% 0.189 84.429; /* warning */
   --wac: 41% 0.112 45.904; /* warning-content */
 
   --er: 71% 0.194 13.428; /* error */
@@ -41,26 +41,26 @@
   --b3: 21.15% 0.012 254.09; /* base-300 */
   --bc: 97.807% 0.029 256.847; /* base-content */
 
-  --p: 0.60 0.199 265.638; /* primary */
-  --pc: 17% 0.013 17.38; /* primary-content */
+  --p: 62% 0.214 259.815; /* primary */
+  --pc: 12% 0.042 264.695; /* primary-content */
 
-  --s: 75% 0.118 165.612; /* secondary */
-  --sc: 18% 0.001 106.423; /* secondary-content */
+  --s: 90% 0.182 98.111; /* secondary */
+  --sc: 2% 0.042 264.695; /* secondary-content */
 
-  --a: 0.8102 0.1577 78.92; /* accent */
-  --ac: 0.3564 0.0391 248.97; /* accent-content */
+  --a: 77% 0.152 181.912; /* accent */
+  --ac: 38% 0.063 188.416; /* accent-content */
 
-  --n: 27% 0.033 256.848; /* neutral */
-  --nc: 18% 0.002 247.839; /* neutral-content */
+  --n: 14% 0.005 285.823; /* neutral */
+  --nc: 92% 0.004 286.32; /* neutral-content */
 
-  --in: 72% 0.214 259.815; /* info */
-  --inc: 17% 0.014 254.604; /* info-content */
+  --in: 74% 0.16 232.661; /* info */
+  --inc: 29% 0.066 243.157; /* info-content */
 
-  --su: 72% 0.219 149.579; /* success */
-  --suc: 21.15% 0.018 155.826; /* success-content */
+  --su: 76% 0.177 163.223; /* success */
+  --suc: 37% 0.077 168.94; /* success-content */
 
-  --wa: 70% 0.213 47.604; /* warning */
-  --wac: 18% 0.016 73.684; /* warning-content */
+  --wa: 41% 0.112 45.904; /* warning */
+  --wac: 71% 0.194 13.428; /* warning-content */
 
   --er: 63% 0.237 25.331; /* error */
   --erc: 17% 0.013 17.38; /* error-content */

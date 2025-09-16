@@ -75,7 +75,9 @@ function fvm_view($baseURL)
                         </thead>
                         <tbody>
                             <?php if (count($upcoming) === 0): ?>
-                                <tr><td colspan="4" class="text-center text-gray-400">No upcoming maintenance scheduled.</td></tr>
+                                <tr>
+                                    <td colspan="4" class="text-center opacity-50">No upcoming maintenance scheduled.</td>
+                                </tr>
                             <?php else: ?>
                                 <?php foreach ($upcoming as $log): ?>
                                     <tr>
@@ -106,13 +108,15 @@ function fvm_view($baseURL)
                         </thead>
                         <tbody>
                             <?php if (count($past) === 0): ?>
-                                <tr><td colspan="4" class="text-center text-gray-400">No past maintenance records.</td></tr>
+                                <tr>
+                                    <td colspan="4" class="text-center opacity-50">No past maintenance records.</td>
+                                </tr>
                             <?php else: ?>
                                 <?php foreach ($past as $log): ?>
                                     <tr>
                                         <td><?= htmlspecialchars($log['vehicle_name']) ?></td>
                                         <td>
-                                            <span class="badge <?= $log['log_type'] === 'maintenance' ? 'badge-warning' : 'badge-info' ?>">
+                                            <span class="badge font-bold <?= $log['log_type'] === 'maintenance' ? 'badge-warning' : 'badge-info' ?>">
                                                 <?= ucfirst(htmlspecialchars($log['log_type'])) ?>
                                             </span>
                                         </td>
@@ -181,24 +185,65 @@ function fvm_view($baseURL)
             </form>
         </dialog>
 
-        <div class="grid grid-cols-3 gap-6 mb-6">
+        <div class="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6">
             <!-- Vehicle Status Pie Chart -->
-            <div class="card bg-grey-500 text-black p-4 shadow-lg p-4">
+            <div class="card shadow-lg p-4">
                 <h3 class="text-lg font-bold mb-2">Vehicle Status Distribution</h3>
-                <canvas id="vehicleStatusChart"></canvas>
+                <div class="w-full max-w-sm mx-auto">
+                    <canvas id="vehicleStatusChart" class="w-full h-64"></canvas>
+                </div>
             </div>
 
             <!-- Vehicle Metrics -->
-            <div class="card bg-blue-500 text-white p-4 shadow-lg p-4">
-                <h3 class="text-lg font-bold mb-2">Key Metrics</h3>
-                <ul class="space-y-2">
-                    <li>Total Vehicles: <span class="font-semibold"><?= $totalVehicles ?></span></li>
-                    <li>Active: <span class="text-green-600 font-semibold"><?= $activeCount ?></span></li>
-                    <li>Inactive: <span class="text-red-600 font-semibold"><?= $inactiveCount ?></span></li>
-                    <li>Dispatched: <span class="text-blue-600 font-semibold"><?= $dispatchedCount ?></span></li>
-                    <li>Under Maintenance: <span class="text-yellow-600 font-semibold"><?= $maintenanceCount ?></span></li>
-                </ul>
-            </div>
+            <section class="card shadow-lg p-4 ">
+                <h3 class="text-lg text-center md:text-left font-bold mb-2">Key Metrics</h3>
+                <div class="stats stats-vertical md:stats-horizontal shadow">
+                    <div class="stat text-primary">
+                        <div class="stat-figure">
+                            <i data-lucide="car" class="inline-block h-10 w-auto stroke-current"></i>
+                        </div>
+                        <div class="stat-title">Total Vehicles</div>
+                        <div class="stat-value"><?= $totalVehicles ?></div>
+                        <div class="stat-desc">Fleet size across all operations</div>
+                    </div>
+
+                    <div class="stat text-success">
+                        <div class="stat-figure">
+                            <i data-lucide="circle-check" class="inline-block h-10 w-auto stroke-current"></i>
+                        </div>
+                        <div class="stat-title">Active</div>
+                        <div class="stat-value"><?= $activeCount ?></div>
+                        <div class="stat-desc">Currently available for dispatch</div>
+                    </div>
+
+                    <div class="stat text-error">
+                        <div class="stat-figure">
+                            <i data-lucide="pause-circle" class="inline-block h-10 w-auto stroke-current"></i>
+                        </div>
+                        <div class="stat-title">Inactive</div>
+                        <div class="stat-value"><?= $inactiveCount ?></div>
+                        <div class="stat-desc">Idle or temporarily unused</div>
+                    </div>
+
+                    <div class="stat text-info">
+                        <div class="stat-figure">
+                            <i data-lucide="navigation" class="inline-block h-10 w-auto stroke-current"></i>
+                        </div>
+                        <div class="stat-title">Dispatched</div>
+                        <div class="stat-value"><?= $dispatchedCount ?></div>
+                        <div class="stat-desc">On an active trip or delivery</div>
+                    </div>
+
+                    <div class="stat text-secondary">
+                        <div class="stat-figure">
+                            <i data-lucide="wrench" class="inline-block h-10 w-auto stroke-current"></i>
+                        </div>
+                        <div class="stat-title">Under Maintenance</div>
+                        <div class="stat-value"><?= $maintenanceCount ?></div>
+                        <div class="stat-desc">Scheduled or ongoing repairs</div>
+                    </div>
+                </div>
+            </section>
         </div>
 
         <?php if (!empty($_SESSION['fvm_success'])): ?>
@@ -231,7 +276,7 @@ function fvm_view($baseURL)
                 <i data-lucide="plus" class="w-4 h-4 mr-1"></i> Add Vehicle
             </button>
             <!-- Schedule Maintenance Button -->
-            <button class="btn btn-soft btn-warning" onclick="schedule_maintenance_modal.showModal()">
+            <button class="btn btn-secondary" onclick="schedule_maintenance_modal.showModal()">
                 <i data-lucide="calendar" class="w-4 h-4 mr-1"></i> Schedule Maintenance
             </button>
             <!-- View Vehicle Logs Button -->
@@ -279,118 +324,139 @@ function fvm_view($baseURL)
                     <div id="calendarContainer"></div>
                 </div>
                 <script>
-                // Calendar JS logic
-                const maintenanceDates = <?php echo json_encode($maintenanceDates); ?>;
-                const today = new Date();
-                let calMonth = today.getMonth(); // 0-based
-                let calYear = today.getFullYear();
+                    // Calendar JS logic
+                    const maintenanceDates = <?php echo json_encode($maintenanceDates); ?>;
+                    const today = new Date();
+                    let calMonth = today.getMonth(); // 0-based
+                    let calYear = today.getFullYear();
 
-                function escapeHtml(text) {
-                    return text.replace(/[&<>"']/g, function(m) {
-                        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]);
-                    });
-                }
+                    function escapeHtml(text) {
+                        return text.replace(/[&<>"']/g, function(m) {
+                            return ({
+                                '&': '&amp;',
+                                '<': '&lt;',
+                                '>': '&gt;',
+                                '"': '&quot;',
+                                '\'': '&#39;'
+                            } [m]);
+                        });
+                    }
 
-                function renderCalendar(month, year) {
-                    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-                    document.getElementById('calMonthLabel').textContent = monthNames[month] + ' ' + year;
-                    const firstDay = new Date(year, month, 1);
-                    const startDayOfWeek = firstDay.getDay();
-                    const daysInMonth = new Date(year, month + 1, 0).getDate();
-                    let html = '<table class="table table-compact w-full border"><thead><tr>';
-                    ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d => html += '<th class="text-center">'+d+'</th>');
-                    html += '</tr></thead><tbody>';
-                    let day = 1;
-                    for (let row = 0; day <= daysInMonth; row++) {
-                        html += '<tr>';
-                        for (let col = 0; col < 7; col++) {
-                            if (row === 0 && col < startDayOfWeek) {
-                                html += '<td></td>';
-                            } else if (day > daysInMonth) {
-                                html += '<td></td>';
-                            } else {
-                                const dateStr = year + '-' + String(month+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
-                                const highlight = maintenanceDates[dateStr];
-                                const isToday = (day === today.getDate() && month === today.getMonth() && year === today.getFullYear());
-                                let tdStyle = 'vertical-align:top;';
-                                if (highlight) tdStyle += 'background:#fef08a;';
-                                if (isToday) tdStyle += 'background:#bbf7d0;'; // green shade for today
-                                html += '<td class="text-center align-top" style="'+tdStyle+'">';
-                                html += '<div class="font-bold">' + day + '</div>';
-                                if (highlight) {
-                                    html += '<button class="btn btn-xs btn-info mt-1 maint-show-btn" style="font-size:10px;" data-maint="' + escapeHtml(JSON.stringify(highlight)) + '">Show</button>';
+                    function renderCalendar(month, year) {
+                        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                        document.getElementById('calMonthLabel').textContent = monthNames[month] + ' ' + year;
+                        const firstDay = new Date(year, month, 1);
+                        const startDayOfWeek = firstDay.getDay();
+                        const daysInMonth = new Date(year, month + 1, 0).getDate();
+                        let html = '<table class="table table-compact w-full border"><thead><tr>';
+                        ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].forEach(d => html += '<th class="text-center">' + d + '</th>');
+                        html += '</tr></thead><tbody>';
+                        let day = 1;
+                        for (let row = 0; day <= daysInMonth; row++) {
+                            html += '<tr>';
+                            for (let col = 0; col < 7; col++) {
+                                if (row === 0 && col < startDayOfWeek) {
+                                    html += '<td></td>';
+                                } else if (day > daysInMonth) {
+                                    html += '<td></td>';
+                                } else {
+                                    const dateStr = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+                                    const highlight = maintenanceDates[dateStr];
+                                    const isToday = (day === today.getDate() && month === today.getMonth() && year === today.getFullYear());
+                                    let tdStyle = 'vertical-align:top;';
+                                    if (highlight) tdStyle += 'background:#fef08a;';
+                                    if (isToday) tdStyle += 'background:#bbf7d0;'; // green shade for today
+                                    html += '<td class="text-center align-top" style="' + tdStyle + '">';
+                                    html += '<div class="font-bold">' + day + '</div>';
+                                    if (highlight) {
+                                        html += '<button class="btn btn-xs btn-info mt-1 maint-show-btn" style="font-size:10px;" data-maint="' + escapeHtml(JSON.stringify(highlight)) + '">Show</button>';
+                                    }
+                                    html += '</td>';
+                                    day++;
                                 }
-                                html += '</td>';
-                                day++;
                             }
+                            html += '</tr>';
                         }
-                        html += '</tr>';
-                    }
-                    html += '</tbody></table>';
-                    document.getElementById('calendarContainer').innerHTML = html;
+                        html += '</tbody></table>';
+                        document.getElementById('calendarContainer').innerHTML = html;
 
-                    // Attach event listeners for show buttons
-                    document.querySelectorAll('.maint-show-btn').forEach(btn => {
-                        btn.onclick = function(ev) {
-                            showMaintPopup(ev, btn.getAttribute('data-maint'));
+                        // Attach event listeners for show buttons
+                        document.querySelectorAll('.maint-show-btn').forEach(btn => {
+                            btn.onclick = function(ev) {
+                                showMaintPopup(ev, btn.getAttribute('data-maint'));
+                            };
+                        });
+                    }
+
+                    // Popup logic
+                    function showMaintPopup(e, dataStr) {
+                        e.stopPropagation();
+                        let data;
+                        try {
+                            data = JSON.parse(dataStr);
+                        } catch {
+                            return;
+                        }
+                        let html = '<div style="padding:10px 16px;">';
+                        html += '<div class="font-bold mb-1">Scheduled Maintenance:</div>';
+                        data.forEach(info => {
+                            html += '<div class="mb-1">' +
+                                '<span class="font-semibold">' + escapeHtml(info.vehicle_name) + '</span>' +
+                                ' <span class="text-xs opacity-50">(' + escapeHtml(info.plate_number) + ')</span>' +
+                                '</div>';
+                        });
+                        html += '</div>';
+                        let popup = document.getElementById('maintPopup');
+                        if (!popup) {
+                            popup = document.createElement('div');
+                            popup.id = 'maintPopup';
+                            popup.style.position = 'fixed';
+                            popup.style.zIndex = 99999; // Higher than modal
+                            popup.style.background = '#fff';
+                            popup.style.border = '1px solid #888';
+                            popup.style.borderRadius = '8px';
+                            popup.style.boxShadow = '0 2px 12px rgba(0,0,0,0.15)';
+                            popup.onclick = function(ev) {
+                                ev.stopPropagation();
+                            };
+                            document.body.appendChild(popup);
+                        }
+                        popup.innerHTML = html + '<div class="text-center mt-2"><button class="btn btn-xs btn-outline" onclick="closeMaintPopup()">Close</button></div>';
+                        popup.style.display = 'block';
+                        // Position popup near mouse
+                        popup.style.left = (e.clientX + 10) + 'px';
+                        popup.style.top = (e.clientY + 10) + 'px';
+                        // Hide on outside click
+                        document.body.onclick = function() {
+                            closeMaintPopup();
                         };
-                    });
-                }
-
-                // Popup logic
-                function showMaintPopup(e, dataStr) {
-                    e.stopPropagation();
-                    let data;
-                    try { data = JSON.parse(dataStr); } catch { return; }
-                    let html = '<div style="padding:10px 16px;">';
-                    html += '<div class="font-bold mb-1">Scheduled Maintenance:</div>';
-                    data.forEach(info => {
-                        html += '<div class="mb-1">' +
-                            '<span class="font-semibold">' + escapeHtml(info.vehicle_name) + '</span>' +
-                            ' <span class="text-xs text-gray-500">(' + escapeHtml(info.plate_number) + ')</span>' +
-                            '</div>';
-                    });
-                    html += '</div>';
-                    let popup = document.getElementById('maintPopup');
-                    if (!popup) {
-                        popup = document.createElement('div');
-                        popup.id = 'maintPopup';
-                        popup.style.position = 'fixed';
-                        popup.style.zIndex = 99999; // Higher than modal
-                        popup.style.background = '#fff';
-                        popup.style.border = '1px solid #888';
-                        popup.style.borderRadius = '8px';
-                        popup.style.boxShadow = '0 2px 12px rgba(0,0,0,0.15)';
-                        popup.onclick = function(ev) { ev.stopPropagation(); };
-                        document.body.appendChild(popup);
                     }
-                    popup.innerHTML = html + '<div class="text-center mt-2"><button class="btn btn-xs btn-outline" onclick="closeMaintPopup()">Close</button></div>';
-                    popup.style.display = 'block';
-                    // Position popup near mouse
-                    popup.style.left = (e.clientX + 10) + 'px';
-                    popup.style.top = (e.clientY + 10) + 'px';
-                    // Hide on outside click
-                    document.body.onclick = function() { closeMaintPopup(); };
-                }
-                function closeMaintPopup() {
-                    let popup = document.getElementById('maintPopup');
-                    if (popup) popup.style.display = 'none';
-                    document.body.onclick = null;
-                }
 
-                document.getElementById('calPrevBtn').onclick = function(e) {
-                    e.preventDefault();
-                    calMonth--;
-                    if (calMonth < 0) { calMonth = 11; calYear--; }
+                    function closeMaintPopup() {
+                        let popup = document.getElementById('maintPopup');
+                        if (popup) popup.style.display = 'none';
+                        document.body.onclick = null;
+                    }
+
+                    document.getElementById('calPrevBtn').onclick = function(e) {
+                        e.preventDefault();
+                        calMonth--;
+                        if (calMonth < 0) {
+                            calMonth = 11;
+                            calYear--;
+                        }
+                        renderCalendar(calMonth, calYear);
+                    };
+                    document.getElementById('calNextBtn').onclick = function(e) {
+                        e.preventDefault();
+                        calMonth++;
+                        if (calMonth > 11) {
+                            calMonth = 0;
+                            calYear++;
+                        }
+                        renderCalendar(calMonth, calYear);
+                    };
                     renderCalendar(calMonth, calYear);
-                };
-                document.getElementById('calNextBtn').onclick = function(e) {
-                    e.preventDefault();
-                    calMonth++;
-                    if (calMonth > 11) { calMonth = 0; calYear++; }
-                    renderCalendar(calMonth, calYear);
-                };
-                renderCalendar(calMonth, calYear);
                 </script>
                 <!-- Maintenance Adjustment Table -->
                 <h3 class="font-bold text-lg mb-4">Adjust Maintenance Dates</h3>
@@ -428,7 +494,7 @@ function fvm_view($baseURL)
                                     <td><?= htmlspecialchars($v['vehicle_name']) ?></td>
                                     <td><?= htmlspecialchars($v['plate_number']) ?></td>
                                     <td><?= htmlspecialchars($v['vehicle_type'] ?? '-') ?></td>
-                                    <td><?= $nextMaint ? $nextMaint->format('M d, Y') : '<span class="text-gray-400">No record</span>' ?></td>
+                                    <td><?= $nextMaint ? $nextMaint->format('M d, Y') : '<span class="opacity-50">No record</span>' ?></td>
                                     <td>
                                         <?php
                                         if ($nextMaint && $today >= $nextMaint) {
@@ -484,7 +550,7 @@ function fvm_view($baseURL)
         <!-- Vehicle Table -->
         <div class="overflow-x-auto">
             <h3 class="text-lg font-bold mb-2">Fleet Vehicles</h3>
-            <table class="table table-zebra w-full">
+            <table class="table table-zebra w-full" id="vehicleTable">
                 <thead>
                     <tr>
                         <th>Vehicle Name</th>
@@ -498,80 +564,78 @@ function fvm_view($baseURL)
                         <th>Logs</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="vehicleBody">
                     <?php foreach ($vehicles as $v): ?>
                         <tr>
                             <td><?= htmlspecialchars($v['vehicle_name']) ?></td>
-                             <td><div><?= htmlspecialchars($v['plate_number']) ?></div>
-                            <div><?= htmlspecialchars($v['vehicle_type'] ?? '-') ?></div></td>
+                            <td>
+                                <div><?= htmlspecialchars($v['plate_number']) ?></div>
+                                <div><?= htmlspecialchars($v['vehicle_type'] ?? '-') ?></div>
+                            </td>
                             <td><?= htmlspecialchars($v['weight_capacity'] ?? '-') ?>kg</td>
                             <td><?= htmlspecialchars($v['fuel_capacity'] ?? '-') ?>L</td>
-                            <td>
+                            <td class=" text-center">
                                 <?php
-                                // Fetch most recent completed dispatch trip for this vehicle
-                                $fuelConsumed = null;
                                 $trip = fetchOneQuery(
                                     "SELECT fuel_consumed FROM driver_trips WHERE vehicle_id = ? ORDER BY id DESC LIMIT 1",
                                     [$v['id']]
                                 );
                                 $fuelCapacity = isset($v['fuel_capacity']) && is_numeric($v['fuel_capacity']) ? floatval($v['fuel_capacity']) : 0;
-                                if ($trip && isset($trip['fuel_consumed']) && $fuelCapacity > 0) {
+
+                                if ($trip && isset($trip['fuel_consumed']) && $fuelCapacity > 0):
                                     $fuelConsumed = floatval($trip['fuel_consumed']);
                                     $percent = min(100, max(0, round(($fuelConsumed / $fuelCapacity) * 100)));
-                                    echo htmlspecialchars($fuelConsumed) . ' L / ' . htmlspecialchars($fuelCapacity) . ' L';
-                                    echo '<div style="margin-top:4px; width:120px; background:#eee; border-radius:6px; height:16px; position:relative;">';
-                                    echo '<div style="width:' . $percent . '%; background:#3b82f6; height:100%; border-radius:6px;"></div>';
-                                    echo '<span style="position:absolute; left:0; right:0; top:0; text-align:center; font-size:12px; color:#222;">' . $percent . '%</span>';
-                                    echo '</div>';
-                                } elseif ($trip && isset($trip['fuel_consumed'])) {
-                                    // No capacity info
-                                    echo htmlspecialchars($trip['fuel_consumed']) . ' L / N/A';
-                                    echo '<div style="margin-top:4px; width:120px; background:#eee; border-radius:6px; height:16px; position:relative;">';
-                                    echo '<div style="width:0%; background:#3b82f6; height:100%; border-radius:6px;"></div>';
-                                    echo '<span style="position:absolute; left:0; right:0; top:0; text-align:center; font-size:12px; color:#222;">0%</span>';
-                                    echo '</div>';
-                                } else {
-                                    echo '<span class="text-gray-400">No Records Yet</span>';
-                                    echo '<div style="margin-top:4px; width:120px; background:#eee; border-radius:6px; height:16px; position:relative;">';
-                                    echo '<div style="width:0%; background:#3b82f6; height:100%; border-radius:6px;"></div>';
-                                    echo '<span style="position:absolute; left:0; right:0; top:0; text-align:center; font-size:12px; color:#222;">0%</span>';
-                                    echo '</div>';
-                                }
                                 ?>
+                                    <div class="flex flex-col gap-2 items-center font-bold text-info">
+                                        <div class=""><?= htmlspecialchars($fuelConsumed) ?> L / <?= htmlspecialchars($fuelCapacity) ?> L</div>
+                                        <div class="radial-progress bg-base-100" style="--value:<?= $percent ?>; --size:4rem; --thickness:6px;">
+                                            <?= $percent ?>%
+                                        </div>
+                                    </div>
+                                <?php elseif ($trip && isset($trip['fuel_consumed'])): ?>
+                                    <div class="flex flex-col gap-2 items-center font-bold text-info">
+                                        <div class=""><?= htmlspecialchars($trip['fuel_consumed']) ?> L / N/A</div>
+                                        <div class="radial-progress" style="--value:0; --size:4rem; --thickness:6px;">0%</div>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="flex flex-col gap-2 items-center font-bold text-info">
+                                        <div class="">No Records Yet</div>
+                                        <div class="radial-progress" style="--value:0; --size:4rem; --thickness:6px;">0%</div>
+                                    </div>
+                                <?php endif; ?>
+                            </td>
+
+                            <td class="text-center">
+                                <?php
+                                if ($trip && isset($trip['fuel_consumed']) && $fuelCapacity > 0):
+                                    $fuelConsumed = floatval($trip['fuel_consumed']);
+                                    $fuelLeft = max(0, $fuelCapacity - $fuelConsumed);
+                                    $percentLeft = min(100, max(0, round(($fuelLeft / $fuelCapacity) * 100)));
+                                ?>
+                                    <div class="flex flex-col gap-2 items-center font-bold text-success">
+                                        <div><?= htmlspecialchars($fuelLeft) ?> L / <?= htmlspecialchars($fuelCapacity) ?> L</div>
+                                        <div class="radial-progress" style="--value:<?= $percentLeft ?>; --size:4rem; --thickness:6px;">
+                                            <?= $percentLeft ?>%
+                                        </div>
+                                    </div>
+                                <?php elseif ($fuelCapacity > 0): ?>
+                                    <div class="flex flex-col gap-2 items-center font-bold text-success">
+                                        <div><?= htmlspecialchars($fuelCapacity) ?> L / <?= htmlspecialchars($fuelCapacity) ?> L</div>
+                                        <div class="radial-progress text-success" style="--value:100; --size:4rem; --thickness:6px;">100%</div>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="flex flex-col gap-2 items-center font-bold text-success">
+
+                                        <div class="">N/A</div>
+                                        <div class="radial-progress text-success" style="--value:0; --size:4rem; --thickness:6px;">0%</div>
+                                    </div>
+                                <?php endif; ?>
                             </td>
 
                             <td>
                                 <?php
-                                // Current Fuel Tank = fuel_capacity - fuel_consumed
-                                if ($trip && isset($trip['fuel_consumed']) && $fuelCapacity > 0) {
-                                    $fuelConsumed = floatval($trip['fuel_consumed']);
-                                    $fuelLeft = max(0, $fuelCapacity - $fuelConsumed);
-                                    $percentLeft = min(100, max(0, round(($fuelLeft / $fuelCapacity) * 100)));
-                                    echo htmlspecialchars($fuelLeft) . ' L / ' . htmlspecialchars($fuelCapacity) . ' L';
-                                    echo '<div style="margin-top:4px; width:120px; background:#d1fae5; border-radius:6px; height:16px; position:relative;">';
-                                    echo '<div style="width:' . $percentLeft . '%; background:#10b981; height:100%; border-radius:6px;"></div>';
-                                    echo '<span style="position:absolute; left:0; right:0; top:0; text-align:center; font-size:12px; color:#222;">' . $percentLeft . '%</span>';
-                                    echo '</div>';
-                                } elseif ($fuelCapacity > 0) {
-                                    // No dispatch yet, tank is full
-                                    echo htmlspecialchars($fuelCapacity) . ' L / ' . htmlspecialchars($fuelCapacity) . ' L';
-                                    echo '<div style="margin-top:4px; width:120px; background:#d1fae5; border-radius:6px; height:16px; position:relative;">';
-                                    echo '<div style="width:100%; background:#10b981; height:100%; border-radius:6px;"></div>';
-                                    echo '<span style="position:absolute; left:0; right:0; top:0; text-align:center; font-size:12px; color:#222;">100%</span>';
-                                    echo '</div>';
-                                } else {
-                                    echo '<span class="text-gray-400">N/A</span>';
-                                    echo '<div style="margin-top:4px; width:120px; background:#d1fae5; border-radius:6px; height:16px; position:relative;">';
-                                    echo '<div style="width:0%; background:#10b981; height:100%; border-radius:6px;"></div>';
-                                    echo '<span style="position:absolute; left:0; right:0; top:0; text-align:center; font-size:12px; color:#222;">0%</span>';
-                                    echo '</div>';
-                                }
-                                ?>
-                            </td>
-                            <td>
-                                <?php
                                 $status = $v['status'];
-                                $badgeClass = 'badge p-2 text-nowrap';
+                                $badgeClass = 'badge p-3 font-bold text-nowrap';
                                 if ($status === 'Active') {
                                     $badgeClass .= ' badge-success';
                                 } elseif ($status === 'Inactive') {
@@ -579,13 +643,13 @@ function fvm_view($baseURL)
                                 } elseif ($status === 'Under Maintenance') {
                                     $badgeClass .= ' badge-warning';
                                 } else {
-                                    $badgeClass .= ' badge-secondary';
+                                    $badgeClass .= ' badge-info';
                                 }
                                 ?>
                                 <span class="<?= $badgeClass ?>"><?= htmlspecialchars($status) ?></span>
                             </td>
                             <td>
-                                <div class="flex flex-col md:flex-row gap-3 items-stretch">
+                                <div class="flex flex-col gap-3 ">
                                     <button class="btn btn-sm btn-info" onclick="document.getElementById('view_modal_<?= $v['id'] ?>').showModal()" title="View">
                                         <i data-lucide="eye"></i>
                                     </button>
@@ -661,7 +725,7 @@ function fvm_view($baseURL)
                                             </div>
                                             <div class="form-control">
                                                 <label class="label">Update Image</label>
-                                                <input type="file" name="vehicle_image" accept="image/*" class="file-input file-input-bordered">
+                                                <input type="file" name="vehicle_image" accept="image/*" class="file-input file-input-bordered w-full" />
                                                 <?php if (!empty($v['vehicle_image'])): ?>
                                                     <div class="mt-2">
                                                         <img src="<?= htmlspecialchars($v['vehicle_image']) ?>" alt="Vehicle Image" style="max-width: 120px; max-height: 80px; border-radius: 6px; border: 1px solid #ccc;" />
@@ -732,60 +796,100 @@ function fvm_view($baseURL)
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            <!-- Pagination Controls -->
+            <div class="flex justify-center mt-4 gap-2" id="paginationControls"></div>
+
+            <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    const rowsPerPage = 5; // adjust per page
+                    const tableBody = document.getElementById("vehicleBody");
+                    const rows = tableBody.querySelectorAll("tr");
+                    const paginationControls = document.getElementById("paginationControls");
+                    const totalPages = Math.ceil(rows.length / rowsPerPage);
+                    let currentPage = 1;
+
+                    function showPage(page) {
+                        currentPage = page;
+                        let start = (page - 1) * rowsPerPage;
+                        let end = start + rowsPerPage;
+
+                        rows.forEach((row, i) => {
+                            row.style.display = (i >= start && i < end) ? "" : "none";
+                        });
+
+                        renderPagination();
+                    }
+
+                    function renderPagination() {
+                        paginationControls.innerHTML = "";
+
+                        for (let i = 1; i <= totalPages; i++) {
+                            const btn = document.createElement("button");
+                            btn.textContent = i;
+                            btn.className = "btn btn-sm " + (i === currentPage ? "btn-primary" : "btn-outline");
+                            btn.onclick = () => showPage(i);
+                            paginationControls.appendChild(btn);
+                        }
+                    }
+
+                    showPage(1);
+                });
+            </script>
         </div>
-        
-    <!-- Drivers Table -->
-    <div class="overflow-x-auto mt-8">
-        <h3 class="text-lg font-bold mb-2">Drivers</h3>
-        <table class="table table-zebra w-full">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Status</th>
-                    <th>Assigned Vehicle</th>
-                    <th>Contact </th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($drivers as $d): ?>
+
+        <!-- Drivers Table -->
+        <div class="overflow-x-auto mt-8">
+            <h3 class="text-lg font-bold mb-2">Drivers</h3>
+            <table class="table table-zebra w-full">
+                <thead>
                     <tr>
-                        <td><?= htmlspecialchars($d['driver_name']) ?></td>
-                        <td>
-                            <?php
-                            $status = $d['status'] ?? 'Unknown';
-                            $badgeClass = 'badge p-2 text-nowrap';
-                            if ($status === 'Available') {
-                                $badgeClass .= ' badge-success';
-                            } elseif ($status === 'Dispatched') {
-                                $badgeClass .= ' badge-info';
-                            } elseif ($status === 'Inactive') {
-                                $badgeClass .= ' badge-error';
-                            } else {
-                                $badgeClass .= ' badge-secondary';
-                            }
-                            ?>
-                            <span class="<?= $badgeClass ?>"><?= htmlspecialchars($status) ?></span>
-                        </td>
-                        <td>
-                            <?php
-                            // Find assigned vehicle if dispatched
-                            $assigned = '';
-                            if ($d['status'] === 'Dispatched') {
-                                $dispatch = fetchOneQuery("SELECT v.vehicle_name FROM dispatches ds JOIN fleet_vehicles v ON ds.vehicle_id = v.id WHERE ds.driver_id = ? AND ds.status = 'Ongoing' ORDER BY ds.dispatch_date DESC LIMIT 1", [$d['id']]);
-                                if ($dispatch && isset($dispatch['vehicle_name'])) {
-                                    $assigned = $dispatch['vehicle_name'];
-                                }
-                            }
-                            echo $assigned ? htmlspecialchars($assigned) : '<span class="text-gray-400">None</span>';
-                            ?>
-                        </td>
-                        <td><div>Mobile No. : <?= htmlspecialchars($d['phone'] ?? 'N/A') ?></div>
-                            <div>Email : <?= htmlspecialchars($d['email'] ?? 'N/A') ?></div>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Assigned Vehicle</th>
+                        <th>Contact </th>
                     </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
+                </thead>
+                <tbody>
+                    <?php foreach ($drivers as $d): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($d['driver_name']) ?></td>
+                            <td>
+                                <?php
+                                $status = $d['status'] ?? 'Unknown';
+                                $badgeClass = 'badge p-2 font-bold text-nowrap';
+                                if ($status === 'Available') {
+                                    $badgeClass .= ' badge-success';
+                                } elseif ($status === 'Dispatched') {
+                                    $badgeClass .= ' badge-info';
+                                } elseif ($status === 'Inactive') {
+                                    $badgeClass .= ' badge-error';
+                                } else {
+                                    $badgeClass .= ' badge-secondary';
+                                }
+                                ?>
+                                <span class="<?= $badgeClass ?>"><?= htmlspecialchars($status) ?></span>
+                            </td>
+                            <td>
+                                <?php
+                                // Find assigned vehicle if dispatched
+                                $assigned = '';
+                                if ($d['status'] === 'Dispatched') {
+                                    $dispatch = fetchOneQuery("SELECT v.vehicle_name FROM dispatches ds JOIN fleet_vehicles v ON ds.vehicle_id = v.id WHERE ds.driver_id = ? AND ds.status = 'Ongoing' ORDER BY ds.dispatch_date DESC LIMIT 1", [$d['id']]);
+                                    if ($dispatch && isset($dispatch['vehicle_name'])) {
+                                        $assigned = $dispatch['vehicle_name'];
+                                    }
+                                }
+                                echo $assigned ? htmlspecialchars($assigned) : '<span class="opacity-50">None</span>';
+                                ?>
+                            </td>
+                            <td>
+                                <div>Mobile No. : <?= htmlspecialchars($d['phone'] ?? 'N/A') ?></div>
+                                <div>Email : <?= htmlspecialchars($d['email'] ?? 'N/A') ?></div>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
@@ -820,30 +924,11 @@ function fvm_view($baseURL)
             },
             options: {
                 responsive: true,
-                
+
                 plugins: {
                     legend: {
                         position: 'bottom',
-                        labels: {
-                        generateLabels: function(chart) {
-                            const data = chart.data;
-                            if (data.labels.length && data.datasets.length) {
-                                return data.labels.map(function(label, i) {
-                                    const dataset = data.datasets[0]; // Assuming one dataset for simplicity
-                                    const value = dataset.data[i];
-                                    return {
-                                        text: `${label}: ${value}`, // Customize the legend text
-                                        fillStyle: dataset.backgroundColor[i],
-                                        strokeStyle: dataset.borderColor ? dataset.borderColor[i] : undefined,
-                                        lineWidth: dataset.borderWidth ? dataset.borderWidth[i] : undefined,
-                                        hidden: !chart.isDatasetVisible(0) || chart.getDatasetMeta(0).data[i].hidden, // Maintain click functionality
-                                        index: i
-                                    };
-                                });
-                            }
-                            return [];
-                        }
-                        }
+
                     }
                 }
             }

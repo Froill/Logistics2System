@@ -82,16 +82,16 @@ if ($module === 'dashboard') {
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
-<body class="min-h-screen flex flex-row">
+<body class="min-h-screen flex w-full">
   <?php include 'includes/sidebar.php'; ?>
 
   <div class="flex flex-col w-full">
     <?php include 'includes/navbar.php'; ?>
-    <div class="p-4">
+    <div class="">
 
 
       <!-- Module content -->
-      <div class="card mt-4 p-4 shadow rounded">
+      <div class="card mt-4 shadow rounded">
         <main class="card-body flex-1 p-5">
           <?php if (!empty($_SESSION['error_message'])): ?>
             <div class="alert alert-error" style="color: #fff; background: #e3342f; padding: 10px; margin-bottom: 10px; border-radius: 4px;">
