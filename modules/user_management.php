@@ -218,7 +218,6 @@ function user_management_view($baseURL)
                 <select name="role" id="edit_role" class="select select-bordered" required>
                     <option value="requester">Requester</option>
                     <option value="driver">Driver</option>
-                    <option value="staff">Staff</option>
                     <option value="supervisor">Supervisor</option>
                     <option value="manager">Manager</option>
                 </select>

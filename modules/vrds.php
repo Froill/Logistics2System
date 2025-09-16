@@ -5,7 +5,7 @@
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/mailer.php';
 require_once __DIR__ . '/audit_log.php';
-require_once __DIR__ . '/../includes/modules_logic.php';
+require_once __DIR__ . '/../includes/vrds_logic.php';
 
 
 function vrds_view($baseURL) {
@@ -46,7 +46,7 @@ function vrds_view($baseURL) {
     <div>
         <!-- OSM Map for Ongoing Dispatched Trips -->
         <div class="mb-6">
-            <h3 class="text-lg font-bold mb-2">Ongoing Dispatched Trips Map</h3>
+            <h3 class="text-lg font-bold mb-2">Dispatched Trips Map</h3>
             <div class="flex flex-wrap gap-2 mb-2">
                 <input id="mapSearch" class="input input-bordered" style="min-width:220px;max-width:350px;" placeholder="Search a place.."  autocomplete="off">
                 <div id="searchSuggestions" class="osm-suggestions" style="position:absolute;z-index:1000;"></div>
