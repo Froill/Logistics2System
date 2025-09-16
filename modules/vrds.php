@@ -8,7 +8,8 @@ require_once __DIR__ . '/audit_log.php';
 require_once __DIR__ . '/../includes/modules_logic.php';
 
 
-function vrds_view($baseURL) {
+function vrds_view($baseURL)
+{
 
     vrds_logic($baseURL);
 
@@ -29,14 +30,12 @@ function vrds_view($baseURL) {
         if (!empty($v['vehicle_type']) && !in_array($v['vehicle_type'], $vehicle_types)) {
 
             $vehicle_types[] = $v['vehicle_type'];
-
         }
-
     }
 
 
     // Prepare ongoing dispatches for map (with real coordinates)
-    $ongoingDispatches = array_filter($dispatches, function($d) {
+    $ongoingDispatches = array_filter($dispatches, function ($d) {
         return $d['status'] === 'Ongoing' && isset($d['origin_lat'], $d['origin_lon'], $d['destination_lat'], $d['destination_lon']);
     });
 ?>
@@ -48,11 +47,11 @@ function vrds_view($baseURL) {
         <div class="mb-6">
             <h3 class="text-lg font-bold mb-2">Ongoing Dispatched Trips Map</h3>
             <div class="flex flex-wrap gap-2 mb-2">
-                <input id="mapSearch" class="input input-bordered" style="min-width:220px;max-width:350px;" placeholder="Search a place.."  autocomplete="off">
+                <input id="mapSearch" class="input input-bordered" style="min-width:220px;max-width:350px;" placeholder="Search a place.." autocomplete="off">
                 <div id="searchSuggestions" class="osm-suggestions" style="position:absolute;z-index:1000;"></div>
             </div>
             <div class="flex flex-wrap gap-2 mb-2">
-            <button id="addPoiBtn" class="btn btn-sm btn-success" type="button"><i data-lucide="map-pin-plus"></i> Add a Custom Location </button>
+                <button id="addPoiBtn" class="btn btn-sm btn-success" type="button"><i data-lucide="map-pin-plus"></i> Add a Custom Location </button>
             </div>
             <div id="dispatchMap" style="height: 400px; width: 100%;"></div>
         </div>
@@ -60,12 +59,12 @@ function vrds_view($baseURL) {
         <!-- Vehicle Request Form (Step 1) -->
         <div class="flex flex-col gap-2">
             <div class="flex gap-2 flex-wrap">
-            <button class="btn btn-primary w-max" onclick="request_modal.showModal()">
-                <i data-lucide="plus-circle" class="w-4 h-4 mr-1"></i> Request Vehicle
-            </button>
-            <button class="btn btn-secondary w-max" onclick="dispatch_log_modal.showModal()">
-                <i data-lucide="list" class="w-4 h-4 mr-1"></i> View Dispatch Log
-            </button>
+                <button class="btn btn-primary w-max" onclick="request_modal.showModal()">
+                    <i data-lucide="plus-circle" class="w-4 h-4 mr-1"></i> Request Vehicle
+                </button>
+                <button class="btn btn-secondary w-max" onclick="dispatch_log_modal.showModal()">
+                    <i data-lucide="list" class="w-4 h-4 mr-1"></i> View Dispatch Log
+                </button>
             </div>
             <dialog id="request_modal" class="modal">
                 <div class="modal-box">
@@ -300,171 +299,187 @@ function vrds_view($baseURL) {
             <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
             <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const vehicles = <?php echo json_encode($vehicles); ?>;
-                const drivers = <?php echo json_encode($drivers); ?>;
-                const defaultLat = 14.65067;
-                const defaultLon = 121.04719;
-                const map = L.map('dispatchMap').setView([defaultLat, defaultLon], 17);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '© OpenStreetMap contributors'
-                }).addTo(map);
-                L.control.scale({
-                    position: 'bottomleft',
-                    metric: true,
-                    imperial: true,
-                    maxWidth: 200
-                }).addTo(map);
+                document.addEventListener('DOMContentLoaded', function() {
+                    const vehicles = <?php echo json_encode($vehicles); ?>;
+                    const drivers = <?php echo json_encode($drivers); ?>;
+                    const defaultLat = 14.65067;
+                    const defaultLon = 121.04719;
+                    const map = L.map('dispatchMap').setView([defaultLat, defaultLon], 17);
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(map);
+                    L.control.scale({
+                        position: 'bottomleft',
+                        metric: true,
+                        imperial: true,
+                        maxWidth: 200
+                    }).addTo(map);
 
-                let markers = [];
-                let polylines = [];
-                let poiMarkers = [];
-                let pois = [];
+                    let markers = [];
+                    let polylines = [];
+                    let poiMarkers = [];
+                    let pois = [];
 
-                function clearMap() {
-                    markers.forEach(m => map.removeLayer(m));
-                    polylines.forEach(l => map.removeLayer(l));
-                    markers = [];
-                    polylines = [];
-                }
-                function clearPOIMarkers() {
-                    poiMarkers.forEach(m => map.removeLayer(m));
-                    poiMarkers = [];
-                }
-                function addDispatchMarkers(dispatches) {
-                    dispatches.forEach(function(d) {
-                        const vehicle = vehicles.find(v => v.id == d.vehicle_id);
-                        const driver = drivers.find(dr => dr.id == d.driver_id);
-                        // Origin marker
-                        const originMarker = L.marker([d.origin_lat, d.origin_lon], {
-                            title: 'Origin'
-                        }).addTo(map);
-                        originMarker.bindPopup('<b>Vehicle:</b> ' + (vehicle ? vehicle.vehicle_name : d.vehicle_id) + '<br><b>Driver:</b> ' + (driver ? driver.driver_name : d.driver_id) + '<br><b>Origin:</b> ' + (d.origin || '-') + '<br><b>Destination:</b> ' + (d.destination || '-') + '<br><b>Status:</b> ' + d.status);
-                        markers.push(originMarker);
-                        // Destination marker
-                        const destMarker = L.marker([d.destination_lat, d.destination_lon], {
-                            title: 'Destination',
-                            icon: L.icon({
-                                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-                                iconAnchor: [12, 41],
-                                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
-                            })
-                        }).addTo(map);
-                        destMarker.bindPopup('<b>Destination</b><br>' + (d.destination || '-'));
-                        markers.push(destMarker);
-                        // Draw line between origin and destination
-                        const poly = L.polyline([
-                            [d.origin_lat, d.origin_lon],
-                            [d.destination_lat, d.destination_lon]
-                        ], {color: 'blue', weight: 3, opacity: 0.7}).addTo(map);
-                        polylines.push(poly);
-                    });
-                }
-                function addPOIMarkers(poisArr) {
-                    poisArr.forEach(function(poi) {
-                        const marker = L.marker([parseFloat(poi.lat), parseFloat(poi.lon)], {
-                            title: poi.name,
-                            icon: L.icon({
-                                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-                                iconAnchor: [12, 41],
-                                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
-                            })
-                        }).addTo(map);
-                        marker.bindPopup('<b>' + poi.name + '</b><br>' + (poi.description || ''));
-                        poiMarkers.push(marker);
-                    });
-                }
-                function fetchAndUpdateDispatches() {
-                    fetch(window.location.pathname + '?ajax_ongoing_dispatches=1')
-                        .then(res => res.json())
-                        .then(data => {
-                            clearMap();
-                            addDispatchMarkers(data);
-                        });
-                }
-                function fetchAndShowPOIs() {
-                    fetch('js/custom_pois.json')
-                        .then(res => res.json())
-                        .then(data => {
-                            pois = data;
-                            clearPOIMarkers();
-                            addPOIMarkers(pois);
-                        });
-                }
-                // Add POI button logic
-                document.getElementById('addPoiBtn').onclick = function() {
-                    map.once('click', function(e) {
-                        const lat = e.latlng.lat;
-                        const lon = e.latlng.lng;
-                        const name = prompt('Enter POI name:');
-                        if (!name) return;
-                        const description = prompt('Enter POI description (optional):') || '';
-                        // Save to server via AJAX
-                        fetch(window.location.pathname + '?add_custom_poi=1', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({lat, lon, name, description})
-                        }).then(res => res.json()).then(resp => {
-                            if (resp.success) {
-                                fetchAndShowPOIs();
-                                alert('POI added!');
-                            } else {
-                                alert('Failed to add POI.');
-                            }
-                        });
-                    });
-                    alert('Click on the map to set POI location.');
-                };
-                // Search bar autocomplete
-                const searchInput = document.getElementById('mapSearch');
-                const suggestionsDiv = document.getElementById('searchSuggestions');
-                let searchTimeout = null;
-                searchInput.addEventListener('input', function() {
-                    const query = searchInput.value.trim();
-                    if (searchTimeout) clearTimeout(searchTimeout);
-                    if (query.length < 3) {
-                        suggestionsDiv.style.display = 'none';
-                        return;
+                    function clearMap() {
+                        markers.forEach(m => map.removeLayer(m));
+                        polylines.forEach(l => map.removeLayer(l));
+                        markers = [];
+                        polylines = [];
                     }
-                    searchTimeout = setTimeout(() => {
-                        fetch('https://corsproxy.io/?https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&q=' + encodeURIComponent(query))
+
+                    function clearPOIMarkers() {
+                        poiMarkers.forEach(m => map.removeLayer(m));
+                        poiMarkers = [];
+                    }
+
+                    function addDispatchMarkers(dispatches) {
+                        dispatches.forEach(function(d) {
+                            const vehicle = vehicles.find(v => v.id == d.vehicle_id);
+                            const driver = drivers.find(dr => dr.id == d.driver_id);
+                            // Origin marker
+                            const originMarker = L.marker([d.origin_lat, d.origin_lon], {
+                                title: 'Origin'
+                            }).addTo(map);
+                            originMarker.bindPopup('<b>Vehicle:</b> ' + (vehicle ? vehicle.vehicle_name : d.vehicle_id) + '<br><b>Driver:</b> ' + (driver ? driver.driver_name : d.driver_id) + '<br><b>Origin:</b> ' + (d.origin || '-') + '<br><b>Destination:</b> ' + (d.destination || '-') + '<br><b>Status:</b> ' + d.status);
+                            markers.push(originMarker);
+                            // Destination marker
+                            const destMarker = L.marker([d.destination_lat, d.destination_lon], {
+                                title: 'Destination',
+                                icon: L.icon({
+                                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+                                    iconAnchor: [12, 41],
+                                    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+                                })
+                            }).addTo(map);
+                            destMarker.bindPopup('<b>Destination</b><br>' + (d.destination || '-'));
+                            markers.push(destMarker);
+                            // Draw line between origin and destination
+                            const poly = L.polyline([
+                                [d.origin_lat, d.origin_lon],
+                                [d.destination_lat, d.destination_lon]
+                            ], {
+                                color: 'blue',
+                                weight: 3,
+                                opacity: 0.7
+                            }).addTo(map);
+                            polylines.push(poly);
+                        });
+                    }
+
+                    function addPOIMarkers(poisArr) {
+                        poisArr.forEach(function(poi) {
+                            const marker = L.marker([parseFloat(poi.lat), parseFloat(poi.lon)], {
+                                title: poi.name,
+                                icon: L.icon({
+                                    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                                    iconAnchor: [12, 41],
+                                    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+                                })
+                            }).addTo(map);
+                            marker.bindPopup('<b>' + poi.name + '</b><br>' + (poi.description || ''));
+                            poiMarkers.push(marker);
+                        });
+                    }
+
+                    function fetchAndUpdateDispatches() {
+                        fetch(window.location.pathname + '?ajax_ongoing_dispatches=1')
                             .then(res => res.json())
                             .then(data => {
-                                suggestionsDiv.innerHTML = '';
-                                data.slice(0, 8).forEach(place => {
-                                    const div = document.createElement('div');
-                                    div.textContent = place.display_name;
-                                    div.onclick = function() {
-                                        searchInput.value = place.display_name;
-                                        suggestionsDiv.style.display = 'none';
-                                        map.setView([parseFloat(place.lat), parseFloat(place.lon)], 17);
-                                    };
-                                    suggestionsDiv.appendChild(div);
-                                });
-                                if (suggestionsDiv.innerHTML !== '') {
-                                    suggestionsDiv.style.display = 'block';
+                                clearMap();
+                                addDispatchMarkers(data);
+                            });
+                    }
+
+                    function fetchAndShowPOIs() {
+                        fetch('js/custom_pois.json')
+                            .then(res => res.json())
+                            .then(data => {
+                                pois = data;
+                                clearPOIMarkers();
+                                addPOIMarkers(pois);
+                            });
+                    }
+                    // Add POI button logic
+                    document.getElementById('addPoiBtn').onclick = function() {
+                        map.once('click', function(e) {
+                            const lat = e.latlng.lat;
+                            const lon = e.latlng.lng;
+                            const name = prompt('Enter POI name:');
+                            if (!name) return;
+                            const description = prompt('Enter POI description (optional):') || '';
+                            // Save to server via AJAX
+                            fetch(window.location.pathname + '?add_custom_poi=1', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    lat,
+                                    lon,
+                                    name,
+                                    description
+                                })
+                            }).then(res => res.json()).then(resp => {
+                                if (resp.success) {
+                                    fetchAndShowPOIs();
+                                    alert('POI added!');
                                 } else {
-                                    suggestionsDiv.style.display = 'none';
+                                    alert('Failed to add POI.');
                                 }
                             });
-                    }, 300);
+                        });
+                        alert('Click on the map to set POI location.');
+                    };
+                    // Search bar autocomplete
+                    const searchInput = document.getElementById('mapSearch');
+                    const suggestionsDiv = document.getElementById('searchSuggestions');
+                    let searchTimeout = null;
+                    searchInput.addEventListener('input', function() {
+                        const query = searchInput.value.trim();
+                        if (searchTimeout) clearTimeout(searchTimeout);
+                        if (query.length < 3) {
+                            suggestionsDiv.style.display = 'none';
+                            return;
+                        }
+                        searchTimeout = setTimeout(() => {
+                            fetch('https://corsproxy.io/?https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&q=' + encodeURIComponent(query))
+                                .then(res => res.json())
+                                .then(data => {
+                                    suggestionsDiv.innerHTML = '';
+                                    data.slice(0, 8).forEach(place => {
+                                        const div = document.createElement('div');
+                                        div.textContent = place.display_name;
+                                        div.onclick = function() {
+                                            searchInput.value = place.display_name;
+                                            suggestionsDiv.style.display = 'none';
+                                            map.setView([parseFloat(place.lat), parseFloat(place.lon)], 17);
+                                        };
+                                        suggestionsDiv.appendChild(div);
+                                    });
+                                    if (suggestionsDiv.innerHTML !== '') {
+                                        suggestionsDiv.style.display = 'block';
+                                    } else {
+                                        suggestionsDiv.style.display = 'none';
+                                    }
+                                });
+                        }, 300);
+                    });
+                    document.addEventListener('click', function(e) {
+                        if (!suggestionsDiv.contains(e.target) && e.target !== searchInput) {
+                            suggestionsDiv.style.display = 'none';
+                        }
+                    });
+                    // Initial load
+                    addDispatchMarkers(<?php echo json_encode(array_values($ongoingDispatches)); ?>);
+                    fetchAndShowPOIs();
+                    setInterval(fetchAndUpdateDispatches, 10000);
                 });
-                document.addEventListener('click', function(e) {
-                    if (!suggestionsDiv.contains(e.target) && e.target !== searchInput) {
-                        suggestionsDiv.style.display = 'none';
-                    }
-                });
-                // Initial load
-                addDispatchMarkers(<?php echo json_encode(array_values($ongoingDispatches)); ?>);
-                fetchAndShowPOIs();
-                setInterval(fetchAndUpdateDispatches, 10000);
-            });
             </script>
             <style>
                 .osm-suggestions {
                     position: absolute;
-                    z-index: 1000;
+                    /* z-index: 1000; */
                     background: #fff;
                     border: 1px solid #ccc;
                     max-height: 180px;
@@ -484,6 +499,11 @@ function vrds_view($baseURL) {
 
                 .form-control {
                     position: relative;
+                }
+
+                .leaflet-container {
+                    z-index: 0 !important;
+                    /* push map behind UI elements */
                 }
             </style>
             <script>
@@ -661,7 +681,7 @@ function vrds_view($baseURL) {
     if (isset($_GET['ajax_ongoing_dispatches']) && $_GET['ajax_ongoing_dispatches'] == 1) {
         header('Content-Type: application/json');
         $dispatches = fetchAll('dispatches');
-        $ongoing = array_filter($dispatches, function($d) {
+        $ongoing = array_filter($dispatches, function ($d) {
             return $d['status'] === 'Ongoing' && isset($d['origin_lat'], $d['origin_lon'], $d['destination_lat'], $d['destination_lon']);
         });
         echo json_encode(array_values($ongoing));
