@@ -33,14 +33,26 @@ shadow-xl transform -translate-x-full md:transform-none md:translate-x-0 z-40 h-
       </a>
 
 
-
       <!-- Section Label -->
       <div class="px-4 py-2 mt-4">
         <span class="text-xs font-semibold uppercase tracking-wider text-blue-300 sidebar-text">Operations</span>
       </div>
 
-      <!-- Fleet & Vehicle Management -->
-      <!-- <div class="collapse group">
+      <?php if (in_array($role, ['requester', 'user'])): ?>
+        <a href="./dashboard.php?module=my_requests" class="block">
+          <div class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all hover:bg-blue-600/50 text-white group">
+            <div class="p-1.5 rounded-lg bg-blue-800/30 group-hover:bg-blue-700/50 transition-colors">
+              <i data-lucide="calendar-clock" class="w-5 h-5 text-[#F7B32B] group-hover:text-white"></i>
+            </div>
+            <span class="ml-3 sidebar-text">My Requests</span>
+          </div>
+        </a>
+      <?php endif; ?>
+
+      <?php if (in_array($role, ['admin', 'manager', 'supervisor', 'fleet_manager'])): ?>
+
+        <!-- Fleet & Vehicle Management -->
+        <!-- <div class="collapse group">
         <input type="checkbox" class="peer" />
         <div class="collapse-title flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-all peer-checked:bg-blue-600/50 text-white group">
           <div class="flex items-center">
@@ -67,16 +79,16 @@ shadow-xl transform -translate-x-full md:transform-none md:translate-x-0 z-40 h-
           </a>
         </div>
       </div> -->
-      <a href="./dashboard.php?module=fvm" class="block">
-        <div class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all hover:bg-blue-600/50 text-white group">
-          <div class="p-1.5 rounded-lg bg-blue-800/30 group-hover:bg-blue-700/50 transition-colors">
-            <i data-lucide="car-front" class="w-5 h-5 text-[#F7B32B] group-hover:text-white"></i>
+        <a href="./dashboard.php?module=fvm" class="block">
+          <div class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all hover:bg-blue-600/50 text-white group">
+            <div class="p-1.5 rounded-lg bg-blue-800/30 group-hover:bg-blue-700/50 transition-colors">
+              <i data-lucide="car-front" class="w-5 h-5 text-[#F7B32B] group-hover:text-white"></i>
+            </div>
+            <span class="ml-3 sidebar-text">Fleet & Vehicle Management</span>
           </div>
-          <span class="ml-3 sidebar-text">Fleet & Vehicle Management</span>
-        </div>
-      </a>
-      <!-- Vehicle Routing & Dispatch -->
-      <!-- <div class="collapse group">
+        </a>
+        <!-- Vehicle Routing & Dispatch -->
+        <!-- <div class="collapse group">
         <input type="checkbox" class="peer" />
         <div class="collapse-title flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-all peer-checked:bg-blue-600/50 text-white group">
           <div class="flex items-center">
@@ -102,17 +114,17 @@ shadow-xl transform -translate-x-full md:transform-none md:translate-x-0 z-40 h-
           </a>
         </div>
       </div> -->
-      <a href="./dashboard.php?module=vrds" class="block">
-        <div class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all hover:bg-blue-600/50 text-white group">
-          <div class="p-1.5 rounded-lg bg-blue-800/30 group-hover:bg-blue-700/50 transition-colors">
-            <i data-lucide="calendar-clock" class="w-5 h-5 text-[#F7B32B] group-hover:text-white"></i>
+        <a href="./dashboard.php?module=vrds" class="block">
+          <div class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all hover:bg-blue-600/50 text-white group">
+            <div class="p-1.5 rounded-lg bg-blue-800/30 group-hover:bg-blue-700/50 transition-colors">
+              <i data-lucide="calendar-clock" class="w-5 h-5 text-[#F7B32B] group-hover:text-white"></i>
+            </div>
+            <span class="ml-3 sidebar-text">Vehicle Reservation & Dispatch</span>
           </div>
-          <span class="ml-3 sidebar-text">Vehicle Reservation & Dispatch</span>
-        </div>
-      </a>
+        </a>
 
-      <!-- Driver & Trip Performance -->
-      <!-- <div class="collapse group">
+        <!-- Driver & Trip Performance -->
+        <!-- <div class="collapse group">
         <input type="checkbox" class="peer" />
         <div class="collapse-title flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-all peer-checked:bg-blue-600/50 text-white group">
           <div class="flex items-center">
@@ -139,17 +151,17 @@ shadow-xl transform -translate-x-full md:transform-none md:translate-x-0 z-40 h-
           </a>
         </div>
       </div> -->
-      <a href="./dashboard.php?module=driver_trip" class="block">
-        <div class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all hover:bg-blue-600/50 text-white group">
-          <div class="p-1.5 rounded-lg bg-blue-800/30 group-hover:bg-blue-700/50 transition-colors">
-            <i data-lucide="gauge" class="w-5 h-5 text-[#F7B32B] group-hover:text-white"></i>
+        <a href="./dashboard.php?module=driver_trip" class="block">
+          <div class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all hover:bg-blue-600/50 text-white group">
+            <div class="p-1.5 rounded-lg bg-blue-800/30 group-hover:bg-blue-700/50 transition-colors">
+              <i data-lucide="gauge" class="w-5 h-5 text-[#F7B32B] group-hover:text-white"></i>
+            </div>
+            <span class="ml-3 sidebar-text">Driver & Trip Performance</span>
           </div>
-          <span class="ml-3 sidebar-text">Driver & Trip Performance</span>
-        </div>
-      </a>
+        </a>
 
-      <!-- Transport Cost Analysis & Optimization -->
-      <!-- <div class="collapse group">
+        <!-- Transport Cost Analysis & Optimization -->
+        <!-- <div class="collapse group">
         <input type="checkbox" class="peer" />
         <div class="collapse-title flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-all peer-checked:bg-blue-600/50 text-white group">
           <div class="flex items-center">
@@ -176,47 +188,46 @@ shadow-xl transform -translate-x-full md:transform-none md:translate-x-0 z-40 h-
           </a>
         </div>
       </div> -->
-      <a href="./dashboard.php?module=tcao" class="block">
-        <div class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all hover:bg-blue-600/50 text-white group">
-          <div class="p-1.5 rounded-lg bg-blue-800/30 group-hover:bg-blue-700/50 transition-colors">
-            <i data-lucide="chart-line" class="w-5 h-5 text-[#F7B32B] group-hover:text-white"></i>
+        <a href="./dashboard.php?module=tcao" class="block">
+          <div class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all hover:bg-blue-600/50 text-white group">
+            <div class="p-1.5 rounded-lg bg-blue-800/30 group-hover:bg-blue-700/50 transition-colors">
+              <i data-lucide="chart-line" class="w-5 h-5 text-[#F7B32B] group-hover:text-white"></i>
+            </div>
+            <span class="ml-3 sidebar-text">Transport Cost Analysis & Optimization</span>
           </div>
-          <span class="ml-3 sidebar-text">Transport Cost Analysis & Optimization</span>
-        </div>
-      </a>
+        </a>
+      <?php endif; ?>
 
-      <?php
-      if ($_SESSION['role'] === 'admin') {
-        echo '
-        <!-- Other menu items -->
+
+      <!-- Admin Section (Visible only to admin users) -->
+      <?php if ($_SESSION['role'] === 'admin'): ?>
+
+        <!-- Section Label -->
+        <div class="px-4 py-2 mt-4">
+          <span class="text-xs font-semibold uppercase tracking-wider text-blue-300 sidebar-text">Admin</span>
+        </div>
+
+        <!-- User Management -->
         <a href="./dashboard.php?module=user_management" class="block">
-          <div class="flex items"> </div>
-
-      <!-- Section Label -->
-      <div class="px-4 py-2 mt-4">
-        <span class="text-xs font-semibold uppercase tracking-wider text-blue-300 sidebar-text">Admin</span>
-      </div>
-
-      <!-- Other menu items -->
-      <a href="./dashboard.php?module=user_management" class="block">
-        <div class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all hover:bg-blue-600/50 text-white group">
-          <div class="p-1.5 rounded-lg bg-blue-800/30 group-hover:bg-blue-700/50 transition-colors">
-            <i data-lucide="users" class="w-5 h-5 text-[#F7B32B] group-hover:text-white"></i>
+          <div class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all hover:bg-blue-600/50 text-white group">
+            <div class="p-1.5 rounded-lg bg-blue-800/30 group-hover:bg-blue-700/50 transition-colors">
+              <i data-lucide="users" class="w-5 h-5 text-[#F7B32B] group-hover:text-white"></i>
+            </div>
+            <span class="ml-3 sidebar-text">User Management</span>
           </div>
-          <span class="ml-3 sidebar-text">User Management</span>
-        </div>
-      </a>
+        </a>
 
-  <a href="./dashboard.php?module=audit_log" class="block">
-        <div class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all hover:bg-blue-600/50 text-white group">
-          <div class="p-1 rounded-lg bg-blue-800/30 group-hover:bg-blue-700/50 transition-colors">
-            <i data-lucide="square-activity" class="w-5 h-5 text-[#F7B32B] group-hover:text-white"></i>
+        <!-- Audit Logs -->
+        <a href="./dashboard.php?module=audit_log" class="block">
+          <div class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all hover:bg-blue-600/50 text-white group">
+            <div class="p-1 rounded-lg bg-blue-800/30 group-hover:bg-blue-700/50 transition-colors">
+              <i data-lucide="square-activity" class="w-5 h-5 text-[#F7B32B] group-hover:text-white"></i>
+            </div>
+            <span class="ml-3 sidebar-text">Audit Logs</span>
           </div>
-          <span class="ml-3 sidebar-text">Audit Logs</span>
-        </div>
-      </a>';
-      }
-      ?>
+        </a>
+
+      <?php endif; ?>
     </nav>
   </div>
 </div>
