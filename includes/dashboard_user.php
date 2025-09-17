@@ -97,12 +97,6 @@ $user_pending_requests = $id ? get_user_pending_requests($id) : 0;
 
 <div class="grid grid-cols-1 gap-6 mt-8">
   <div class="card bg-base-100 shadow p-6 flex flex-col items-center">
-    <div class="text-xl font-bold mb-2"><i data-lucide="user" class="inline w-6 h-6 mr-2"></i>Profile Info</div>
-    <div class="mb-2">Name: <b><?php echo htmlspecialchars($full_name ?? ''); ?></b></div>
-    <div class="mb-2">EID: <b><?php echo htmlspecialchars($id ?? ''); ?></b></div>
-    <div class="mb-2">Role: <b><?php echo htmlspecialchars($role ?? ''); ?></b></div>
-  </div>
-  <div class="card bg-base-100 shadow p-6 flex flex-col items-center">
     <div class="text-xl font-bold mb-2"><i data-lucide="plus-circle" class="inline w-6 h-6 mr-2"></i>Quick Actions</div>
     <div class="flex gap-4">
       <a href="dashboard.php?module=vrds" class="btn btn-primary">Request Vehicle</a>
