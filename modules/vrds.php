@@ -305,7 +305,7 @@ function vrds_view($baseURL)
             <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
             <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-            <link href="https://cdn.jsdelivr.net/npm/daisyui@4.0.0/dist/full.css" rel="stylesheet" type="text/css" />
+            <!-- <link href="https://cdn.jsdelivr.net/npm/daisyui@4.0.0/dist/full.css" rel="stylesheet" type="text/css" /> -->
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
                     const vehicles = <?php echo json_encode($vehicles); ?>;

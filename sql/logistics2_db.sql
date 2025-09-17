@@ -464,6 +464,7 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `eid`, `full_name`, `email`, `password`, `role`, `created_at`) VALUES
 (1, 'S250701', 'admin', 'froilan.respicio2021@gmail.com', '$2y$10$jIX3O6u91NS/77OMfeFYieOa7n2G9MAKSdmYFmz3nMwudlo652XTS', 'admin', '2025-08-30 08:37:43'),
+(2, 'S250702', 'Juan Dela Cruz', 'danielzabat01@gmail.com', '$2y$10$EPiNvDrT8aKDFTmHIl5vnuq/UBbmmhOOe7Ov5NpqmETHoYzorZuc6', 'admin', '2025-08-30 09:51:12'),
 (6, 'M250706', 'gusion', 'cringey.ch@gmail.com', '$2y$10$EPiNvDrT8aKDFTmHIl5vnuq/UBbmmhOOe7Ov5NpqmETHoYzorZuc6', 'manager', '2025-08-30 09:51:12'),
 (21, 'R250721', 'Leonard Manicdo', 'leonardomanicdo119@gmail.com', '$2y$10$JrUQhjXMQHfyKrq55oFHrOxxqNX2r0rAY0g8BteDBEYOjli6sE0..', 'requester', '2025-09-14 19:49:20'),
 (22, 'D250722', 'Jerome Adrian Ragas', 'jeromeadrianragas@gmail.com', '$2y$10$5NUbZkgUZ5UBnTKulfrxs.rGBfnfqgmSKHu43Evboa2OdEWUeYfxK', 'driver', '2025-09-14 19:56:24'),
@@ -476,7 +477,7 @@ INSERT INTO `users` (`id`, `eid`, `full_name`, `email`, `password`, `role`, `cre
 --
 
 CREATE TABLE `vehicle_requests` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `requester_id` int(11) NOT NULL,
   `request_date` datetime NOT NULL,
   `reservation_date` date DEFAULT NULL,
