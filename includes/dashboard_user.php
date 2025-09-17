@@ -105,7 +105,6 @@ $user_pending_requests = $id ? get_user_pending_requests($id) : 0;
   <div class="card bg-base-100 shadow p-6 flex flex-col items-center">
     <div class="text-xl font-bold mb-2"><i data-lucide="plus-circle" class="inline w-6 h-6 mr-2"></i>Quick Actions</div>
     <div class="flex gap-4">
-      <a href="dashboard.php?module=driver_trip" class="btn btn-primary">View My Trips</a>
       <a href="dashboard.php?module=vrds" class="btn btn-primary">Request Vehicle</a>
     </div>
   </div>
