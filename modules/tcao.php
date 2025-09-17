@@ -3,7 +3,7 @@
 
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/audit_log.php';
-require_once __DIR__ . '/../includes/modules_logic.php';
+require_once __DIR__ . '/../includes/tcao_logic.php';
 
 
 function tcao_view($baseURL)
@@ -130,117 +130,198 @@ function tcao_view($baseURL)
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
                 <h3 class="font-bold text-lg mb-4">Cost Log</h3>
-                    <?php
-                    // Pagination logic
-                    $page = isset($_GET['cost_page']) ? max(1, intval($_GET['cost_page'])) : 1;
-                    $perPage = 10;
-                    $totalCosts = count($costs);
-                    $totalPages = ceil($totalCosts / $perPage);
-                    $start = ($page - 1) * $perPage;
-                    $pagedCosts = array_slice($costs, $start, $perPage);
-                    ?>
-                    <form method="POST" action="<?= htmlspecialchars($baseURL) ?>">
-                        <button type="submit" name="clear_cost_logs" class="btn btn-error mb-2" onclick="return confirm('Clear all cost logs?')">Clear Log</button>
-                        <div class="overflow-x-auto">
-                            <table class="table table-zebra w-full">
-                                <thead>
+                <?php
+                // Pagination logic
+                $page = isset($_GET['cost_page']) ? max(1, intval($_GET['cost_page'])) : 1;
+                $perPage = 10;
+                $totalCosts = count($costs);
+                $totalPages = ceil($totalCosts / $perPage);
+                $start = ($page - 1) * $perPage;
+                $pagedCosts = array_slice($costs, $start, $perPage);
+                ?>
+                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>">
+                    <button type="submit" name="clear_cost_logs" class="btn btn-error mb-2" onclick="return confirm('Clear all cost logs?')">Clear Log</button>
+                    <div class="overflow-x-auto">
+                        <table class="table table-zebra w-full">
+                            <thead>
+                                <tr>
+                                    <th>Trip ID</th>
+                                    <th>Fuel</th>
+                                    <th>Toll</th>
+                                    <th>Other</th>
+                                    <th>Total</th>
+                                    <th>Receipt</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($pagedCosts as $c): ?>
                                     <tr>
-                                        <th>Trip ID</th>
-                                        <th>Fuel</th>
-                                        <th>Toll</th>
-                                        <th>Other</th>
-                                        <th>Total</th>
-                                        <th>Receipt</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
+                                        <td><?= htmlspecialchars($c['trip_id']) ?></td>
+                                        <td><?= $currency, number_format($c['fuel_cost'], 2) ?></td>
+                                        <td><?= $currency, number_format($c['toll_fees'], 2) ?></td>
+                                        <td><?= $currency, number_format($c['other_expenses'], 2) ?></td>
+                                        <td>
+                                            <?php if (!empty($c['receipt'])): ?>
+                                                <a href="./uploads/<?= htmlspecialchars($c['receipt']) ?>" target="_blank">View</a>
+                                            <?php else: ?>
+                                                <span class="text-gray-400">None</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-<?=
+                                                                        $c['status'] === 'submitted' ? 'info' : ($c['status'] === 'supervisor_approved' ? 'primary' : ($c['status'] === 'finalized' ? 'success' : ($c['status'] === 'returned' ? 'error' : 'secondary')))
+                                                                        ?>">
+                                                <?= htmlspecialchars(ucwords(str_replace('_', ' ', $c['status']))) ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <?php if ($role === 'supervisor' && $c['status'] === 'submitted'): ?>
+                                                <a href="<?= htmlspecialchars($baseURL . '&approve=' . $c['id'] . '&role=supervisor') ?>" class="btn btn-xs btn-success">Approve</a>
+                                                <a href="<?= htmlspecialchars($baseURL . '&return=' . $c['id'] . '&role=supervisor') ?>" class="btn btn-xs btn-warning">Return</a>
+                                            <?php elseif ($role === 'accountant' && $c['status'] === 'supervisor_approved'): ?>
+                                                <a href="<?= htmlspecialchars($baseURL . '&approve=' . $c['id'] . '&role=accountant') ?>" class="btn btn-xs btn-success">Finalize</a>
+                                                <a href="<?= htmlspecialchars($baseURL . '&return=' . $c['id'] . '&role=accountant') ?>" class="btn btn-xs btn-warning">Return</a>
+                                            <?php elseif ($role === 'driver' && $c['status'] === 'returned' && $c['created_by'] === $user): ?>
+                                                <span class="text-warning">Returned for correction</span>
+                                            <?php endif; ?>
+                                            <?php if ($role === 'admin'): ?>
+                                                <a href="<?= htmlspecialchars($baseURL . '&delete=' . $c['id']) ?>" class="btn btn-xs btn-error" onclick="return confirm('Delete this cost record?')">Delete</a>
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($pagedCosts as $c): ?>
-                                        <tr>
-                                            <td><?= htmlspecialchars($c['trip_id']) ?></td>
-                                            <td><?= $currency, number_format($c['fuel_cost'], 2) ?></td>
-                                            <td><?= $currency, number_format($c['toll_fees'], 2) ?></td>
-                                            <td><?= $currency, number_format($c['other_expenses'], 2) ?></td>
-                                            <td>
-                                                <?php if (!empty($c['receipt'])): ?>
-                                                    <a href="./uploads/<?= htmlspecialchars($c['receipt']) ?>" target="_blank">View</a>
-                                                <?php else: ?>
-                                                    <span class="text-gray-400">None</span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <span class="badge badge-<?=
-                                                    $c['status'] === 'submitted' ? 'info' : ($c['status'] === 'supervisor_approved' ? 'primary' : ($c['status'] === 'finalized' ? 'success' : ($c['status'] === 'returned' ? 'error' : 'secondary')))
-                                                ?>">
-                                                    <?= htmlspecialchars(ucwords(str_replace('_', ' ', $c['status']))) ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <?php if ($role === 'supervisor' && $c['status'] === 'submitted'): ?>
-                                                    <a href="<?= htmlspecialchars($baseURL . '&approve=' . $c['id'] . '&role=supervisor') ?>" class="btn btn-xs btn-success">Approve</a>
-                                                    <a href="<?= htmlspecialchars($baseURL . '&return=' . $c['id'] . '&role=supervisor') ?>" class="btn btn-xs btn-warning">Return</a>
-                                                <?php elseif ($role === 'accountant' && $c['status'] === 'supervisor_approved'): ?>
-                                                    <a href="<?= htmlspecialchars($baseURL . '&approve=' . $c['id'] . '&role=accountant') ?>" class="btn btn-xs btn-success">Finalize</a>
-                                                    <a href="<?= htmlspecialchars($baseURL . '&return=' . $c['id'] . '&role=accountant') ?>" class="btn btn-xs btn-warning">Return</a>
-                                                <?php elseif ($role === 'driver' && $c['status'] === 'returned' && $c['created_by'] === $user): ?>
-                                                    <span class="text-warning">Returned for correction</span>
-                                                <?php endif; ?>
-                                                <?php if ($role === 'admin'): ?>
-                                                    <a href="<?= htmlspecialchars($baseURL . '&delete=' . $c['id']) ?>" class="btn btn-xs btn-error" onclick="return confirm('Delete this cost record?')">Delete</a>
-                                                <?php endif; ?>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </form>
-                    <!-- Pagination Controls -->
-                    <div class="flex justify-center mt-4 gap-2" id="costLogPagination">
-                        <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-                            <a href="#" onclick="openCostLogPage(<?= $p ?>); return false;" class="btn btn-xs <?= $p == $page ? 'btn-primary' : 'btn-outline' ?>">Page <?= $p ?></a>
-                        <?php endfor; ?>
-                    </div>
-                </div>
-                <script src="./js/ajax-pagination.js"></script>
-                <script>
-                function openCostLogPage(page) {
-                    ajaxPaginateModal('cost_log_modal', '<?= htmlspecialchars($baseURL) ?>', 'cost_page', page, '.cost-log-content');
-                }
-                </script>
+                                <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
                 </form>
-            <form method="dialog" class="modal-backdrop">
-                <button>close</button>
-            </form>
-        </dialog>
+                <!-- Pagination Controls -->
+                <div class="flex justify-center mt-4 gap-2" id="costLogPagination">
+                    <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+                        <a href="#" onclick="openCostLogPage(<?= $p ?>); return false;" class="btn btn-xs <?= $p == $page ? 'btn-primary' : 'btn-outline' ?>">Page <?= $p ?></a>
+                    <?php endfor; ?>
+                </div>
+            </div>
+            <script src="./js/ajax-pagination.js"></script>
+            <script>
+                function openCostLogPage(page) {
+                    ajaxPaginateModal('cost_log_modal', '<?= htmlspecialchars($baseURL) ?>', 'cost_page', page, '.cost-log-content');
+                }
+            </script>
+            </tbody>
+            </table>
+    </div>
+    </form>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+    </dialog>
 
 
-        <h3 class="text-lg font-bold mt-6">Key Performance Indicators</h3>
-        <!-- Key Performance Indicators Section to see driver list, vehicle list, and date range-->
-        <?php include __DIR__ . '/../includes/tcao-kpi.php'; ?>
-        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-4">
+    <h3 class="text-lg font-bold mt-6">Key Performance Indicators</h3>
+    <!-- Key Performance Indicators Section to see driver list, vehicle list, and date range-->
+    <?php include __DIR__ . '/../includes/tcao-kpi.php'; ?>
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-4">
 
-            <!-- Avg Cost per km -->
+        <!-- Avg Cost per km -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h4 class="card-title">Avg Cost per km</h4>
+                <p class="text-2xl font-bold text-primary">
+                    ₱<?= number_format($avgCostPerKm, 2) ?>
+                </p>
+            </div>
+        </div>
+
+        <!-- Avg Cost per Trip -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h4 class="card-title">Avg Cost per Trip</h4>
+                <p class="text-2xl font-bold text-secondary">
+                    ₱<?= number_format($avgCostPerTrip, 2) ?>
+                </p>
+            </div>
+        </div>
+
+        <!-- Load Utilization -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h4 class="card-title">Load Utilization</h4>
+                <p class="text-2xl font-bold text-success">
+                    <?= number_format($avgLoadUtilization, 1) ?>%
+                </p>
+            </div>
+        </div>
+
+        <!-- Fuel Share of Total Cost -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h4 class="card-title">Fuel % of Cost</h4>
+                <p class="text-2xl font-bold text-warning">
+                    <?= number_format($fuelShare, 1) ?>%
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <h3 class="text-lg font-bold mt-6">Visual Analysis</h3>
+
+    <!-- Driver, Vehicle, Date Filters -->
+    <div class="flex flex-wrap gap-4 mb-6 items-end">
+        <form method="GET" class="flex flex-wrap gap-4 mb-6 items-end">
+            <input type="hidden" name="module" value="tcao">
+            <div>
+                <label class="label"><span class="label-text">Driver</span></label>
+                <select name="filter_driver" class="select select-bordered w-48">
+                    <option value="">All Drivers</option>
+                    <?php foreach ($drivers as $d): ?>
+                        <option value="<?= $d['id'] ?>" <?= ($filterDriver == $d['id'] ? 'selected' : '') ?>><?= htmlspecialchars($d['driver_name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div>
+                <label class="label"><span class="label-text">Vehicle</span></label>
+                <select name="filter_vehicle" class="select select-bordered w-48">
+                    <option value="">All Vehicles</option>
+                    <?php foreach ($vehicles as $v): ?>
+                        <option value="<?= $v['id'] ?>" <?= ($filterVehicle == $v['id'] ? 'selected' : '') ?>><?= htmlspecialchars($v['vehicle_name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="flex flex-col md:flex-row gap-3">
+                <label class="label"><span class="label-text">Date Range</span></label>
+                <input type="date" name="filter_start" class="input input-bordered w-40" value="<?= htmlspecialchars($filterStart) ?>">
+                <span class="mx-auto md:mx-2 my-auto">to</span>
+                <input type="date" name="filter_end" class="input input-bordered w-40" value="<?= htmlspecialchars($filterEnd) ?>">
+            </div>
+            <button type="submit" class="btn btn-primary">Apply</button>
+        </form>
+        <!-- end of filters -->
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2 w-full">
+
+            <!-- Cost per Trip -->
             <div class="card bg-base-100 shadow-xl">
                 <div class="card-body">
-                    <h4 class="card-title">Avg Cost per km</h4>
-                    <p class="text-2xl font-bold text-primary">
-                        ₱<?= number_format($avgCostPerKm, 2) ?>
-                    </p>
+                    <h4 class="card-title">Cost per Trip</h4>
+                    <canvas id="costPerTripChart"></canvas>
                 </div>
             </div>
 
-            <!-- Avg Cost per Trip -->
+            <!-- Cost Breakdown -->
             <div class="card bg-base-100 shadow-xl">
                 <div class="card-body">
-                    <h4 class="card-title">Avg Cost per Trip</h4>
-                    <p class="text-2xl font-bold text-secondary">
-                        ₱<?= number_format($avgCostPerTrip, 2) ?>
-                    </p>
+                    <h4 class="card-title">Cost Breakdown (All Trips)</h4>
+                    <canvas id="costBreakdownChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Cost per km -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h4 class="card-title">Cost per km</h4>
+                    <canvas id="costPerKmChart"></canvas>
                 </div>
             </div>
 
@@ -248,161 +329,80 @@ function tcao_view($baseURL)
             <div class="card bg-base-100 shadow-xl">
                 <div class="card-body">
                     <h4 class="card-title">Load Utilization</h4>
-                    <p class="text-2xl font-bold text-success">
-                        <?= number_format($avgLoadUtilization, 1) ?>%
-                    </p>
-                </div>
-            </div>
-
-            <!-- Fuel Share of Total Cost -->
-            <div class="card bg-base-100 shadow-xl">
-                <div class="card-body">
-                    <h4 class="card-title">Fuel % of Cost</h4>
-                    <p class="text-2xl font-bold text-warning">
-                        <?= number_format($fuelShare, 1) ?>%
-                    </p>
+                    <canvas id="loadUtilChart"></canvas>
                 </div>
             </div>
         </div>
 
-        <h3 class="text-lg font-bold mt-6">Visual Analysis</h3>
-
-        <!-- Driver, Vehicle, Date Filters -->
-        <div class="flex flex-wrap gap-4 mb-6 items-end">
-            <form method="GET" class="flex flex-wrap gap-4 mb-6 items-end">
-                <input type="hidden" name="module" value="tcao">
-                <div>
-                    <label class="label"><span class="label-text">Driver</span></label>
-                    <select name="filter_driver" class="select select-bordered w-48">
-                        <option value="">All Drivers</option>
-                        <?php foreach ($drivers as $d): ?>
-                            <option value="<?= $d['id'] ?>" <?= ($filterDriver == $d['id'] ? 'selected' : '') ?>><?= htmlspecialchars($d['driver_name']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div>
-                    <label class="label"><span class="label-text">Vehicle</span></label>
-                    <select name="filter_vehicle" class="select select-bordered w-48">
-                        <option value="">All Vehicles</option>
-                        <?php foreach ($vehicles as $v): ?>
-                            <option value="<?= $v['id'] ?>" <?= ($filterVehicle == $v['id'] ? 'selected' : '') ?>><?= htmlspecialchars($v['vehicle_name']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="flex flex-col md:flex-row gap-3">
-                    <label class="label"><span class="label-text">Date Range</span></label>
-                    <input type="date" name="filter_start" class="input input-bordered w-40" value="<?= htmlspecialchars($filterStart) ?>">
-                    <span class="mx-auto md:mx-2 my-auto">to</span>
-                    <input type="date" name="filter_end" class="input input-bordered w-40" value="<?= htmlspecialchars($filterEnd) ?>">
-                </div>
-                <button type="submit" class="btn btn-primary">Apply</button>
-            </form>
-            <!-- end of filters -->
-
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2 w-full">
-
-                <!-- Cost per Trip -->
-                <div class="card bg-base-100 shadow-xl">
-                    <div class="card-body">
-                        <h4 class="card-title">Cost per Trip</h4>
-                        <canvas id="costPerTripChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Cost Breakdown -->
-                <div class="card bg-base-100 shadow-xl">
-                    <div class="card-body">
-                        <h4 class="card-title">Cost Breakdown (All Trips)</h4>
-                        <canvas id="costBreakdownChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Cost per km -->
-                <div class="card bg-base-100 shadow-xl">
-                    <div class="card-body">
-                        <h4 class="card-title">Cost per km</h4>
-                        <canvas id="costPerKmChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Load Utilization -->
-                <div class="card bg-base-100 shadow-xl">
-                    <div class="card-body">
-                        <h4 class="card-title">Load Utilization</h4>
-                        <canvas id="loadUtilChart"></canvas>
-                    </div>
-                </div>
-            </div>
 
 
-
-            <div class="overflow-x-auto mb-6">
-                <h3 class="text-lg font-bold">Transport Cost Analysis</h3>
-                <?php
-                // Pagination for Transport Cost Analysis
-                $tcPage    = isset($_GET['tc_page']) ? max(1, intval($_GET['tc_page'])) : 1;
-                $tcPerPage = 10; // rows per page
-                $tcTotal   = count($joinedData);
-                $tcPages   = ceil($tcTotal / $tcPerPage);
-                $tcStart   = ($tcPage - 1) * $tcPerPage;
-                $pagedJoinedData = array_slice($joinedData, $tcStart, $tcPerPage);
-                ?>
-                <table class="table table-zebra w-full">
-                    <thead>
+        <div class="overflow-x-auto mb-6">
+            <h3 class="text-lg font-bold">Transport Cost Analysis</h3>
+            <?php
+            // Pagination for Transport Cost Analysis
+            $tcPage    = isset($_GET['tc_page']) ? max(1, intval($_GET['tc_page'])) : 1;
+            $tcPerPage = 10; // rows per page
+            $tcTotal   = count($joinedData);
+            $tcPages   = ceil($tcTotal / $tcPerPage);
+            $tcStart   = ($tcPage - 1) * $tcPerPage;
+            $pagedJoinedData = array_slice($joinedData, $tcStart, $tcPerPage);
+            ?>
+            <table class="table table-zebra w-full">
+                <thead>
+                    <tr>
+                        <th>Trip ID</th>
+                        <th>Driver</th>
+                        <th>Distance (km)</th>
+                        <th>Cargo Weight (kg)</th>
+                        <th>Total Cost (<?= $currency ?>)</th>
+                        <th>Cost/km</th>
+                        <th>Cost/ton-km</th>
+                        <th>Load Utilization</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($pagedJoinedData as $row):
+                        $distance = floatval($row['distance_traveled'] ?: 0);
+                        $weight   = floatval($row['cargo_weight'] ?: 0);
+                        $capacity = floatval($row['vehicle_capacity'] ?: 1);
+                        $cost     = floatval($row['total_cost']);
+                        $costPerKm = $distance > 0 ? $cost / $distance : 0;
+                        $costPerTonKm = ($distance > 0 && $weight > 0) ? $cost / ($weight * $distance / 1000) : 0;
+                        $loadUtil = $capacity > 0 ? ($weight / $capacity) * 100 : 0;
+                    ?>
                         <tr>
-                            <th>Trip ID</th>
-                            <th>Driver</th>
-                            <th>Distance (km)</th>
-                            <th>Cargo Weight (kg)</th>
-                            <th>Total Cost (<?= $currency ?>)</th>
-                            <th>Cost/km</th>
-                            <th>Cost/ton-km</th>
-                            <th>Load Utilization</th>
+                            <td><?= $row['trip_id'] ?></td>
+                            <td><?= htmlspecialchars($row['driver_name'] ?? '') ?></td>
+                            <td><?= number_format($distance, 1) ?></td>
+                            <td><?= number_format($weight, 0) ?></td>
+                            <td><?= $currency, number_format($cost, 2) ?></td>
+                            <td><?= $currency, number_format($costPerKm, 2) ?></td>
+                            <td><?= $currency, number_format($costPerTonKm, 2) ?></td>
+                            <td><?= number_format($loadUtil, 1) ?>%</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($pagedJoinedData as $row):
-                            $distance = floatval($row['distance_traveled'] ?: 0);
-                            $weight   = floatval($row['cargo_weight'] ?: 0);
-                            $capacity = floatval($row['vehicle_capacity'] ?: 1);
-                            $cost     = floatval($row['total_cost']);
-                            $costPerKm = $distance > 0 ? $cost / $distance : 0;
-                            $costPerTonKm = ($distance > 0 && $weight > 0) ? $cost / ($weight * $distance / 1000) : 0;
-                            $loadUtil = $capacity > 0 ? ($weight / $capacity) * 100 : 0;
-                        ?>
-                            <tr>
-                                <td><?= $row['trip_id'] ?></td>
-                                <td><?= htmlspecialchars($row['driver_name'] ?? '') ?></td>
-                                <td><?= number_format($distance, 1) ?></td>
-                                <td><?= number_format($weight, 0) ?></td>
-                                <td><?= $currency, number_format($cost, 2) ?></td>
-                                <td><?= $currency, number_format($costPerKm, 2) ?></td>
-                                <td><?= $currency, number_format($costPerTonKm, 2) ?></td>
-                                <td><?= number_format($loadUtil, 1) ?>%</td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-                <?php
-                // Pagination controls
-                echo '<div class="flex justify-center mt-4 space-x-2 join">';
-                if ($tcPage > 1) {
-                    echo '<a href="dashboard.php?module=tcao&tc_page=' . ($tcPage - 1) . '" class="join-item btn btn-sm">Prev</a>';
-                }
-                for ($p = 1; $p <= $tcPages; $p++) {
-                    $active = ($p == $tcPage) ? 'btn-primary' : '';
-                    echo '<a href="dashboard.php?module=tcao&tc_page=' . $p . '" class="join-item btn btn-sm ' . $active . '">' . $p . '</a>';
-                }
-                if ($tcPage < $tcPages) {
-                    echo '<a href="dashboard.php?module=tcao&tc_page=' . ($tcPage + 1) . '" class="join-item btn btn-sm">Next</a>';
-                }
-                echo '</div>';
-                ?>
-            </div>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php
+            // Pagination controls
+            echo '<div class="flex justify-center mt-4 space-x-2 join">';
+            if ($tcPage > 1) {
+                echo '<a href="dashboard.php?module=tcao&tc_page=' . ($tcPage - 1) . '" class="join-item btn btn-sm">Prev</a>';
+            }
+            for ($p = 1; $p <= $tcPages; $p++) {
+                $active = ($p == $tcPage) ? 'btn-primary' : '';
+                echo '<a href="dashboard.php?module=tcao&tc_page=' . $p . '" class="join-item btn btn-sm ' . $active . '">' . $p . '</a>';
+            }
+            if ($tcPage < $tcPages) {
+                echo '<a href="dashboard.php?module=tcao&tc_page=' . ($tcPage + 1) . '" class="join-item btn btn-sm">Next</a>';
+            }
+            echo '</div>';
+            ?>
         </div>
+    </div>
 
 
-        <!--
+    <!--
 <h3 class="text-lg font-bold mt-6">Optimization Scenarios (What-If)</h3>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div class="card bg-base-100 shadow p-4">
@@ -423,107 +423,107 @@ function tcao_view($baseURL)
     </div>
 </div>
             -->
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script>
-            const tripLabels = <?= json_encode(array_column($joinedData, 'trip_id')) ?>;
-            const costData = <?= json_encode(array_column($joinedData, 'total_cost')) ?>;
-            const fuelData = <?= json_encode(array_column($joinedData, 'fuel_cost')) ?>;
-            const tollData = <?= json_encode(array_column($joinedData, 'toll_fees')) ?>;
-            const otherData = <?= json_encode(array_column($joinedData, 'other_expenses')) ?>;
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const tripLabels = <?= json_encode(array_column($joinedData, 'trip_id')) ?>;
+        const costData = <?= json_encode(array_column($joinedData, 'total_cost')) ?>;
+        const fuelData = <?= json_encode(array_column($joinedData, 'fuel_cost')) ?>;
+        const tollData = <?= json_encode(array_column($joinedData, 'toll_fees')) ?>;
+        const otherData = <?= json_encode(array_column($joinedData, 'other_expenses')) ?>;
 
-            // Derived metrics
-            const distanceData = <?= json_encode(array_column($joinedData, 'distance_traveled')) ?>;
-            const costPerKmData = costData.map((c, i) => distanceData[i] > 0 ? (c / distanceData[i]).toFixed(2) : 0);
-            const weightData = <?= json_encode(array_map(fn($r) => $r['cargo_weight'] ?? 0, $joinedData)) ?>;
-            const capacityData = <?= json_encode(array_map(fn($r) => $r['vehicle_capacity'] ?? 1, $joinedData)) ?>;
-            const loadUtilData = weightData.map((w, i) => capacityData[i] > 0 ? ((w / capacityData[i]) * 100).toFixed(1) : 0);
+        // Derived metrics
+        const distanceData = <?= json_encode(array_column($joinedData, 'distance_traveled')) ?>;
+        const costPerKmData = costData.map((c, i) => distanceData[i] > 0 ? (c / distanceData[i]).toFixed(2) : 0);
+        const weightData = <?= json_encode(array_map(fn($r) => $r['cargo_weight'] ?? 0, $joinedData)) ?>;
+        const capacityData = <?= json_encode(array_map(fn($r) => $r['vehicle_capacity'] ?? 1, $joinedData)) ?>;
+        const loadUtilData = weightData.map((w, i) => capacityData[i] > 0 ? ((w / capacityData[i]) * 100).toFixed(1) : 0);
 
-            // Chart 1: Cost per Trip
-            new Chart(document.getElementById('costPerTripChart'), {
-                type: 'bar',
-                data: {
-                    labels: tripLabels,
-                    datasets: [{
-                        label: 'Total Cost',
-                        data: costData,
-                        backgroundColor: 'rgba(59, 130, 246, 0.7)' // Tailwind blue-500
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
+        // Chart 1: Cost per Trip
+        new Chart(document.getElementById('costPerTripChart'), {
+            type: 'bar',
+            data: {
+                labels: tripLabels,
+                datasets: [{
+                    label: 'Total Cost',
+                    data: costData,
+                    backgroundColor: 'rgba(59, 130, 246, 0.7)' // Tailwind blue-500
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
                     }
                 }
-            });
+            }
+        });
 
-            // Chart 2: Cost Breakdown
-            new Chart(document.getElementById('costBreakdownChart'), {
-                type: 'pie',
-                data: {
-                    labels: ['Fuel', 'Toll', 'Other'],
-                    datasets: [{
-                        data: [
-                            fuelData.reduce((a, b) => a + parseFloat(b), 0),
-                            tollData.reduce((a, b) => a + parseFloat(b), 0),
-                            otherData.reduce((a, b) => a + parseFloat(b), 0)
-                        ],
-                        backgroundColor: [
-                            'rgba(34, 197, 94, 0.7)', // green-500
-                            'rgba(234, 179, 8, 0.7)', // yellow-500
-                            'rgba(239, 68, 68, 0.7)' // red-500
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true
-                }
-            });
+        // Chart 2: Cost Breakdown
+        new Chart(document.getElementById('costBreakdownChart'), {
+            type: 'pie',
+            data: {
+                labels: ['Fuel', 'Toll', 'Other'],
+                datasets: [{
+                    data: [
+                        fuelData.reduce((a, b) => a + parseFloat(b), 0),
+                        tollData.reduce((a, b) => a + parseFloat(b), 0),
+                        otherData.reduce((a, b) => a + parseFloat(b), 0)
+                    ],
+                    backgroundColor: [
+                        'rgba(34, 197, 94, 0.7)', // green-500
+                        'rgba(234, 179, 8, 0.7)', // yellow-500
+                        'rgba(239, 68, 68, 0.7)' // red-500
+                    ]
+                }]
+            },
+            options: {
+                responsive: true
+            }
+        });
 
-            // Chart 3: Cost per km
-            new Chart(document.getElementById('costPerKmChart'), {
-                type: 'line',
-                data: {
-                    labels: tripLabels,
-                    datasets: [{
-                        label: 'Cost per km',
-                        data: costPerKmData,
-                        borderColor: 'rgba(99, 102, 241, 0.9)', // indigo-500
-                        backgroundColor: 'rgba(99, 102, 241, 0.4)',
-                        fill: true,
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true
-                }
-            });
+        // Chart 3: Cost per km
+        new Chart(document.getElementById('costPerKmChart'), {
+            type: 'line',
+            data: {
+                labels: tripLabels,
+                datasets: [{
+                    label: 'Cost per km',
+                    data: costPerKmData,
+                    borderColor: 'rgba(99, 102, 241, 0.9)', // indigo-500
+                    backgroundColor: 'rgba(99, 102, 241, 0.4)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true
+            }
+        });
 
-            // Chart 4: Load Utilization
-            new Chart(document.getElementById('loadUtilChart'), {
-                type: 'bar',
-                data: {
-                    labels: tripLabels,
-                    datasets: [{
-                        label: 'Utilization %',
-                        data: loadUtilData,
-                        backgroundColor: 'rgba(16, 185, 129, 0.7)' // emerald-500
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100
-                        }
+        // Chart 4: Load Utilization
+        new Chart(document.getElementById('loadUtilChart'), {
+            type: 'bar',
+            data: {
+                labels: tripLabels,
+                datasets: [{
+                    label: 'Utilization %',
+                    data: loadUtilData,
+                    backgroundColor: 'rgba(16, 185, 129, 0.7)' // emerald-500
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
                     }
                 }
-            });
-        </script>
+            }
+        });
+    </script>
 
 
-    <?php
+<?php
 }
