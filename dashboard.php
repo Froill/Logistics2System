@@ -1,7 +1,8 @@
 <?php
 session_start();
-require __DIR__ . '/includes/security.php';
-require __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/security.php';
+require_once __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/ajax.php';
 
 $id = $_SESSION['user_id'];
 $eid = $_SESSION['eid'];
@@ -13,7 +14,7 @@ $role = $_SESSION['role'];
 $allowed_modules = [
   'dashboard' => 'Dashboard',
   'fvm' => 'Fleet & Vehicle Management',
-  'vrds' => 'Vehicle Routing & Dispatch',
+  'vrds' => 'Vehicle Reservation & Dispatch',
   'driver_trip' => 'Driver & Trip Performance',
   'tcao' => 'Transport Cost Analysis',
   'user_management' => 'User Management',
@@ -36,7 +37,7 @@ $baseURL = 'dashboard.php?module=' . $module;
 $moduleFile = __DIR__ . "/modules/{$module}.php";
 // Route dashboard view based on role
 if ($module === 'dashboard') {
-  if (in_array($role, ['admin', 'manager', 'supervisor', 'fleet_manager'])) {
+  if (in_array($role, ['admin', 'manager', 'supervisor', 'manager'])) {
     $dashboard_include = __DIR__ . '/includes/dashboard_admin.php';
   } else {
     $dashboard_include = __DIR__ . '/includes/dashboard_user.php';
@@ -155,7 +156,6 @@ if ($module === 'dashboard') {
   </dialog>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="./js/soliera.js"></script>
   <script src="./js/session-timeout.js"></script>

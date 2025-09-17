@@ -7,7 +7,7 @@ require_once __DIR__ . '/../includes/tcao_logic.php';
 
 
 function tcao_view($baseURL)
-{
+{   
     // Detect AJAX request
     $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
 
