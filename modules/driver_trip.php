@@ -343,6 +343,7 @@ function driver_trip_view($baseURL)
                     }
                 }
                 </script>
+                <!-- Trip Log Table -->
                 <div class="overflow-x-auto">
                     <table class="table table-zebra w-full">
                             <thead>

@@ -1,34 +1,25 @@
 <?php
 
 // VEHICLE RESERVATION AND DISPATCH SYSTEM (VRDS)
-
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/mailer.php';
 require_once __DIR__ . '/audit_log.php';
 require_once __DIR__ . '/../includes/vrds_logic.php';
-
+require_once __DIR__ . '/../includes/ajax.php';
 
 function vrds_view($baseURL)
 {
-
     vrds_logic($baseURL);
-
     $requests = fetchAll('vehicle_requests');
-
     $dispatches = fetchAll('dispatches');
-
     $vehicles = fetchAll('fleet_vehicles');
-
     $drivers = fetchAll('drivers');
 
     // Get unique vehicle types for dropdown
-
     $vehicle_types = [];
 
     foreach ($vehicles as $v) {
-
         if (!empty($v['vehicle_type']) && !in_array($v['vehicle_type'], $vehicle_types)) {
-
             $vehicle_types[] = $v['vehicle_type'];
         }
     }
@@ -39,8 +30,6 @@ function vrds_view($baseURL)
         return $d['status'] === 'Ongoing' && isset($d['origin_lat'], $d['origin_lon'], $d['destination_lat'], $d['destination_lon']);
     });
 ?>
-
-
 
     <div>
         <!-- OSM Map for Ongoing Dispatched Trips -->
@@ -298,13 +287,14 @@ function vrds_view($baseURL)
             <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
             <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+            <link href="https://cdn.jsdelivr.net/npm/daisyui@4.0.0/dist/full.css" rel="stylesheet" type="text/css" />
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
                     const vehicles = <?php echo json_encode($vehicles); ?>;
                     const drivers = <?php echo json_encode($drivers); ?>;
                     const defaultLat = 14.65067;
                     const defaultLon = 121.04719;
-                    const map = L.map('dispatchMap').setView([defaultLat, defaultLon], 17);
+                    const map = L.map('dispatchMap').setView([defaultLat, defaultLon], 14);
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                         maxZoom: 19,
                         attribution: '© OpenStreetMap contributors'
@@ -369,16 +359,20 @@ function vrds_view($baseURL)
 
                     function addPOIMarkers(poisArr) {
                         poisArr.forEach(function(poi) {
-                            const marker = L.marker([parseFloat(poi.lat), parseFloat(poi.lon)], {
-                                title: poi.name,
-                                icon: L.icon({
-                                    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-                                    iconAnchor: [12, 41],
-                                    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
-                                })
-                            }).addTo(map);
-                            marker.bindPopup('<b>' + poi.name + '</b><br>' + (poi.description || ''));
-                            poiMarkers.push(marker);
+                            let lat = typeof poi.lat === 'string' ? parseFloat(poi.lat) : poi.lat;
+                            let lon = typeof poi.lon === 'string' ? parseFloat(poi.lon) : poi.lon;
+                            if (!isNaN(lat) && !isNaN(lon)) {
+                                const marker = L.marker([lat, lon], {
+                                    title: poi.name,
+                                    icon: L.icon({
+                                        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                                        iconAnchor: [12, 41],
+                                        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+                                    })
+                                }).addTo(map);
+                                marker.bindPopup('<b>' + poi.name + '</b><br>' + (poi.description || ''));
+                                poiMarkers.push(marker);
+                            }
                         });
                     }
 
@@ -402,22 +396,28 @@ function vrds_view($baseURL)
                     }
                     // Add POI button logic
                     document.getElementById('addPoiBtn').onclick = function() {
-                        map.once('click', function(e) {
+                        // Prevent multiple listeners
+                        if (window._poiMapClickHandler) {
+                            map.off('click', window._poiMapClickHandler);
+                        }
+                        window._poiMapClickHandler = function(e) {
                             const lat = e.latlng.lat;
                             const lon = e.latlng.lng;
                             const name = prompt('Enter POI name:');
-                            if (!name) return;
+                            if (!name) {
+                                map.off('click', window._poiMapClickHandler);
+                                return;
+                            }
                             const description = prompt('Enter POI description (optional):') || '';
-                            // Save to server via AJAX
                             fetch(window.location.pathname + '?add_custom_poi=1', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json'
                                 },
                                 body: JSON.stringify({
+                                    name,
                                     lat,
                                     lon,
-                                    name,
                                     description
                                 })
                             }).then(res => res.json()).then(resp => {
@@ -427,8 +427,13 @@ function vrds_view($baseURL)
                                 } else {
                                     alert('Failed to add POI.');
                                 }
+                                map.off('click', window._poiMapClickHandler);
+                            }).catch(() => {
+                                alert('Failed to add POI.');
+                                map.off('click', window._poiMapClickHandler);
                             });
-                        });
+                        };
+                        map.on('click', window._poiMapClickHandler);
                         alert('Click on the map to set POI location.');
                     };
                     // Search bar autocomplete
@@ -538,28 +543,32 @@ function vrds_view($baseURL)
                                 suggestions.style.display = 'none';
                                 // Place marker on map
                                 if (map && poi.lat && poi.lon) {
-                                    const latlng = [parseFloat(poi.lat), parseFloat(poi.lon)];
-                                    if (markerType === 'origin') {
-                                        if (originMarker) originMarker.remove();
-                                        originMarker = L.marker(latlng, {
-                                            title: 'Origin',
-                                            icon: L.icon({
-                                                iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-                                                iconAnchor: [12, 41]
-                                            })
-                                        }).addTo(map);
-                                        map.setView(latlng, 13);
-                                    } else if (markerType === 'destination') {
-                                        if (destMarker) destMarker.remove();
-                                        destMarker = L.marker(latlng, {
-                                            title: 'Destination',
-                                            icon: L.icon({
-                                                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
-                                                iconAnchor: [12, 41],
-                                                shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
-                                            })
-                                        }).addTo(map);
-                                        map.setView(latlng, 13);
+                                    let lat = typeof poi.lat === 'string' ? parseFloat(poi.lat) : poi.lat;
+                                    let lon = typeof poi.lon === 'string' ? parseFloat(poi.lon) : poi.lon;
+                                    if (!isNaN(lat) && !isNaN(lon)) {
+                                        const latlng = [lat, lon];
+                                        if (markerType === 'origin') {
+                                            if (originMarker) originMarker.remove();
+                                            originMarker = L.marker(latlng, {
+                                                title: 'Origin',
+                                                icon: L.icon({
+                                                    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                                                    iconAnchor: [12, 41]
+                                                })
+                                            }).addTo(map);
+                                            map.setView(latlng, 13);
+                                        } else if (markerType === 'destination') {
+                                            if (destMarker) destMarker.remove();
+                                            destMarker = L.marker(latlng, {
+                                                title: 'Destination',
+                                                icon: L.icon({
+                                                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+                                                    iconAnchor: [12, 41],
+                                                    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+                                                })
+                                            }).addTo(map);
+                                            map.setView(latlng, 13);
+                                        }
                                     }
                                 }
                             };
@@ -639,15 +648,19 @@ function vrds_view($baseURL)
                             pois = data;
                             // Show POIs on map
                             pois.forEach(function(poi) {
-                                const marker = L.marker([poi.lat, poi.lon], {
-                                    title: poi.name,
-                                    icon: L.icon({
-                                        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-                                        iconAnchor: [12, 41],
-                                        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
-                                    })
-                                }).addTo(map);
-                                marker.bindPopup('<b>' + poi.name + '</b><br>' + poi.description);
+                                let lat = typeof poi.lat === 'string' ? parseFloat(poi.lat) : poi.lat;
+                                let lon = typeof poi.lon === 'string' ? parseFloat(poi.lon) : poi.lon;
+                                if (!isNaN(lat) && !isNaN(lon)) {
+                                    const marker = L.marker([lat, lon], {
+                                        title: poi.name,
+                                        icon: L.icon({
+                                            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                                            iconAnchor: [12, 41],
+                                            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+                                        })
+                                    }).addTo(map);
+                                    marker.bindPopup('<b>' + poi.name + '</b><br>' + (poi.description || ''));
+                                }
                             });
                             // Setup autocomplete after POIs are loaded
                             setupOSMAutocomplete('origin', 'origin-suggestions', 'origin');
@@ -677,37 +690,5 @@ function vrds_view($baseURL)
             </script>
         </div>
     <?php
-    // AJAX endpoint for real-time map updates
-    if (isset($_GET['ajax_ongoing_dispatches']) && $_GET['ajax_ongoing_dispatches'] == 1) {
-        header('Content-Type: application/json');
-        $dispatches = fetchAll('dispatches');
-        $ongoing = array_filter($dispatches, function ($d) {
-            return $d['status'] === 'Ongoing' && isset($d['origin_lat'], $d['origin_lon'], $d['destination_lat'], $d['destination_lon']);
-        });
-        echo json_encode(array_values($ongoing));
-        exit;
-    }
-    // AJAX endpoint to add a custom POI
-    if (isset($_GET['add_custom_poi']) && $_GET['add_custom_poi'] == 1 && $_SERVER['REQUEST_METHOD'] === 'POST') {
-        $input = json_decode(file_get_contents('php://input'), true);
-        $lat = isset($input['lat']) ? floatval($input['lat']) : null;
-        $lon = isset($input['lon']) ? floatval($input['lon']) : null;
-        $name = trim($input['name'] ?? '');
-        $description = trim($input['description'] ?? '');
-        if ($lat && $lon && $name) {
-            $poisFile = __DIR__ . '/../js/custom_pois.json';
-            $pois = file_exists($poisFile) ? json_decode(file_get_contents($poisFile), true) : [];
-            $pois[] = [
-                'lat' => $lat,
-                'lon' => $lon,
-                'name' => $name,
-                'description' => $description
-            ];
-            file_put_contents($poisFile, json_encode($pois, JSON_PRETTY_PRINT));
-            echo json_encode(['success' => true]);
-        } else {
-            echo json_encode(['success' => false]);
-        }
-        exit;
-    }
+    // (AJAX endpoints moved to top of file to prevent accidental HTML output)
 }

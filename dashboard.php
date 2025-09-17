@@ -5,7 +5,8 @@ if (!isset($_SESSION['user_id'])) {
   exit;
 }
 
-require __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/ajax.php';
 
 $id = $_SESSION['user_id'];
 $eid = $_SESSION['eid'];
@@ -17,7 +18,7 @@ $role = $_SESSION['role'];
 $allowed_modules = [
   'dashboard' => 'Dashboard',
   'fvm' => 'Fleet & Vehicle Management',
-  'vrds' => 'Vehicle Routing & Dispatch',
+  'vrds' => 'Vehicle Reservation & Dispatch',
   'driver_trip' => 'Driver & Trip Performance',
   'tcao' => 'Transport Cost Analysis',
   'user_management' => 'User Management',
@@ -139,7 +140,6 @@ if ($module === 'dashboard') {
   </dialog>
 
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="./js/soliera.js"></script>
 </body>

@@ -553,8 +553,8 @@ function fvm_view($baseURL)
             <table class="table table-zebra w-full" id="vehicleTable">
                 <thead>
                     <tr>
-                        <th>Vehicle Name</th>
-                        <th>License & Type</th>
+                        <th>Vehicle Name & Type</th>
+                        <th>License</th>
                         <th>Payload (kg)</th>
                         <th>Fuel Capacity (L)</th>
                         <th>Fuel Consumption (Last Dispatch)</th>
@@ -567,11 +567,11 @@ function fvm_view($baseURL)
                 <tbody id="vehicleBody">
                     <?php foreach ($vehicles as $v): ?>
                         <tr>
-                            <td><?= htmlspecialchars($v['vehicle_name']) ?></td>
                             <td>
-                                <div><?= htmlspecialchars($v['plate_number']) ?></div>
-                                <div><?= htmlspecialchars($v['vehicle_type'] ?? '-') ?></div>
+                                <div><?= htmlspecialchars($v['vehicle_name']) ?></div>
+                                <div><?= htmlspecialchars('('.$v['vehicle_type'].')' ?? '-') ?></div>
                             </td>
+                            <td><?= htmlspecialchars($v['plate_number']) ?></td>
                             <td><?= htmlspecialchars($v['weight_capacity'] ?? '-') ?>kg</td>
                             <td><?= htmlspecialchars($v['fuel_capacity'] ?? '-') ?>L</td>
                             <td class=" text-center">
