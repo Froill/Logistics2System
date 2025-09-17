@@ -1,10 +1,6 @@
 <?php
 session_start();
-if (!isset($_SESSION['user_id'])) {
-  header("Location: login.php");
-  exit;
-}
-
+require_once __DIR__ . '/includes/security.php';
 require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/ajax.php';
 
@@ -41,7 +37,7 @@ $baseURL = 'dashboard.php?module=' . $module;
 $moduleFile = __DIR__ . "/modules/{$module}.php";
 // Route dashboard view based on role
 if ($module === 'dashboard') {
-  if (in_array($role, ['admin', 'manager', 'supervisor', 'fleet_manager'])) {
+  if (in_array($role, ['admin', 'manager', 'supervisor', 'manager'])) {
     $dashboard_include = __DIR__ . '/includes/dashboard_admin.php';
   } else {
     $dashboard_include = __DIR__ . '/includes/dashboard_user.php';
@@ -139,9 +135,31 @@ if ($module === 'dashboard') {
     </form>
   </dialog>
 
+  <!-- Timeout Warning Modal -->
+  <dialog id="timeoutModal" class="modal">
+    <form method="dialog" class="modal-box text-center">
+      <div class="flex items-center gap-2 justify-center mb-3">
+        <i data-lucide="clock-fading" class="h-6 w-auto"></i>
+        <h3 class="font-bold text-lg">Session Expiring!</h3>
+      </div>
+
+      <p class="py-4">
+        You will be logged out in
+        <span id="countdown" class="font-mono text-error font-bold">30</span> seconds
+        due to inactivity.
+      </p>
+      <div class="modal-action justify-center">
+        <!-- "Stay Logged In" button resets activity -->
+        <button id="stayLoggedIn" class="btn btn-primary">Stay Logged In</button>
+      </div>
+    </form>
+  </dialog>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="./js/soliera.js"></script>
+  <script src="./js/session-timeout.js"></script>
+
 </body>
 
 </html>
