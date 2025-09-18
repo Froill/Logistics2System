@@ -82,6 +82,11 @@ function tcao_view($baseURL)
             <button class="btn btn-info" onclick="cost_log_modal.showModal()">
                 <i data-lucide="clipboard-list" class="w-4 h-4 mr-1"></i> Cost Log
             </button>
+            <form method="POST" style="display:inline;">
+                <button type="submit" name="export_cost_report" class="btn btn-success">
+                    <i data-lucide="download" class="w-4 h-4 mr-1"></i> Export Cost Analysis Report
+                </button>
+            </form>
         </div>
             <!--Add Cost Record modal -->
         <dialog id="tcao_modal" class="modal">

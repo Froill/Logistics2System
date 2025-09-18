@@ -89,4 +89,54 @@ function tcao_logic($baseURL)
         exit;
     }
 }
+// Export Cost Analysis Report (by month)
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_cost_report'])) {
+        $costs = fetchAll('transport_costs');
+        $allTrips = fetchAll('driver_trips');
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="transport_cost_analysis_report.csv"');
+        $output = fopen('php://output', 'w');
+        // CSV header
+        fputcsv($output, ['Month', 'Total Fuel Cost', 'Total Toll Fees', 'Total Other Expenses', 'Total Cost', 'Num Trips']);
+        // Group costs by month
+        $monthly = [];
+        foreach ($costs as $c) {
+            $trip = null;
+            foreach ($allTrips as $t) {
+                if ($t['id'] == $c['trip_id']) {
+                    $trip = $t;
+                    break;
+                }
+            }
+            if (!$trip) continue;
+            $month = date('Y-m', strtotime($trip['trip_date']));
+            if (!isset($monthly[$month])) {
+                $monthly[$month] = [
+                    'fuel' => 0,
+                    'toll' => 0,
+                    'other' => 0,
+                    'total' => 0,
+                    'trips' => 0
+                ];
+            }
+            $monthly[$month]['fuel'] += floatval($c['fuel_cost']);
+            $monthly[$month]['toll'] += floatval($c['toll_fees']);
+            $monthly[$month]['other'] += floatval($c['other_expenses']);
+            $monthly[$month]['total'] += floatval($c['fuel_cost']) + floatval($c['toll_fees']) + floatval($c['other_expenses']);
+            $monthly[$month]['trips']++;
+        }
+        // Output rows
+        foreach ($monthly as $month => $row) {
+            fputcsv($output, [
+                $month,
+                number_format($row['fuel'], 2),
+                number_format($row['toll'], 2),
+                number_format($row['other'], 2),
+                number_format($row['total'], 2),
+                $row['trips']
+            ]);
+        }
+        fclose($output);
+        exit;
+    }
 //////////////////////////////////////////END OF TCAO LOGIC
