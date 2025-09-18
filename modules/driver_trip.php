@@ -1,8 +1,9 @@
+
 <?php
 // DRIVER AND TRIP PERFORMANCE MONITORING
 require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/audit_log.php';
-require_once __DIR__ . '/../includes/fvm_logic.php';
+require_once __DIR__ . '/../includes/driver_trip_logic.php';
 require_once __DIR__ . '/../includes/db.php';
 
 function driver_trip_view($baseURL)
@@ -65,10 +66,10 @@ function driver_trip_view($baseURL)
         $result->free();
     }
 
-    // Fetch completed dispatches
+    // Fetch completed dispatches with vehicle payload
     $completedDispatches = [];
     $dispatchQuery = "
-        SELECT d.*, v.vehicle_name, dr.driver_name 
+        SELECT d.*, v.vehicle_name, v.weight_capacity AS vehicle_payload, dr.driver_name 
         FROM dispatches d 
         JOIN fleet_vehicles v ON d.vehicle_id = v.id 
         JOIN drivers dr ON d.driver_id = dr.id 
@@ -97,8 +98,47 @@ function driver_trip_view($baseURL)
                     <i data-lucide="plus-circle" class="w-4 h-4 mr-1"></i> Submit Trip Data
                 </button>
                 <button class="btn btn-info" onclick="trip_log_modal.showModal()">
-                    <i data-lucide="clipboard-list" class="w-4 h-4 mr-1"></i> Trip Log
+                    <i data-lucide="clipboard-list" class="w-4 h-4 mr-1"></i> Review Trip Submissions
                 </button>
+                <button class="btn btn-success" onclick="export_trip_modal.showModal()">
+                    <i data-lucide="download" class="w-4 h-4 mr-1"></i> Export Trip Data
+                </button>
+        <!-- Export Trip Data Modal -->
+        <dialog id="export_trip_modal" class="modal">
+            <div class="modal-box max-w-xl">
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                </form>
+                <h3 class="font-bold text-lg mb-4">Export Trip Data</h3>
+                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="space-y-4">
+                    <div class="form-control">
+                        <label class="label">Export Type</label>
+                        <select name="export_type" class="select select-bordered w-full" required onchange="toggleExportDriver(this.value)">
+                            <option value="all">All Drivers & Vehicles</option>
+                            <option value="driver">Individual Driver Performance</option>
+                        </select>
+                    </div>
+                    <div class="form-control" id="exportDriverSelect" style="display:none;">
+                        <label class="label">Select Driver</label>
+                        <select name="driver_id" class="select select-bordered w-full">
+                            <option value="">Select Driver</option>
+                            <?php foreach ($drivers as $d): ?>
+                                <option value="<?= $d['id'] ?>"><?= htmlspecialchars($d['driver_name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <button type="submit" name="export_trip_data" class="btn btn-success w-full mt-4">Export</button>
+                </form>
+                <script>
+                    function toggleExportDriver(val) {
+                        document.getElementById('exportDriverSelect').style.display = (val === 'driver') ? '' : 'none';
+                    }
+                </script>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>close</button>
+            </form>
+        </dialog>
             </div>
         </div>
 
@@ -143,7 +183,7 @@ function driver_trip_view($baseURL)
             </div>
         </div>
 
-        <!-- Filter Form -->
+        <!-- Driver and Vehicle Search Filter Form -->
         <div class="flex flex-wrap gap-4 mb-6 items-end">
             <form method="GET" class="flex flex-wrap gap-4 mb-6 items-end">
                 <input type="hidden" name="module" value="driver_trip">
@@ -327,8 +367,8 @@ function driver_trip_view($baseURL)
                                 <option value="<?= $cd['id'] ?>"
                                     data-driver_id="<?= $cd['driver_id'] ?>"
                                     data-vehicle_id="<?= $cd['vehicle_id'] ?>"
-                                    data-trip_date="<?= substr($cd['dispatch_date'], 0, 10) ?>">
-                                    <?= htmlspecialchars($cd['dispatch_date']) ?> | <?= htmlspecialchars($cd['vehicle_name']) ?> | <?= htmlspecialchars($cd['driver_name']) ?> | <?= htmlspecialchars($cd['purpose']) ?>
+                                    data-trip_date="<?= substr($cd['dispatch_date'], 0, 10) ?>"
+                                    data-vehicle_payload="<?= htmlspecialchars($cd['vehicle_payload']) ?>">                                    <?= htmlspecialchars($cd['dispatch_date']) ?> | <?= htmlspecialchars($cd['vehicle_name']) ?> | <?= htmlspecialchars($cd['driver_name']) ?> | <?= htmlspecialchars($cd['purpose']) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -395,6 +435,7 @@ function driver_trip_view($baseURL)
                         document.getElementById('driver_id_field').value = opt.dataset.driver_id || '';
                         document.getElementById('vehicle_id_field').value = opt.dataset.vehicle_id || '';
                         document.getElementById('trip_date_field').value = opt.dataset.trip_date || '';
+                        document.querySelector('input[name="vehicle_capacity"]').value = opt.dataset.vehicle_payload || '';
                     }
                 </script>
             </div>
@@ -409,7 +450,7 @@ function driver_trip_view($baseURL)
                 <form method="dialog">
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
-                <h3 class="font-bold text-lg mb-4">Trip Log</h3>
+                <h3 class="font-bold text-lg mb-4">Trip Records</h3>
                 <?php
                 // Pagination logic
                 $page = isset($_GET['trip_page']) ? max(1, intval($_GET['trip_page'])) : 1;

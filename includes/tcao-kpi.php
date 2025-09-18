@@ -42,4 +42,25 @@ $avgCostPerKm = ($totalDistance > 0) ? $totalCost / $totalDistance : 0;
 $avgCostPerTrip = ($totalTrips > 0) ? $totalCost / $totalTrips : 0;
 $avgLoadUtilization = ($totalTrips > 0) ? $totalUtilization / $totalTrips : 0;
 $fuelShare = ($totalCost > 0) ? ($totalFuel / $totalCost) * 100 : 0;
+
+
+    // Define optimal targets (these can be adjusted as needed)
+    $optimalCostPerKm = 35; // PHP/km
+    $optimalCostPerTrip = 1200; // PHP/trip
+    $optimalLoadUtilization = 85; // %
+    $optimalFuelShare = 40; // %
+
+    // Status helpers
+    function kpiStatus($actual, $optimal, $higherIsBetter = false) {
+        if ($higherIsBetter) {
+            return $actual >= $optimal ? ['OK', 'success'] : ['Needs Improvement', 'error'];
+        } else {
+            return $actual <= $optimal ? ['OK', 'success'] : ['Needs Improvement', 'error'];
+        }
+    }
+    $statusCostPerKm = kpiStatus($avgCostPerKm, $optimalCostPerKm);
+    $statusCostPerTrip = kpiStatus($avgCostPerTrip, $optimalCostPerTrip);
+    $statusLoadUtil = kpiStatus($avgLoadUtilization, $optimalLoadUtilization, true);
+    $statusFuelShare = kpiStatus($fuelShare, $optimalFuelShare);
+    
 ?>

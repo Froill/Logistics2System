@@ -96,7 +96,7 @@ function fvm_view($baseURL)
                     </table>
                 </div>
                 <div class="overflow-x-auto">
-                    <h4 class="font-semibold text-md mb-2">Recent & Past Maintenance Records</h4>
+                    <h4 class="font-semibold text-md mb-2">Current & Past Maintenance Records</h4>
                     <table class="table table-zebra w-full">
                         <thead>
                             <tr>
@@ -275,19 +275,46 @@ function fvm_view($baseURL)
             <button class="btn btn-soft btn-primary" onclick="fvm_modal.showModal()">
                 <i data-lucide="plus" class="w-4 h-4 mr-1"></i> Add Vehicle
             </button>
-            <!-- Schedule Maintenance Button -->
+            <!-- Maintenance Modal Button -->
             <button class="btn btn-secondary" onclick="schedule_maintenance_modal.showModal()">
-                <i data-lucide="calendar" class="w-4 h-4 mr-1"></i> Schedule Maintenance
+                <i data-lucide="wrench" class="w-4 h-4 mr-1"></i> Maintenance
             </button>
             <!-- View Vehicle Logs Button -->
             <button class="btn btn-soft btn-info" onclick="vehicle_logs_modal.showModal()">
                 <i data-lucide="clipboard-list" class="w-4 h-4 mr-1"></i> View Maintenance Logs
             </button>
+            <?php
+            $role = strtolower($_SESSION['role'] ?? $_SESSION['user_type'] ?? '');
+            if (in_array($role, ['admin','manager'])): ?>
+            <!-- Export Monthly Report Button -->
+            <button class="btn btn-outline btn-success" onclick="exportReportModal.showModal()">
+                <i data-lucide="download" class="w-4 h-4 mr-1"></i> Export Monthly Report
+            </button>
+            <?php endif; ?>
+        <!-- Export Report Modal -->
+        <dialog id="exportReportModal" class="modal">
+            <div class="modal-box">
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                </form>
+                <h3 class="font-bold text-lg mb-4">Export Monthly Fleet KPI Report</h3>
+                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="flex flex-col gap-4">
+                    <div class="form-control">
+                        <label class="label">Select Month</label>
+                        <input type="month" name="export_month" class="input input-bordered" required>
+                    </div>
+                    <button type="submit" name="export_fleet_report" value="1" class="btn btn-success">Export as CSV</button>
+                </form>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>close</button>
+            </form>
+        </dialog>
         </div>
 
-        <!-- Schedule Maintenance Modal -->
+        <!-- Maintenance Modal -->
         <dialog id="schedule_maintenance_modal" class="modal">
-            <div class="modal-box w-11/12 max-w-3xl">
+            <div class="modal-box w-11/12 max-w-3xl" style="z-index:1000;">
                 <form method="dialog">
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
@@ -306,11 +333,12 @@ function fvm_view($baseURL)
                     $nextMaint = null;
                     if ($lastMaint) {
                         $lastDate = new DateTime($lastMaint['created_at'], new DateTimeZone('Asia/Manila'));
-                        $nextMaint = $lastDate->modify('+1 month');
+                        $nextMaint = $lastDate;
                         $maintenanceDates[$nextMaint->format('Y-m-d')][] = [
                             'vehicle_name' => $v['vehicle_name'],
                             'plate_number' => $v['plate_number'],
                             'vehicle_type' => $v['vehicle_type'],
+                            'details' => $lastMaint['details'] ?? '',
                         ];
                     }
                 }
@@ -369,7 +397,7 @@ function fvm_view($baseURL)
                                     html += '<td class="text-center align-top" style="' + tdStyle + '">';
                                     html += '<div class="font-bold">' + day + '</div>';
                                     if (highlight) {
-                                        html += '<button class="btn btn-xs btn-info mt-1 maint-show-btn" style="font-size:10px;" data-maint="' + escapeHtml(JSON.stringify(highlight)) + '">Show</button>';
+                                        html += '<button type="button" class="maint-modal-btn" style="margin-top:4px;cursor:pointer;" data-maint="' + escapeHtml(JSON.stringify(highlight)) + '"><span class="badge badge-info">Scheduled</span></button>';
                                     }
                                     html += '</td>';
                                     day++;
@@ -380,62 +408,46 @@ function fvm_view($baseURL)
                         html += '</tbody></table>';
                         document.getElementById('calendarContainer').innerHTML = html;
 
-                        // Attach event listeners for show buttons
-                        document.querySelectorAll('.maint-show-btn').forEach(btn => {
-                            btn.onclick = function(ev) {
-                                showMaintPopup(ev, btn.getAttribute('data-maint'));
-                            };
+                        // Attach click event listeners for modal
+                        document.querySelectorAll('.maint-modal-btn').forEach(btn => {
+                            btn.addEventListener('click', function(ev) {
+                                showMaintModal(btn.getAttribute('data-maint'));
+                            });
                         });
                     }
 
-                    // Popup logic
-                    function showMaintPopup(e, dataStr) {
-                        e.stopPropagation();
+                    // Scheduled Calendar Modal logic
+                    function showMaintModal(dataStr) {
                         let data;
                         try {
                             data = JSON.parse(dataStr);
                         } catch {
                             return;
                         }
-                        let html = '<div style="padding:10px 16px;">';
-                        html += '<div class="font-bold mb-1">Scheduled Maintenance:</div>';
+                        let html = '<h3 class="font-bold text-lg mb-2">Vehicles Scheduled for Maintenance on this Date</h3>';
                         data.forEach(info => {
                             html += '<div class="mb-1">' +
                                 '<span class="font-semibold">' + escapeHtml(info.vehicle_name) + '</span>' +
-                                ' <span class="text-xs opacity-50">(' + escapeHtml(info.plate_number) + ')</span>' +
-                                '</div>';
+                                ' <span class="text-xs opacity-50">(' + escapeHtml(info.plate_number) + ')</span>';
+                            if (info.details) {
+                                html += '<div class="text-sm mt-1"><b>Details:</b> ' + escapeHtml(info.details) + '</div>';
+                            }
+                            html += '</div>';
                         });
-                        html += '</div>';
-                        let popup = document.getElementById('maintPopup');
-                        if (!popup) {
-                            popup = document.createElement('div');
-                            popup.id = 'maintPopup';
-                            popup.style.position = 'fixed';
-                            popup.style.zIndex = 99999; // Higher than modal
-                            popup.style.background = '#fff';
-                            popup.style.border = '1px solid #888';
-                            popup.style.borderRadius = '8px';
-                            popup.style.boxShadow = '0 2px 12px rgba(0,0,0,0.15)';
-                            popup.onclick = function(ev) {
-                                ev.stopPropagation();
-                            };
-                            document.body.appendChild(popup);
+                        let modal = document.getElementById('maintDetailsModal');
+                        if (!modal) {
+                            modal = document.createElement('dialog');
+                            modal.id = 'maintDetailsModal';
+                            modal.className = 'modal';
+                            modal.innerHTML = '<div class="modal-box"><form method="dialog"><button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button></form><div id="maintDetailsContent"></div></div>';
+                            document.body.appendChild(modal);
                         }
-                        popup.innerHTML = html + '<div class="text-center mt-2"><button class="btn btn-xs btn-outline" onclick="closeMaintPopup()">Close</button></div>';
-                        popup.style.display = 'block';
-                        // Position popup near mouse
-                        popup.style.left = (e.clientX + 10) + 'px';
-                        popup.style.top = (e.clientY + 10) + 'px';
-                        // Hide on outside click
-                        document.body.onclick = function() {
-                            closeMaintPopup();
-                        };
-                    }
-
-                    function closeMaintPopup() {
-                        let popup = document.getElementById('maintPopup');
-                        if (popup) popup.style.display = 'none';
-                        document.body.onclick = null;
+                        modal.querySelector('#maintDetailsContent').innerHTML = html;
+                        if (typeof modal.showModal === 'function') {
+                            modal.showModal();
+                        } else {
+                            modal.style.display = 'block';
+                        }
                     }
 
                     document.getElementById('calPrevBtn').onclick = function(e) {
@@ -458,17 +470,15 @@ function fvm_view($baseURL)
                     };
                     renderCalendar(calMonth, calYear);
                 </script>
-                <!-- Maintenance Adjustment Table -->
-                <h3 class="font-bold text-lg mb-4">Adjust Maintenance Dates</h3>
+                <!-- Maintenance Check Table -->
+                <h3 class="font-bold text-lg mb-4">Maintenance Check</h3>
                 <div class="overflow-x-auto">
                     <table class="table table-zebra w-full">
                         <thead>
                             <tr>
-                                <th>Vehicle Name</th>
+                                <th>Vehicle & Type</th>
                                 <th>Plate Number</th>
-                                <th>Car Type</th>
                                 <th>Next Maintenance</th>
-                                <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -491,48 +501,148 @@ function fvm_view($baseURL)
                                 }
                             ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($v['vehicle_name']) ?></td>
+                                    <td>
+                                        <div><?= htmlspecialchars($v['vehicle_name']) ?></div>
+                                        <div><?= htmlspecialchars('('.$v['vehicle_type'].')' ?? '-') ?></div>
+                                    </td>
                                     <td><?= htmlspecialchars($v['plate_number']) ?></td>
-                                    <td><?= htmlspecialchars($v['vehicle_type'] ?? '-') ?></td>
                                     <td><?= $nextMaint ? $nextMaint->format('M d, Y') : '<span class="opacity-50">No record</span>' ?></td>
                                     <td>
-                                        <?php
-                                        if ($nextMaint && $today >= $nextMaint) {
-                                            echo '<span title="Needs Maintenance"><i data-lucide="alert-triangle" class="text-red-600" style="width:28px;height:28px;vertical-align:middle;"></i></span>';
-                                        } else {
-                                            echo '<span title="OK"><i data-lucide="check-circle" class="text-green-600" style="width:28px;height:28px;vertical-align:middle;"></i></span>';
-                                        }
-                                        ?>
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-xs btn-warning" title="Adjust Maintenance Date" onclick="document.getElementById('adjust_maint_modal_<?= $v['id'] ?>').showModal()">
+                                        <button class="btn btn-xs btn-warning" title="Adjust Maintenance Date" onclick="document.getElementById('set_maint_modal_<?= $v['id'] ?>').showModal()">
                                             <i data-lucide="calendar-clock"></i>
                                         </button>
-                                        <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" style="display:inline">
-                                            <input type="hidden" name="check_status_vehicle_id" value="<?= $v['id'] ?>">
-                                            <button type="submit" class="btn btn-xs btn-success ml-1" title="Check Status">
-                                                <i data-lucide="file-check-2"></i>
-                                            </button>
-                                        </form>
-                                        <!-- Adjust Maintenance Modal -->
-                                        <dialog id="adjust_maint_modal_<?= $v['id'] ?>" class="modal">
+                                        <button type="button" class="btn btn-xs btn-info ml-1 vehicle-inspect-btn" data-vehid="<?= $v['id'] ?>" data-vehname="<?= htmlspecialchars($v['vehicle_name']) ?>" title="Vehicle Inspection">
+                                            <i data-lucide="search-check"></i>
+                                        </button>
+                                        <script>
+// Vehicle Inspection Modal logic
+function showVehicleInspectionModal(vehicleId, vehicleName) {
+    let modal = document.getElementById('vehicleInspectionModal');
+    if (!modal) {
+        modal = document.createElement('dialog');
+        modal.id = 'vehicleInspectionModal';
+        modal.className = 'modal';
+        modal.innerHTML = '<div class="modal-box"><form method="dialog"><button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button></form><div id="vehicleInspectionContent"></div></div>';
+        document.body.appendChild(modal);
+    }
+    // Editable dropdowns for each item
+    const details = [
+        { label: 'Battery Level', key: 'battery', type: 'level' },
+        { label: 'Left Headlight', key: 'left_headlight', type: 'status' },
+        { label: 'Right Headlight', key: 'right_headlight', type: 'status' },
+        { label: 'Left Taillight', key: 'left_taillight', type: 'status' },
+        { label: 'Right Taillight', key: 'right_taillight', type: 'status' },
+        { label: 'Turn Signals', key: 'turn_signals', type: 'status' },
+        { label: 'Oil Level', key: 'oil', type: 'level' },
+        { label: 'Water Coolant Level', key: 'coolant', type: 'level' },
+        { label: 'Brakes Condition', key: 'brakes', type: 'status' },
+        { label: 'Air Pressure', key: 'air_pressure', type: 'status' },
+        { label: 'Gas/Fuel Tank Condition', key: 'fuel_tank', type: 'status' },
+        { label: 'Engine Condition', key: 'engine', type: 'status' },
+        { label: 'Tire Condition', key: 'tire', type: 'status' }
+    ];
+    const levelOptions = ['Empty', 'Low', 'Normal', 'Full'];
+    const statusOptions = ['Needs Maintenance', 'Needs Replacement', 'Operational'];
+    let html = `<h3 class="font-bold text-lg mb-2">Vehicle Inspection: <span class="text-primary">${vehicleName}</span></h3>`;
+    html += '<form id="vehicleInspectionForm"><table class="table table-compact w-full"><tbody>';
+    details.forEach(item => {
+        html += `<tr><td class="font-semibold">${item.label}</td><td>`;
+        if (item.type === 'level') {
+            html += `<select name="${item.key}" class="select select-bordered select-sm">`;
+            levelOptions.forEach(opt => {
+                html += `<option value="${opt}">${opt}</option>`;
+            });
+            html += `</select>`;
+        } else {
+            html += `<select name="${item.key}" class="select select-bordered select-sm">`;
+            statusOptions.forEach(opt => {
+                html += `<option value="${opt}">${opt}</option>`;
+            });
+            html += `</select>`;
+        }
+        html += `</td></tr>`;
+    });
+    html += '</tbody></table>';
+    html += '<div class="mt-4 text-right"><button type="submit" class="btn btn-primary btn-sm">Save</button></div></form>';
+    modal.querySelector('#vehicleInspectionContent').innerHTML = html;
+    if (typeof modal.showModal === 'function') {
+        modal.showModal();
+    } else {
+        modal.style.display = 'block';
+    }
+    // Optionally handle form submit (for now just close modal)
+    modal.querySelector('#vehicleInspectionForm').onsubmit = function(e) {
+        e.preventDefault();
+        modal.close();
+    };
+}
+document.querySelectorAll('.vehicle-inspect-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const vehId = btn.getAttribute('data-vehid');
+        const vehName = btn.getAttribute('data-vehname') || 'Vehicle';
+        showVehicleInspectionModal(vehId, vehName);
+    });
+});
+</script>
+           
+                                        <!-- Set Maintenance Modal -->
+                                        <dialog id="set_maint_modal_<?= $v['id'] ?>" class="modal">
                                             <div class="modal-box">
                                                 <form method="dialog">
                                                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                                                 </form>
-                                                <h3 class="font-bold text-lg mb-4">Adjust Maintenance Date</h3>
+                                                <h3 class="font-bold text-lg mb-4">Set Maintenance Date</h3>
                                                 <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="flex flex-col gap-4" enctype="multipart/form-data">
                                                     <input type="hidden" name="adjust_maintenance_vehicle_id" value="<?= $v['id'] ?>">
                                                     <div class="form-control">
-                                                        <label class="label">Set Next Maintenance Date</label>
+                                                        <label class="label">Set Maintenance Date</label>
                                                         <input type="date" name="next_maintenance_date" class="input input-bordered" required>
                                                     </div>
-                                                    <button type="submit" class="btn btn-primary">Save</button>
+                                                       <div class="form-control">
+                                                           <label class="label">Details</label>
+                                                           <select name="maintenance_part" class="select select-bordered" required>
+                                                               <option value="">Select part</option>
+                                                               <option value="Battery">Battery</option>
+                                                               <option value="Left Headlight">Left Headlight</option>
+                                                               <option value="Right Headlight">Right Headlight</option>
+                                                               <option value="Left Taillight">Left Taillight</option>
+                                                               <option value="Right Taillight">Right Taillight</option>
+                                                               <option value="Turn Signals">Turn Signals</option>
+                                                               <option value="Oil Level">Oil Level</option>
+                                                               <option value="Water Coolant Level">Water Coolant Level</option>
+                                                               <option value="Brakes Condition">Brakes Condition</option>
+                                                               <option value="Air Pressure">Air Pressure</option>
+                                                               <option value="Gas/Fuel Tank Condition">Gas/Fuel Tank Condition</option>
+                                                               <option value="Engine Condition">Engine Condition</option>
+                                                               <option value="Tire Condition">Tire Condition</option>
+                                                           </select>
+                                                       </div>
+                                                       <button type="submit" class="btn btn-primary">Save</button>
                                                 </form>
                                             </div>
                                             <form method="dialog" class="modal-backdrop">
                                                 <button>close</button>
                                             </form>
+                                            <script>
+// Handle set maintenance form submission (details part)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adjust_maintenance_vehicle_id'], $_POST['next_maintenance_date'], $_POST['maintenance_part'])) {
+    $vehicleId = intval($_POST['adjust_maintenance_vehicle_id']);
+    $date = $_POST['next_maintenance_date'];
+    $part = trim($_POST['maintenance_part']);
+    if ($vehicleId && $date && $part) {
+        // Save to fleet_vehicle_logs as a maintenance log
+        $db = getDb();
+        $stmt = $db->prepare("INSERT INTO fleet_vehicle_logs (vehicle_id, log_type, details, created_at) VALUES (?, 'maintenance', ?, ?)");
+        $desc = $part . ' scheduled for maintenance';
+        $stmt->execute([$vehicleId, $desc, $date]);
+        $_SESSION['fvm_success'] = 'Maintenance scheduled for ' . htmlspecialchars($part) . '.';
+        header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
+        exit;
+    } else {
+        $_SESSION['fvm_error'] = 'Please fill out all maintenance details.';
+    }
+}
+</script>
                                         </dialog>
                                     </td>
                                 </tr>
@@ -561,7 +671,6 @@ function fvm_view($baseURL)
                         <th>Current Fuel Tank</th>
                         <th>Status</th>
                         <th>Actions</th>
-                        <th>Logs</th>
                     </tr>
                 </thead>
                 <tbody id="vehicleBody">
@@ -574,6 +683,7 @@ function fvm_view($baseURL)
                             <td><?= htmlspecialchars($v['plate_number']) ?></td>
                             <td><?= htmlspecialchars($v['weight_capacity'] ?? '-') ?>kg</td>
                             <td><?= htmlspecialchars($v['fuel_capacity'] ?? '-') ?>L</td>
+                            <!-- Fuel Consumption and Current Fuel Tank with Radial Progress -->
                             <td class=" text-center">
                                 <?php
                                 $trip = fetchOneQuery(
@@ -646,7 +756,9 @@ function fvm_view($baseURL)
                                     $badgeClass .= ' badge-info';
                                 }
                                 ?>
-                                <span class="<?= $badgeClass ?>"><?= htmlspecialchars($status) ?></span>
+                                <span class="<?= $badgeClass ?>">
+                                    <?= htmlspecialchars($status) ?>
+                                </span>
                             </td>
                             <td>
                                 <div class="flex flex-col gap-3 ">
@@ -760,38 +872,7 @@ function fvm_view($baseURL)
                                     </form>
                                 </dialog>
                             </td>
-                            <td>
-                                <!-- Add Log Button -->
-                                <button class="btn btn-sm btn-success" onclick="document.getElementById('log_modal_<?= $v['id'] ?>').showModal()" title="Add Log">
-                                    <i data-lucide="plus"></i>
-                                </button>
-                                <!-- Log Modal -->
-                                <dialog id="log_modal_<?= $v['id'] ?>" class="modal">
-                                    <div class="modal-box">
-                                        <form method="dialog">
-                                            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                                        </form>
-                                        <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="flex flex-col">
-                                            <input type="hidden" name="log_vehicle_id" value="<?= $v['id'] ?>">
-                                            <div class="form-control mb-2">
-                                                <label class="label">Log Type</label>
-                                                <select name="log_type" class="select select-bordered" required>
-                                                    <option value="maintenance">Maintenance</option>
-                                                    <option value="fuel">Fuel</option>
-                                                </select>
-                                            </div>
-                                            <div class="form-control mb-2">
-                                                <label class="label">Details</label>
-                                                <textarea name="log_details" class="textarea textarea-bordered" required></textarea>
-                                            </div>
-                                            <button class="btn btn-primary mt-2 btn-outline w-full">Submit Log</button>
-                                        </form>
-                                    </div>
-                                    <form method="dialog" class="modal-backdrop">
-                                        <button>close</button>
-                                    </form>
-                                </dialog>
-                            </td>
+                            
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

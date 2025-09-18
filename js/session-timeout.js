@@ -1,5 +1,5 @@
  (() => {
-      const INACTIVITY_LIMIT = 300; // 5 minutes = 300 seconds
+      const INACTIVITY_LIMIT = 600; // 5 minutes = 300 seconds
       const WARNING_BEFORE = 30;
       const logoutUrl = "logout.php";
 

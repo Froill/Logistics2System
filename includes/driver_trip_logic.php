@@ -400,5 +400,38 @@ function driver_trip_logic($baseURL)
         }
     }
 }
+
+// Handle Export Trip Data
+if (isset($_POST['export_trip_data'])) {
+    global $conn;
+    $exportType = $_POST['export_type'] ?? 'all';
+    $driverId = isset($_POST['driver_id']) ? intval($_POST['driver_id']) : null;
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="trip_data_export.csv"');
+    $output = fopen('php://output', 'w');
+    // CSV header
+    fputcsv($output, ['Driver', 'Vehicle', 'Trip Date', 'Performance Score', 'Distance (km)', 'Fuel Consumed (L)', 'Idle Time (min)', 'Validation', 'Review Status']);
+    $where = '';
+    if ($exportType === 'driver' && $driverId) {
+        $where = ' WHERE t.driver_id = ' . $driverId;
+    }
+    $sql = "SELECT t.*, d.driver_name, v.vehicle_name FROM driver_trips t JOIN drivers d ON t.driver_id = d.id JOIN fleet_vehicles v ON t.vehicle_id = v.id" . $where . " ORDER BY t.created_at DESC";
+    $result = $conn->query($sql);
+    while ($row = $result->fetch_assoc()) {
+        fputcsv($output, [
+            $row['driver_name'],
+            $row['vehicle_name'],
+            $row['trip_date'],
+            $row['performance_score'],
+            $row['distance_traveled'],
+            $row['fuel_consumed'],
+            $row['idle_time'],
+            $row['validation_status'],
+            $row['supervisor_review_status']
+        ]);
+    }
+    fclose($output);
+    exit;
+}
 ////////////////////////////////END OF DRIVER TRIP LOGIC
 ?>

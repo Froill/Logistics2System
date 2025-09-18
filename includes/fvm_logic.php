@@ -7,19 +7,93 @@ function fvm_logic($baseURL)
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adjust_maintenance_vehicle_id']) && isset($_POST['next_maintenance_date'])) {
         $vehicleId = intval($_POST['adjust_maintenance_vehicle_id']);
         $nextDate = $_POST['next_maintenance_date'];
+        $part = trim($_POST['maintenance_part']);
+        $currentTime = new DateTime('now', new DateTimeZone('Asia/Manila'));
         // Insert a maintenance log with the selected date
         insertData('fleet_vehicle_logs', [
             'vehicle_id' => $vehicleId,
             'log_type'   => 'maintenance',
-            'details'    => 'Scheduled maintenance adjusted to ' . $nextDate,
-            'created_at' => $nextDate . ' 08:00:00' // Default to 8AM
+            'details'    => $part.' scheduled for maintenance',
+            'created_at' => $nextDate . $currentTime->format(' H:i:s')
         ]);
         // Optionally update vehicle status
         updateData('fleet_vehicles', $vehicleId, ['status' => 'Under Maintenance']);
-        log_audit_event('FVM', 'adjust_maintenance', $vehicleId, $_SESSION['full_name'] ?? 'unknown');
+        log_audit_event('FVM', 'set_maintenance', $vehicleId, $_SESSION['full_name'] ?? 'unknown');
         header("Location: {$baseURL}");
         exit;
     }
+// Handle set maintenance form submission (details part)
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adjust_maintenance_vehicle_id'], $_POST['next_maintenance_date'], $_POST['maintenance_part'])) {
+    $vehicleId = intval($_POST['adjust_maintenance_vehicle_id']);
+    $date = $_POST['next_maintenance_date'];
+    $part = trim($_POST['maintenance_part']);
+    if ($vehicleId && $date && $part) {
+        // Save to fleet_vehicle_logs as a maintenance log
+        $db = getDb();
+        $stmt = $db->prepare("INSERT INTO fleet_vehicle_logs (vehicle_id, log_type, details, created_at) VALUES (?, 'maintenance', ?, ?)");
+        $desc = $part . ' scheduled for maintenance';
+        $stmt->execute([$vehicleId, $desc, $date]);
+        $_SESSION['fvm_success'] = 'Maintenance scheduled for ' . htmlspecialchars($part) . '.';
+        header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
+        exit;
+    } else {
+        $_SESSION['fvm_error'] = 'Please fill out all maintenance details.';
+    }
+}
+
+// Handle export monthly report
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_fleet_report'], $_POST['export_month']) && isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['admin','manager'])) {
+    $month = $_POST['export_month']; // format: YYYY-MM
+    $start = $month . '-01';
+    $end = date('Y-m-t', strtotime($start));
+    $db = getDb();
+    // Fuel consumption per vehicle
+    $fuelStmt = $db->prepare("SELECT vehicle_id, SUM(fuel_consumed) as total_fuel FROM driver_trips WHERE trip_date BETWEEN ? AND ? GROUP BY vehicle_id");
+    $fuelStmt->execute([$start, $end]);
+    $fuelData = [];
+    foreach ($fuelStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $fuelData[$row['vehicle_id']] = $row['total_fuel'];
+    }
+    // Number of trips per vehicle
+    $tripStmt = $db->prepare("SELECT vehicle_id, COUNT(*) as trip_count FROM driver_trips WHERE trip_date BETWEEN ? AND ? GROUP BY vehicle_id");
+    $tripStmt->execute([$start, $end]);
+    $tripData = [];
+    foreach ($tripStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $tripData[$row['vehicle_id']] = $row['trip_count'];
+    }
+    // On-time performance and completed trips per driver
+    $driverStmt = $db->prepare("SELECT driver_id, COUNT(*) as total_trips, SUM(CASE WHEN status='Completed' THEN 1 ELSE 0 END) as completed, SUM(CASE WHEN on_time=1 THEN 1 ELSE 0 END) as on_time FROM driver_trips WHERE trip_date BETWEEN ? AND ? GROUP BY driver_id");
+    $driverStmt->execute([$start, $end]);
+    $driverData = [];
+    foreach ($driverStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $driverData[$row['driver_id']] = $row;
+    }
+    // Vehicles
+    $vehicles = fetchAll('fleet_vehicles');
+    // Drivers
+    $drivers = fetchAll('drivers');
+    // Prepare CSV
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="fleet_kpi_report_' . $month . '.csv"');
+    $out = fopen('php://output', 'w');
+    // Vehicle KPIs
+    fputcsv($out, ['Vehicle Name', 'Plate', 'Type', 'Fuel Consumed (L)', 'Trips', 'Maintenance Cost (Est.)']);
+    foreach ($vehicles as $v) {
+        $fuel = $fuelData[$v['id']] ?? 0;
+        $trips = $tripData[$v['id']] ?? 0;
+        $maintCost = $trips * 500; // Placeholder: 500 per trip
+        fputcsv($out, [$v['vehicle_name'], $v['plate_number'], $v['vehicle_type'], $fuel, $trips, $maintCost]);
+    }
+    // Driver KPIs
+    fputcsv($out, []);
+    fputcsv($out, ['Driver Name', 'Total Trips', 'Completed', 'On-Time']);
+    foreach ($drivers as $d) {
+        $row = $driverData[$d['id']] ?? ['total_trips'=>0,'completed'=>0,'on_time'=>0];
+        fputcsv($out, [$d['driver_name'], $row['total_trips'], $row['completed'], $row['on_time']]);
+    }
+    fclose($out);
+    exit;
+}
 
     // Handle clear maintenance logs
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_maintenance_logs'])) {

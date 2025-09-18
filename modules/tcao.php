@@ -15,7 +15,8 @@ function tcao_view($baseURL)
     $user = $_SESSION['full_name'] ?? 'unknown';
     $role = $_SESSION['role'] ?? 'driver';
     $costs = fetchAll('transport_costs');
-    $allTrips = fetchAll('driver_trips');
+    // Fetch trips with driver name and purpose
+    $allTrips = fetchAllQuery('SELECT t.*, d.driver_name FROM driver_trips t JOIN drivers d ON t.driver_id = d.id');
     $drivers = fetchAll('drivers');
     $vehicles = fetchAll('fleet_vehicles');
     $usedTripIds = array_column($costs, 'trip_id');
@@ -82,7 +83,7 @@ function tcao_view($baseURL)
                 <i data-lucide="clipboard-list" class="w-4 h-4 mr-1"></i> Cost Log
             </button>
         </div>
-
+            <!--Add Cost Record modal -->
         <dialog id="tcao_modal" class="modal">
             <div class="modal-box">
                 <form method="dialog">
@@ -95,7 +96,7 @@ function tcao_view($baseURL)
                             <option value="">Select a trip</option>
                             <?php foreach ($availableTrips as $trip): ?>
                                 <option value="<?= $trip['id'] ?>">
-                                    Trip <?= $trip['id'] ?> | Driver: <?= htmlspecialchars($trip['driver_id']) ?> | Date: <?= htmlspecialchars($trip['trip_date']) ?> | Distance: <?= number_format($trip['distance_traveled'], 1) ?> km
+                                    Trip <?= $trip['id'] ?> | Driver: <?= htmlspecialchars($trip['driver_name']) ?> | Date: <?= htmlspecialchars($trip['trip_date']) ?> | Purpose: <?= htmlspecialchars($trip['purpose'] ?? '') ?> | Distance: <?= number_format($trip['distance_traveled'], 1) ?> km
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -124,6 +125,7 @@ function tcao_view($baseURL)
             </form>
         </dialog>
 
+        <!-- Cost Log Modal with AJAX Pagination -->
         <dialog id="cost_log_modal" class="modal">
             <div class="modal-box w-11/12 max-w-5xl cost-log-content">
                 <form method="dialog">
@@ -162,6 +164,7 @@ function tcao_view($baseURL)
                                         <td><?= $currency, number_format($c['fuel_cost'], 2) ?></td>
                                         <td><?= $currency, number_format($c['toll_fees'], 2) ?></td>
                                         <td><?= $currency, number_format($c['other_expenses'], 2) ?></td>
+                                        <td><?= $currency, number_format($c['fuel_cost'] + $c['toll_fees'] + $c['other_expenses'], 2) ?></td>
                                         <td>
                                             <?php if (!empty($c['receipt'])): ?>
                                                 <a href="./uploads/<?= htmlspecialchars($c['receipt']) ?>" target="_blank">View</a>
@@ -261,6 +264,42 @@ function tcao_view($baseURL)
                 <p class="text-2xl font-bold text-warning">
                     <?= number_format($fuelShare, 1) ?>%
                 </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI Comparison Cards: Actual vs Optimal -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-4">
+        <!-- Cost per km Comparison -->
+        <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+                <h4 class="card-title">Cost per km (Actual vs Optimal)</h4>
+                <p class="text-lg">Actual: ₱<?= number_format($avgCostPerKm, 2) ?> / Optimal: ₱<?= number_format($optimalCostPerKm, 2) ?></p>
+                <span class="badge badge-<?= $statusCostPerKm[1] ?> p-3">Status: <?= $statusCostPerKm[0] ?></span>
+            </div>
+        </div>
+        <!-- Cost per Trip Comparison -->
+        <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+                <h4 class="card-title">Cost per Trip (Actual vs Optimal)</h4>
+                <p class="text-lg">Actual: ₱<?= number_format($avgCostPerTrip, 2) ?> / Optimal: ₱<?= number_format($optimalCostPerTrip, 2) ?></p>
+                <span class="badge badge-<?= $statusCostPerTrip[1] ?> p-3">Status: <?= $statusCostPerTrip[0] ?></span>
+            </div>
+        </div>
+        <!-- Load Utilization Comparison -->
+        <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+                <h4 class="card-title">Load Utilization (Actual vs Optimal)</h4>
+                <p class="text-lg">Actual: <?= number_format($avgLoadUtilization, 1) ?>% / Optimal: <?= number_format($optimalLoadUtilization, 1) ?>%</p>
+                <span class="badge badge-<?= $statusLoadUtil[1] ?> p-3">Status: <?= $statusLoadUtil[0] ?></span>
+            </div>
+        </div>
+        <!-- Fuel % of Cost Comparison -->
+        <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+                <h4 class="card-title">Fuel % of Cost (Actual vs Optimal)</h4>
+                <p class="text-lg">Actual: <?= number_format($fuelShare, 1) ?>% / Optimal: <?= number_format($optimalFuelShare, 1) ?>%</p>
+                <span class="badge badge-<?= $statusFuelShare[1] ?> p-3">Status: <?= $statusFuelShare[0] ?></span>
             </div>
         </div>
     </div>

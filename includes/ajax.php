@@ -52,4 +52,58 @@ if (isset($_GET['add_custom_poi']) && $_GET['add_custom_poi'] == 1 && $_SERVER['
     }
     exit;
 }
+if (isset($_GET['delete_custom_poi'])) {
+    header('Content-Type: application/json');
+    $input = json_decode(file_get_contents('php://input'), true);
+    $idx = isset($input['idx']) ? intval($input['idx']) : -1;
+
+    $poiFile = __DIR__ . '/../js/custom_pois.json';
+    if (!file_exists($poiFile)) {
+        echo json_encode(['success' => false, 'error' => 'POI file not found']);
+        exit;
+    }
+    $pois = json_decode(file_get_contents($poiFile), true);
+    if (!is_array($pois) || $idx < 0 || $idx >= count($pois)) {
+        echo json_encode(['success' => false, 'error' => 'Invalid POI index']);
+        exit;
+    }
+    array_splice($pois, $idx, 1);
+    $ok = file_put_contents($poiFile, json_encode($pois, JSON_PRETTY_PRINT));
+    if ($ok === false) {
+        echo json_encode(['success' => false, 'error' => 'Failed to save POI file']);
+        exit;
+    }
+    echo json_encode(['success' => true]);
+    exit;
+}
+if (isset($_GET['edit_custom_poi'])) {
+    header('Content-Type: application/json');
+    $input = json_decode(file_get_contents('php://input'), true);
+    $idx = isset($input['idx']) ? intval($input['idx']) : -1;
+    $poi = isset($input['poi']) ? $input['poi'] : null;
+
+    $poiFile = __DIR__ . '/../js/custom_pois.json';
+    if (!file_exists($poiFile)) {
+        echo json_encode(['success' => false, 'error' => 'POI file not found']);
+        exit;
+    }
+    $pois = json_decode(file_get_contents($poiFile), true);
+    if (!is_array($pois) || $idx < 0 || $idx >= count($pois) || !$poi) {
+        echo json_encode(['success' => false, 'error' => 'Invalid POI index or data']);
+        exit;
+    }
+    $pois[$idx] = [
+        'name' => $poi['name'],
+        'lat' => $poi['lat'],
+        'lon' => $poi['lon'],
+        'description' => $poi['description']
+    ];
+    $ok = file_put_contents($poiFile, json_encode($pois, JSON_PRETTY_PRINT));
+    if ($ok === false) {
+        echo json_encode(['success' => false, 'error' => 'Failed to save POI file']);
+        exit;
+    }
+    echo json_encode(['success' => true]);
+    exit;
+}
 // Add more AJAX endpoints as needed

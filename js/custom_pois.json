@@ -30,9 +30,33 @@
         "description": "BESEPE, Quezon City"
     },
     {
-        "name": "Warehouse East",
-        "lat": 14.676,
-        "lon": 121.0437,
-        "description": "East Warehouse, Pasig"
+        "name": "Soliera : Hotel and Restaurant",
+        "lat": 14.726544,
+        "lon": 121.036862,
+        "description": "BCP MV, Quezon City"
+    },
+    {
+        "name": "NAIA Airport Pickup",
+        "lat": 14.510474,
+        "lon": 121.022666,
+        "description": "Pickup\/Dropoff site for Guest Transport"
+    },
+    {
+        "name": "Supplier A",
+        "lat": 14.688802,
+        "lon": 121.034322,
+        "description": "Hotel Supplies"
+    },
+    {
+        "name": "Supplier B",
+        "lat": 14.678258,
+        "lon": 121.031576,
+        "description": "Restaurant Supplies"
+    },
+    {
+        "name": "Maintenance Shop A",
+        "lat": 14.733507,
+        "lon": 121.056591,
+        "description": "Vehicle Maintenance Shop"
     }
 ]

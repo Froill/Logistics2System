@@ -50,11 +50,19 @@ function vrds_logic($baseURL) {
 
         $expected_return = trim($_POST['expected_return'] ?? '');
 
+        $origin_lat = floatval($_POST['origin_lat'] ?? 0);
+
+        $origin_lon = floatval($_POST['origin_lon'] ?? 0);
+
+        $destination_lat = floatval($_POST['destination_lat'] ?? 0);
+
+        $destination_lon = floatval($_POST['destination_lon'] ?? 0);
+
         $notes = trim($_POST['notes'] ?? '');
 
         global $conn;
 
-        $sql = "INSERT INTO vehicle_requests (requester_id, request_date, reservation_date, expected_return, purpose, origin, destination, requested_vehicle_type, status, notes) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, 'Pending', ?)";
+        $sql = "INSERT INTO vehicle_requests (requester_id, request_date, reservation_date, expected_return, purpose, origin, destination, origin_lat, origin_lon, destination_lat, destination_lon, requested_vehicle_type, status, notes) VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending', ?)";
 
         $stmt = $conn->prepare($sql);
 
@@ -68,7 +76,7 @@ function vrds_logic($baseURL) {
 
         }
 
-    $stmt->bind_param("isssssss", $requester_id, $reservation_date, $expected_return, $purpose, $origin, $destination, $requested_vehicle_type, $notes);
+    $stmt->bind_param("isssssddddss", $requester_id, $reservation_date, $expected_return, $purpose, $origin, $destination, $origin_lat, $origin_lon, $destination_lat, $destination_lon, $requested_vehicle_type, $notes);
 
         $ok = $stmt->execute();
 
@@ -157,27 +165,20 @@ function vrds_logic($baseURL) {
         $ok3 = updateData('drivers', $driver_id, ['status' => 'Dispatched']);
 
         $ok4 = insertData('dispatches', [
-
             'request_id' => $request_id,
-
             'vehicle_id' => $vehicle_id,
-
             'driver_id' => $driver_id,
-
             'officer_id' => $officer_id,
-
             'dispatch_date' => date('Y-m-d H:i:s'),
-
             'status' => 'Ongoing',
-
             'origin' => $request['origin'],
-
             'destination' => $request['destination'],
-
             'purpose' => $request['purpose'],
-
+            'origin_lat' => $request['origin_lat'],
+            'origin_lon' => $request['origin_lon'],
+            'destination_lat' => $request['destination_lat'],
+            'destination_lon' => $request['destination_lon'],
             'notes' => '',
-
         ]);
 
         if ($ok4) {
@@ -309,23 +310,24 @@ function vrds_logic($baseURL) {
 
 // 9. Officer can clear all dispatch logs
   if (isset($_GET['remove_request'])) {
-
         $remove_id = (int)$_GET['remove_request'];
-
         $req = fetchById('vehicle_requests', $remove_id);
-
-        if ($req && $req['status'] === 'Pending') {
-
+        // Only allow delete if status is Pending or Approved
+        if ($req && ($req['status'] === 'Pending' || $req['status'] === 'Approved')) {
+            // If approved, also delete any associated dispatches
+            if ($req['status'] === 'Approved') {
+                $dispatches = fetchAll('dispatches');
+                foreach ($dispatches as $dispatch) {
+                    if ($dispatch['request_id'] == $remove_id) {
+                        deleteData('dispatches', $dispatch['id']);
+                    }
+                }
+            }
             deleteData('vehicle_requests', $remove_id);
-
             $_SESSION['success_message'] = "Vehicle request removed.";
-
         }
-
         header("Location: {$baseURL}");
-
         exit;
-
     }
 
     // VRDS Batch delete dispatch logs
