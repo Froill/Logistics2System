@@ -18,13 +18,6 @@
                                     exit;
                                 }
 
-                                function vrds_view($baseURL)
-                                {
-                                    vrds_logic($baseURL);
-                                    $requests = fetchAll('vehicle_requests');
-                                    $dispatches = fetchAll('dispatches');
-                                    $vehicles = fetchAll('fleet_vehicles');
-                                    $drivers = fetchAll('drivers');
 function vrds_view($baseURL)
 {
 
@@ -161,8 +154,7 @@ function vrds_view($baseURL)
         <div class="flex flex-col gap-2">
 
             <div class="flex gap-2 flex-wrap">
-                <?php if (in_array($role, ['requester', 'user'])): ?>
-
+                <?php if (in_array($role, ['admin','requester', 'user'])): ?>
                     <button class="btn btn-primary w-max" onclick="request_modal.showModal()">
                         <i data-lucide="plus-circle" class="w-4 h-4 mr-1"></i> Request Vehicle
                     </button>
@@ -1082,3 +1074,4 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     <?php
 }
+                                
