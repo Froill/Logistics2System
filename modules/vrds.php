@@ -55,10 +55,14 @@ function vrds_view($baseURL)
 
         <!-- Vehicle Request Form (Step 1) -->
         <div class="flex flex-col gap-2">
+
             <div class="flex gap-2 flex-wrap">
-                <button class="btn btn-primary w-max" onclick="request_modal.showModal()">
-                    <i data-lucide="plus-circle" class="w-4 h-4 mr-1"></i> Request Vehicle
-                </button>
+                <?php if (in_array($role, ['requester', 'user'])): ?>
+
+                    <button class="btn btn-primary w-max" onclick="request_modal.showModal()">
+                        <i data-lucide="plus-circle" class="w-4 h-4 mr-1"></i> Request Vehicle
+                    </button>
+                <?php endif; ?>
                 <?php if (!in_array($role, ['requester', 'user'])): ?>
                     <button class="btn btn-secondary w-max" onclick="dispatch_log_modal.showModal()">
                         <i data-lucide="list" class="w-4 h-4 mr-1"></i> View Dispatch Log
@@ -66,55 +70,57 @@ function vrds_view($baseURL)
                 <?php endif; ?>
             </div>
 
+
             <?php if (in_array($role, ['requester', 'user'])): ?>
                 <?php require_once __DIR__ . '/../includes/requester_history.php'; ?>
-            <?php endif; ?>
 
-            <dialog id="request_modal" class="modal">
-                <div class="modal-box">
-                    <form method="dialog">
-                        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                    </form>
-                    <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="mb-6">
-                        <input type="hidden" name="request_vehicle" value="1">
-                        <div class="form-control mb-2">
-                            <label class="label">Purpose</label>
-                            <input type="text" name="purpose" class="input input-bordered" required>
-                        </div>
-                        <div class="form-control mb-2">
-                            <label class="label">Origin</label>
-                            <input type="text" name="origin" id="origin" class="input input-bordered osm-autocomplete" autocomplete="off" required>
-                            <div id="origin-suggestions" class="osm-suggestions"></div>
-                        </div>
-                        <!-- Map View Between Origin and Destination -->
-                        <div class="form-control mb-2">
-                            <div id="osm-map" style="height: 300px; width: 100%; margin-bottom: 8px;"></div>
-                        </div>
-                        <div class="form-control mb-2">
-                            <label class="label">Destination</label>
-                            <input type="text" name="destination" id="destination" class="input input-bordered osm-autocomplete" autocomplete="off" required>
-                            <div id="destination-suggestions" class="osm-suggestions"></div>
-                        </div>
-                        <div class="form-control mb-2">
-                            <label class="label">Requested Vehicle Type</label>
-                            <select name="requested_vehicle_type" class="select select-bordered" required>
-                                <option value="">Select vehicle type</option>
-                                <?php foreach ($vehicle_types as $type): ?>
-                                    <option value="<?= htmlspecialchars($type) ?>"><?= htmlspecialchars($type) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="form-control mb-2">
-                            <label class="label">Reservation Date</label>
-                            <input type="date" name="reservation_date" class="input input-bordered" required>
-                        </div>
-                        <div class="form-control mb-2">
-                            <label class="label">Expected Return Date</label>
-                            <input type="date" name="expected_return" class="input input-bordered" required>
-                        </div>
-                        <button class="btn btn-primary btn-outline mt-2 w-full">Submit Request</button>
-                    </form>
-            </dialog>
+
+                <dialog id="request_modal" class="modal">
+                    <div class="modal-box">
+                        <form method="dialog">
+                            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                        </form>
+                        <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="mb-6">
+                            <input type="hidden" name="request_vehicle" value="1">
+                            <div class="form-control mb-2">
+                                <label class="label">Purpose</label>
+                                <input type="text" name="purpose" class="input input-bordered" required>
+                            </div>
+                            <div class="form-control mb-2">
+                                <label class="label">Origin</label>
+                                <input type="text" name="origin" id="origin" class="input input-bordered osm-autocomplete" autocomplete="off" required>
+                                <div id="origin-suggestions" class="osm-suggestions"></div>
+                            </div>
+                            <!-- Map View Between Origin and Destination -->
+                            <div class="form-control mb-2">
+                                <div id="osm-map" style="height: 300px; width: 100%; margin-bottom: 8px;"></div>
+                            </div>
+                            <div class="form-control mb-2">
+                                <label class="label">Destination</label>
+                                <input type="text" name="destination" id="destination" class="input input-bordered osm-autocomplete" autocomplete="off" required>
+                                <div id="destination-suggestions" class="osm-suggestions"></div>
+                            </div>
+                            <div class="form-control mb-2">
+                                <label class="label">Requested Vehicle Type</label>
+                                <select name="requested_vehicle_type" class="select select-bordered" required>
+                                    <option value="">Select vehicle type</option>
+                                    <?php foreach ($vehicle_types as $type): ?>
+                                        <option value="<?= htmlspecialchars($type) ?>"><?= htmlspecialchars($type) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="form-control mb-2">
+                                <label class="label">Reservation Date</label>
+                                <input type="date" name="reservation_date" class="input input-bordered" required>
+                            </div>
+                            <div class="form-control mb-2">
+                                <label class="label">Expected Return Date</label>
+                                <input type="date" name="expected_return" class="input input-bordered" required>
+                            </div>
+                            <button class="btn btn-primary btn-outline mt-2 w-full">Submit Request</button>
+                        </form>
+                </dialog>
+            <?php endif; ?>
 
             <?php if (!in_array($role, ['requester', 'user'])): ?>
                 <!-- Pending Requests Table (For Transport Officer Approval) -->
