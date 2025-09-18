@@ -25,9 +25,19 @@
                                     $dispatches = fetchAll('dispatches');
                                     $vehicles = fetchAll('fleet_vehicles');
                                     $drivers = fetchAll('drivers');
+function vrds_view($baseURL)
+{
+
+    $role = $_SESSION['role'];
+
+    vrds_logic($baseURL);
+    $requests = fetchAll('vehicle_requests');
+    $dispatches = fetchAll('dispatches');
+    $vehicles = fetchAll('fleet_vehicles');
+    $drivers = fetchAll('drivers');
+
     // Get unique vehicle types for dropdown
     $vehicle_types = [];
-
     foreach ($vehicles as $v) {
         if (!empty($v['vehicle_type']) && !in_array($v['vehicle_type'], $vehicle_types)) {
             $vehicle_types[] = $v['vehicle_type'];
@@ -44,7 +54,9 @@
     <div>
         <!-- OSM Map for Ongoing Dispatched Trips -->
         <div class="mb-6">
-            <h3 class="text-lg font-bold mb-2">Dispatched Trips Map</h3>
+            <?php if (!in_array($role, ['requester', 'user'])): ?>
+                <h3 class="text-lg font-bold mb-2">Dispatched Trips Map</h3>
+            <?php endif; ?>
             <div class="flex flex-wrap gap-2 mb-2">
                 <!-- Dispatched Trips mapsearch bar -->
                 <input id="mapSearch" class="input input-bordered" style="min-width:220px;max-width:350px;" placeholder="Search a place.." autocomplete="off">
@@ -69,54 +81,6 @@
                 <button>close</button>
             </form>
         </dialog>
-        <script>
-        // My POIs logic
-        document.addEventListener('DOMContentLoaded', function() {
-            const myPoisBtn = document.getElementById('myPoisBtn');
-            const myPoisModal = document.getElementById('myPoisModal');
-            const myPoiListContainer = document.getElementById('myPoiListContainer');
-            if (myPoisBtn && myPoisModal && myPoiListContainer) {
-                myPoisBtn.onclick = function() {
-                    fetch('js/custom_pois.json?v=' + Date.now())
-                        .then(res => res.json())
-                        .then(data => {
-                            if (!Array.isArray(data) || data.length === 0) {
-                                myPoiListContainer.innerHTML = '<div>No POIs found.</div>';
-                                return;
-                            }
-                            let html = '<ul class="list-disc pl-4">';
-                            data.forEach((poi, idx) => {
-                                html += '<li class="flex items-center justify-between mb-2">
-                                    <span><b>${poi.name}</b> (${poi.lat}, ${poi.lon})<br><small>${poi.description || ''}</small></span>
-                                    <button class="btn btn-xs btn-primary" data-edit-idx="${idx}"><i data-lucide="edit"></i> Edit</button>
-
-                                    // ...existing code...
-                                        description: newDesc
-                                    };
-                                    fetch('includes/ajax.php?edit_custom_poi=1', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ idx, poi: data[idx] })
-                                    })
-                                    .then(res => res.json())
-                                    .then(resp => {
-                                        if (resp.success) {
-                                            alert('POI updated!');
-                                            btn.parentElement.querySelector('span').innerHTML = <b>${data[idx].name}</b> (${data[idx].lat}, ${data[idx].lon})<br><small>${data[idx].description || ''}</small>;
-                                            if (typeof fetchAndShowPOIs === 'function') fetchAndShowPOIs();
-                                        } else {
-                                            alert('Failed to update POI.');
-                                        }
-                                    })
-                                    .catch(() => alert('Failed to update POI.'));
-                                };
-                            });
-                        });
-                    myPoisModal.showModal();
-                };
-            }
-        });
-        </script>
         <!-- Delete POI Modal -->
         <dialog id="deletePoiModal" class="modal">
             <div class="modal-box">
@@ -188,15 +152,26 @@
             </div>
             <div id="dispatchMap" style="height: 400px; width: 100%;"></div>
         </div>
+
+        <?php if (!in_array($role, ['requester', 'user'])): ?>
+            <h2 class="text-lg md:text-2xl font-bold mb-4">Vehicle Reservation & Dispatch</h2>
+        <?php endif; ?>
+
         <!-- Vehicle Request Form (Step 1) -->
         <div class="flex flex-col gap-2">
+
             <div class="flex gap-2 flex-wrap">
-                <button class="btn btn-primary w-max" onclick="request_modal.showModal()">
-                    <i data-lucide="plus-circle" class="w-4 h-4 mr-1"></i> Request Vehicle
-                </button>
-                <button class="btn btn-secondary w-max" onclick="dispatch_log_modal.showModal()">
-                    <i data-lucide="list" class="w-4 h-4 mr-1"></i> Dispatched Trips
-                </button>
+                <?php if (in_array($role, ['requester', 'user'])): ?>
+
+                    <button class="btn btn-primary w-max" onclick="request_modal.showModal()">
+                        <i data-lucide="plus-circle" class="w-4 h-4 mr-1"></i> Request Vehicle
+                    </button>
+                <?php endif; ?>
+                <?php if (!in_array($role, ['requester', 'user'])): ?>
+                    <button class="btn btn-secondary w-max" onclick="dispatch_log_modal.showModal()">
+                        <i data-lucide="list" class="w-4 h-4 mr-1"></i> Dispatched Trips
+                    </button>
+                <?php endif; ?>
             </div>
             <dialog id="request_modal" class="modal">
                 <div class="modal-box">
@@ -970,6 +945,11 @@
                     });
                 }
             });
+
+        document.addEventListener('DOMContentLoaded', function()) {
+            const myPoisBtn = document.getElementById('myPoisBtn');
+            const myPoisModal = document.getElementById('myPoisModal');
+            const myPoiListContainer = document.getElementById('myPoiListContainer');
              if (myPoisBtn && myPoisModal && myPoiListContainer) {
                         myPoisBtn.onclick = function() {
                             fetch('js/custom_pois.json?v=' + Date.now())
@@ -1018,6 +998,7 @@
                             myPoisModal.showModal();
                         };
                     }
+                }
             // Autocomplete for 'destination' input in request vehicle modal (POIs + Nominatim)
 document.addEventListener('DOMContentLoaded', function() {
     const destInput = document.getElementById('destination');

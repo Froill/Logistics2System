@@ -157,6 +157,7 @@ if ($module === 'dashboard') {
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.js"></script>
   <script src="./js/soliera.js"></script>
   <script src="./js/session-timeout.js"></script>
 

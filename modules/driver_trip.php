@@ -222,7 +222,7 @@ function driver_trip_view($baseURL)
         <!-- Trips Table / No Results -->
         <?php if (empty($trips)): ?>
             <div class="alert alert-warning shadow-lg my-4">
-                <div>
+                <div class="flex items-center gap-2">
                     <i data-lucide="info" class="h-5 w-5 stroke-current"></i>
                     <span>
                         No trips found
