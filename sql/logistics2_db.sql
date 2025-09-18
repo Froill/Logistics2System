@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3307
--- Generation Time: Sep 14, 2025 at 09:57 PM
+-- Generation Time: Sep 18, 2025 at 07:23 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -216,7 +216,104 @@ INSERT INTO `audit_log` (`id`, `module`, `action`, `record_id`, `user`, `details
 (172, 'FVM', 'adjust_maintenance', 5, 'admin', NULL, '2025-09-15 02:29:00'),
 (173, 'FVM', 'edit_vehicle', 4, 'admin', NULL, '2025-09-15 03:42:17'),
 (174, 'FVM', 'edit_vehicle', 5, 'admin', NULL, '2025-09-15 03:42:23'),
-(175, 'FVM', 'edit_vehicle', 5, 'admin', NULL, '2025-09-15 03:42:30');
+(175, 'FVM', 'edit_vehicle', 5, 'admin', NULL, '2025-09-15 03:42:30'),
+(176, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-16 21:29:41'),
+(177, 'VRDS', 'request_vehicle', 93, 'admin', NULL, '2025-09-17 00:14:07'),
+(178, 'VRDS', 'approve_dispatch', 42, 'admin', NULL, '2025-09-17 00:14:48'),
+(179, 'VRDS', 'complete_dispatch', 42, 'admin', NULL, '2025-09-17 00:15:30'),
+(180, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-17 12:57:41'),
+(181, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-17 20:29:21'),
+(182, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-17 20:30:29'),
+(183, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-17 20:41:46'),
+(184, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-17 20:43:34'),
+(185, 'Authentication', 'OTP Sent', 1, 'S250701', 'OTP sent for login', '2025-09-17 20:43:46'),
+(186, 'Authentication', 'Successful Login', 1, 'S250701', 'User successfully logged in after OTP verification', '2025-09-17 20:44:32'),
+(187, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-17 21:39:44'),
+(188, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-17 21:39:59'),
+(189, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-17 22:29:26'),
+(190, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-17 22:37:36'),
+(191, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-17 22:44:55'),
+(192, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-17 22:49:41'),
+(193, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-17 23:07:40'),
+(194, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-17 23:08:08'),
+(195, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 00:01:08'),
+(196, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-18 00:10:37'),
+(197, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 00:10:41'),
+(198, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 00:19:43'),
+(199, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 00:36:42'),
+(200, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 00:59:20'),
+(201, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-18 01:10:31'),
+(202, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 01:29:16'),
+(203, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 02:07:12'),
+(204, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 02:26:04'),
+(205, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 02:31:58'),
+(206, 'FVM', 'set_maintenance', 1, 'admin', NULL, '2025-09-18 02:36:23'),
+(207, 'FVM', 'clear_maintenance_logs', NULL, 'admin', NULL, '2025-09-18 02:37:10'),
+(208, 'FVM', 'set_maintenance', 1, 'admin', NULL, '2025-09-18 02:37:28'),
+(209, 'FVM', 'set_maintenance', 2, 'admin', NULL, '2025-09-18 02:37:50'),
+(210, 'FVM', 'set_maintenance', 3, 'admin', NULL, '2025-09-18 02:38:03'),
+(211, 'FVM', 'set_maintenance', 4, 'admin', NULL, '2025-09-18 02:38:19'),
+(212, 'FVM', 'set_maintenance', 5, 'admin', NULL, '2025-09-18 02:38:29'),
+(213, 'FVM', 'set_maintenance', 1, 'admin', NULL, '2025-09-18 02:38:47'),
+(214, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 02:45:13'),
+(215, 'FVM', 'clear_maintenance_logs', NULL, 'admin', NULL, '2025-09-18 02:46:46'),
+(216, 'FVM', 'set_maintenance', 1, 'admin', NULL, '2025-09-18 02:47:01'),
+(217, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 02:53:25'),
+(218, 'FVM', 'set_maintenance', 2, 'admin', NULL, '2025-09-18 02:53:59'),
+(219, 'FVM', 'set_maintenance', 3, 'admin', NULL, '2025-09-18 02:54:19'),
+(220, 'FVM', 'clear_maintenance_logs', NULL, 'admin', NULL, '2025-09-18 02:54:38'),
+(221, 'FVM', 'set_maintenance', 1, 'admin', NULL, '2025-09-18 02:59:05'),
+(222, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 03:08:50'),
+(223, 'FVM', 'set_maintenance', 2, 'admin', NULL, '2025-09-18 03:09:24'),
+(224, 'FVM', 'set_maintenance', 3, 'admin', NULL, '2025-09-18 03:09:43'),
+(225, 'FVM', 'set_maintenance', 4, 'admin', NULL, '2025-09-18 03:10:06'),
+(226, 'FVM', 'set_maintenance', 5, 'admin', NULL, '2025-09-18 03:10:25'),
+(227, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-18 03:36:45'),
+(228, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 03:42:06'),
+(229, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-18 03:47:49'),
+(230, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 03:47:59'),
+(231, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-18 04:19:00'),
+(232, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 04:55:41'),
+(233, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-18 05:41:55'),
+(234, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 08:13:26'),
+(235, 'VRDS', 'request_vehicle', 94, 'admin', NULL, '2025-09-18 08:45:36'),
+(236, 'FVM', 'edit_vehicle', 1, 'admin', NULL, '2025-09-18 08:46:52'),
+(237, 'FVM', 'edit_vehicle', 5, 'admin', NULL, '2025-09-18 08:47:22'),
+(238, 'VRDS', 'approve_dispatch', 43, 'admin', NULL, '2025-09-18 08:48:52'),
+(239, 'VRDS', 'complete_dispatch', 43, 'admin', NULL, '2025-09-18 09:13:31'),
+(240, 'VRDS', 'request_vehicle', 95, 'admin', NULL, '2025-09-18 09:15:34'),
+(241, 'VRDS', 'approve_dispatch', 44, 'admin', NULL, '2025-09-18 09:15:55'),
+(242, 'VRDS', 'request_vehicle', 96, 'admin', NULL, '2025-09-18 09:25:37'),
+(243, 'FVM', 'edit_vehicle', 2, 'admin', NULL, '2025-09-18 09:26:22'),
+(244, 'FVM', 'edit_vehicle', 4, 'admin', NULL, '2025-09-18 09:26:34'),
+(245, 'FVM', 'edit_vehicle', 3, 'admin', NULL, '2025-09-18 09:26:44'),
+(246, 'VRDS', 'approve_dispatch', 45, 'admin', NULL, '2025-09-18 09:27:13'),
+(247, 'VRDS', 'complete_dispatch', 44, 'admin', NULL, '2025-09-18 09:29:42'),
+(248, 'VRDS', 'complete_dispatch', 45, 'admin', NULL, '2025-09-18 09:29:54'),
+(249, 'VRDS', 'request_vehicle', 97, 'admin', NULL, '2025-09-18 09:33:40'),
+(250, 'VRDS', 'approve_dispatch', 46, 'admin', NULL, '2025-09-18 09:33:58'),
+(251, 'VRDS', 'delete_dispatch', 42, 'admin', NULL, '2025-09-18 09:53:28'),
+(252, 'VRDS', 'approve_dispatch', 47, 'admin', NULL, '2025-09-18 09:54:18'),
+(253, 'VRDS', 'complete_dispatch', 47, 'admin', NULL, '2025-09-18 10:05:56'),
+(254, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-18 10:30:25'),
+(255, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 10:39:19'),
+(256, 'VRDS', 'request_vehicle', 98, 'admin', NULL, '2025-09-18 10:49:13'),
+(257, 'VRDS', 'request_vehicle', 99, 'admin', NULL, '2025-09-18 10:53:07'),
+(258, 'VRDS', 'request_vehicle', 100, 'admin', NULL, '2025-09-18 11:00:37'),
+(259, 'VRDS', 'request_vehicle', 101, 'admin', NULL, '2025-09-18 11:14:39'),
+(260, 'VRDS', 'approve_dispatch', 48, 'admin', NULL, '2025-09-18 11:15:05'),
+(261, 'VRDS', 'complete_dispatch', 48, 'admin', NULL, '2025-09-18 11:15:29'),
+(262, 'VRDS', 'request_vehicle', 102, 'admin', NULL, '2025-09-18 11:29:38'),
+(263, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 11:36:46'),
+(264, 'DTP', 'add_trip', 35, 'admin', NULL, '2025-09-18 11:52:24'),
+(265, 'DTP', 'add_trip', 36, 'admin', NULL, '2025-09-18 11:53:08'),
+(266, 'TCAO', 'submitted', 41, 'admin', NULL, '2025-09-18 12:00:28'),
+(267, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 12:42:36'),
+(268, 'VRDS', 'request_vehicle', 103, 'admin', NULL, '2025-09-18 12:47:38'),
+(269, 'VRDS', 'request_vehicle', 104, 'admin', NULL, '2025-09-18 12:48:49'),
+(270, 'VRDS', 'approve_dispatch', 49, 'admin', NULL, '2025-09-18 12:49:19'),
+(271, 'Authentication', 'Logout', 1, 'S250701', 'User logged out successfully', '2025-09-18 13:05:15'),
+(272, 'Authentication', 'Login', 1, 'S250701', 'User logged in via trusted device', '2025-09-18 13:09:50');
 
 -- --------------------------------------------------------
 
@@ -236,7 +333,7 @@ CREATE TABLE `dispatches` (
   `origin` varchar(255) DEFAULT NULL,
   `destination` varchar(255) DEFAULT NULL,
   `origin_lat` decimal(8,6) DEFAULT NULL,
-  `origin_long` decimal(9,6) DEFAULT NULL,
+  `origin_lon` decimal(9,6) DEFAULT NULL,
   `destination_lat` decimal(8,6) DEFAULT NULL,
   `destination_lon` decimal(9,6) DEFAULT NULL,
   `purpose` text DEFAULT NULL,
@@ -244,6 +341,18 @@ CREATE TABLE `dispatches` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `dispatches`
+--
+
+INSERT INTO `dispatches` (`id`, `request_id`, `vehicle_id`, `driver_id`, `officer_id`, `dispatch_date`, `return_date`, `status`, `origin`, `destination`, `origin_lat`, `origin_lon`, `destination_lat`, `destination_lon`, `purpose`, `notes`, `created_at`, `updated_at`) VALUES
+(43, 94, 1, 1, 1, '2025-09-18 02:48:52', NULL, 'Completed', 'Warehouse North', 'Ninoy Aquino International Airport, Alegria, Buena Vida Townhomes, Parañaque District 2, Parañaque, Southern Manila District, Metro Manila, 1700, Philippines', NULL, NULL, NULL, NULL, 'Guest Transport', '', '2025-09-18 00:48:52', '2025-09-18 01:13:31'),
+(44, 95, 1, 1, 1, '2025-09-18 03:15:55', NULL, 'Completed', 'Warehouse Legit', 'Soliera : Hotel and Restaurant', NULL, NULL, NULL, NULL, 'Supplies', '', '2025-09-18 01:15:55', '2025-09-18 01:29:42'),
+(45, 96, 3, 20, 1, '2025-09-18 03:27:13', NULL, 'Completed', 'NAIA Airport Pickup', 'Soliera : Hotel and Restaurant', NULL, NULL, NULL, NULL, 'Guest Transport 1-2', '', '2025-09-18 01:27:13', '2025-09-18 01:29:54'),
+(46, 97, 1, 1, 1, '2025-09-18 03:33:58', NULL, 'Ongoing', 'Warehouse North', 'Maintenance Shop A', 14.751000, 121.025400, 14.733507, 121.056591, 'Maintenance/Repair Run', '', '2025-09-18 01:33:58', '2025-09-18 01:33:58'),
+(48, 101, 1, 20, 1, '2025-09-18 05:15:05', NULL, 'Completed', 'Warehouse North', 'Soliera : Hotel and Restaurant', 14.751000, 121.025400, 14.726544, 121.036862, 'Event Logistics', '', '2025-09-18 03:15:05', '2025-09-18 03:15:29'),
+(49, 104, 2, 20, 1, '2025-09-18 06:49:19', NULL, 'Ongoing', 'Soliera : Hotel and Restaurant', 'Supplier B', 14.726544, 121.036862, 14.678258, 121.031576, 'Supplies Pickup', '', '2025-09-18 04:49:19', '2025-09-18 04:49:19');
 
 -- --------------------------------------------------------
 
@@ -268,7 +377,7 @@ CREATE TABLE `drivers` (
 
 INSERT INTO `drivers` (`id`, `eid`, `driver_name`, `license_number`, `phone`, `email`, `status`, `created_at`) VALUES
 (1, 'D25071', 'Juan Dela Cruz', 'PH-DL-2025-001', '09171234567', 'juan.delacruz@example.com', 'Available', '2025-08-29 02:49:13'),
-(20, 'D250722', 'Jerome Adrian Ragas', 'A20-52-123456', NULL, 'jeromeadrianragas@gmail.com', 'Available', '2025-09-15 03:56:24');
+(20, 'D250722', 'Jerome Adrian Ragas', 'A20-52-123456', NULL, 'jeromeadrianragas@gmail.com', 'Dispatched', '2025-09-15 03:56:24');
 
 -- --------------------------------------------------------
 
@@ -298,6 +407,14 @@ CREATE TABLE `driver_trips` (
   `vehicle_capacity` decimal(10,2) DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `driver_trips`
+--
+
+INSERT INTO `driver_trips` (`id`, `driver_id`, `vehicle_id`, `trip_date`, `start_time`, `end_time`, `distance_traveled`, `fuel_consumed`, `idle_time`, `average_speed`, `performance_score`, `validation_status`, `validation_message`, `supervisor_review_status`, `supervisor_remarks`, `created_at`, `updated_at`, `cargo_weight`, `vehicle_capacity`) VALUES
+(35, 20, 1, '2025-09-18', '0000-00-00 00:00:00', '0000-00-00 00:00:00', 7.00, 1.20, 3, 0.64, 79.17, 'valid', NULL, 'pending', NULL, '2025-09-18 03:52:24', '2025-09-18 03:52:24', 120.00, 475.00),
+(36, 1, 1, '2025-09-18', '0000-00-00 00:00:00', '0000-00-00 00:00:00', 12.00, 4.00, 2, 0.63, 65.00, 'valid', NULL, 'pending', NULL, '2025-09-18 03:53:08', '2025-09-18 03:53:08', 200.00, 475.00);
+
 -- --------------------------------------------------------
 
 --
@@ -321,10 +438,10 @@ CREATE TABLE `fleet_vehicles` (
 
 INSERT INTO `fleet_vehicles` (`id`, `vehicle_name`, `plate_number`, `vehicle_type`, `status`, `weight_capacity`, `fuel_capacity`, `vehicle_image`) VALUES
 (1, 'Toyota Hilux', 'ABC-124', 'Pickup', 'Active', 475.00, 80.00, 'uploads/vehicle_1757162864_8262.png'),
-(2, 'Mitsubishi L300', 'XYZ-456', 'Van', 'Active', 1000.00, 55.00, 'uploads/vehicle_1757162937_8200.jpg'),
+(2, 'Mitsubishi L300', 'XYZ-456', 'Van', 'Dispatched', 1000.00, 55.00, 'uploads/vehicle_1757162937_8200.jpg'),
 (3, 'Isuzu D-Max', 'LMN-789', 'Pickup', 'Active', 475.00, 76.00, 'uploads/vehicle_1757162957_9277.jpg'),
 (4, 'Hyundai H100', 'JKL-321', 'Van', 'Active', 1090.00, 65.00, 'uploads/vehicle_1757162972_2521.jpg'),
-(5, 'Ford Ranger', 'PQR-654', 'Pickup', 'Active', 985.00, 80.00, 'uploads/vehicle_1757163149_5973.png');
+(5, 'Ford Ranger', 'PQR-654', 'Pickup', 'Inactive', 985.00, 80.00, 'uploads/vehicle_1757163149_5973.png');
 
 -- --------------------------------------------------------
 
@@ -346,11 +463,11 @@ CREATE TABLE `fleet_vehicle_logs` (
 
 INSERT INTO `fleet_vehicle_logs` (`id`, `vehicle_id`, `log_type`, `details`, `created_at`) VALUES
 (1, 1, 'fuel', 'Need Refill', '2025-08-28 17:07:58'),
-(31, 1, 'maintenance', 'Scheduled maintenance adjusted to 2025-09-08', '2025-09-08 08:00:00'),
-(32, 2, 'maintenance', 'Monthly Scheduled Maintenance', '2025-10-08 08:00:00'),
-(33, 3, 'maintenance', 'Monthly Scheduled Maintenance', '2025-10-08 08:00:00'),
-(34, 4, 'maintenance', 'Scheduled maintenance adjusted to 2025-09-15', '2025-09-15 08:00:00'),
-(35, 5, 'maintenance', 'Scheduled maintenance adjusted to 2025-09-16', '2025-09-16 08:00:00');
+(48, 1, 'maintenance', 'Battery scheduled for maintenance', '2025-09-18 02:59:05'),
+(49, 2, 'maintenance', 'Tire Condition scheduled for maintenance', '2025-09-19 03:09:24'),
+(50, 3, 'maintenance', 'Gas/Fuel Tank Condition scheduled for maintenance', '2025-09-20 03:09:43'),
+(51, 4, 'maintenance', 'Oil Level scheduled for maintenance', '2025-09-20 03:10:06'),
+(52, 5, 'maintenance', 'Left Taillight scheduled for maintenance', '2025-09-22 03:10:25');
 
 -- --------------------------------------------------------
 
@@ -417,6 +534,13 @@ CREATE TABLE `transport_costs` (
   `created_at` timestamp(6) NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `transport_costs`
+--
+
+INSERT INTO `transport_costs` (`id`, `trip_id`, `fuel_cost`, `toll_fees`, `other_expenses`, `total_cost`, `status`, `receipt`, `created_by`, `created_at`) VALUES
+(41, 35, 200.00, 0.00, 500.00, 700.00, 'submitted', 'receipts_68cb83dca7c0b.jpg', 'admin', '2025-09-18 04:00:28.000000');
+
 -- --------------------------------------------------------
 
 --
@@ -439,8 +563,7 @@ CREATE TABLE `trusted_devices` (
 --
 
 INSERT INTO `trusted_devices` (`id`, `user_id`, `device_token`, `ua_hash`, `ip_net`, `expires_at`, `last_seen`, `created_at`) VALUES
-(8, 1, '0ff78a42681786814889c6d5fe1244d96e6dee5d8e34a08e947c0ce90ab7f9a9', 'c872b1a5d8f484c5e37fe7be0753f974e53712ba2d75f667602585626e90101d', '::1::/64', '2025-09-15 10:52:06', '2025-09-08 16:52:06', '2025-09-08 16:52:06'),
-(9, 1, '9bc0972d5a7e27aed6dc12c4141641f6dcbdac737d71dd9bc39c0312aed1b354', 'b5696a699925e22006af19488170e4e2ab139f50a49cff1cea664b7bd6f67a2e', '::1::/64', '2025-09-21 06:26:27', '2025-09-14 12:26:27', '2025-09-14 12:26:27');
+(10, 1, '87e75946a0ac4f573507022af40a0e241487df7255abf5356a64c732d5fcd04d', 'b5696a699925e22006af19488170e4e2ab139f50a49cff1cea664b7bd6f67a2e', '::1::/64', '2025-09-24 06:44:32', '2025-09-17 12:44:32', '2025-09-17 12:44:32');
 
 -- --------------------------------------------------------
 
@@ -464,7 +587,6 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `eid`, `full_name`, `email`, `password`, `role`, `created_at`) VALUES
 (1, 'S250701', 'admin', 'froilan.respicio2021@gmail.com', '$2y$10$jIX3O6u91NS/77OMfeFYieOa7n2G9MAKSdmYFmz3nMwudlo652XTS', 'admin', '2025-08-30 08:37:43'),
-(2, 'S250702', 'Juan Dela Cruz', 'danielzabat01@gmail.com', '$2y$10$EPiNvDrT8aKDFTmHIl5vnuq/UBbmmhOOe7Ov5NpqmETHoYzorZuc6', 'admin', '2025-08-30 09:51:12'),
 (6, 'M250706', 'gusion', 'cringey.ch@gmail.com', '$2y$10$EPiNvDrT8aKDFTmHIl5vnuq/UBbmmhOOe7Ov5NpqmETHoYzorZuc6', 'manager', '2025-08-30 09:51:12'),
 (21, 'R250721', 'Leonard Manicdo', 'leonardomanicdo119@gmail.com', '$2y$10$JrUQhjXMQHfyKrq55oFHrOxxqNX2r0rAY0g8BteDBEYOjli6sE0..', 'requester', '2025-09-14 19:49:20'),
 (22, 'D250722', 'Jerome Adrian Ragas', 'jeromeadrianragas@gmail.com', '$2y$10$5NUbZkgUZ5UBnTKulfrxs.rGBfnfqgmSKHu43Evboa2OdEWUeYfxK', 'driver', '2025-09-14 19:56:24'),
@@ -477,7 +599,7 @@ INSERT INTO `users` (`id`, `eid`, `full_name`, `email`, `password`, `role`, `cre
 --
 
 CREATE TABLE `vehicle_requests` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id` int(11) NOT NULL,
   `requester_id` int(11) NOT NULL,
   `request_date` datetime NOT NULL,
   `reservation_date` date DEFAULT NULL,
@@ -485,6 +607,10 @@ CREATE TABLE `vehicle_requests` (
   `purpose` text DEFAULT NULL,
   `origin` varchar(255) DEFAULT NULL,
   `destination` varchar(255) DEFAULT NULL,
+  `origin_lat` decimal(8,6) DEFAULT NULL,
+  `origin_lon` decimal(9,6) DEFAULT NULL,
+  `destination_lat` decimal(8,6) DEFAULT NULL,
+  `destination_lon` decimal(9,6) DEFAULT NULL,
   `requested_vehicle_type` varchar(100) DEFAULT NULL,
   `requested_driver_id` int(11) DEFAULT NULL,
   `status` enum('Pending','Approved','Denied','Dispatched','Completed') DEFAULT 'Pending',
@@ -499,15 +625,17 @@ CREATE TABLE `vehicle_requests` (
 -- Dumping data for table `vehicle_requests`
 --
 
-INSERT INTO `vehicle_requests` (`id`, `requester_id`, `request_date`, `reservation_date`, `expected_return`, `purpose`, `origin`, `destination`, `requested_vehicle_type`, `requested_driver_id`, `status`, `approved_by`, `approved_at`, `dispatched_at`, `completed_at`, `notes`) VALUES
-(16, 1, '2025-08-29 12:44:30', '2025-07-23', '2025-08-31', 'Resupply Ketchup', 'Kitchen', 'Warehouse', 'Car', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
-(17, 1, '2025-08-29 12:46:46', '2025-08-29', '2025-08-30', 'Balut Order', 'Kitchen', 'Supplier', 'Car', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
-(37, 6, '2025-08-07 08:00:00', '2025-08-07', '2025-08-07', 'Delivery 7-1', 'Warehouse', 'Hotel', 'Truck', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
-(42, 6, '2025-08-09 08:00:00', '2025-08-09', '2025-08-09', 'Delivery 9-2', 'Warehouse', 'Hotel', 'Pickup', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
-(67, 6, '2025-08-22 08:00:00', '2025-08-22', '2025-08-22', 'Delivery 22-1', 'Warehouse', 'Hotel', 'Van', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
-(74, 6, '2025-08-25 08:00:00', '2025-08-25', '2025-08-25', 'Delivery 25-2', 'Warehouse', 'Hotel', 'Pickup', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
-(83, 1, '2025-08-30 08:00:00', '2025-08-30', '2025-08-30', 'Delivery 30-1', 'Warehouse', 'Hotel', 'Truck', 1, 'Approved', NULL, NULL, NULL, NULL, NULL),
-(89, 1, '2025-09-02 12:39:31', '2025-09-02', '2025-09-03', 'Gala', 'Warehouse Legit', 'Bestlink', 'Van', NULL, 'Approved', NULL, NULL, NULL, NULL, '');
+INSERT INTO `vehicle_requests` (`id`, `requester_id`, `request_date`, `reservation_date`, `expected_return`, `purpose`, `origin`, `destination`, `origin_lat`, `origin_lon`, `destination_lat`, `destination_lon`, `requested_vehicle_type`, `requested_driver_id`, `status`, `approved_by`, `approved_at`, `dispatched_at`, `completed_at`, `notes`) VALUES
+(94, 1, '2025-09-18 08:45:36', '2025-09-18', '2025-09-19', 'Guest Transport', 'Warehouse North', 'Ninoy Aquino International Airport, Alegria, Buena Vida Townhomes, Parañaque District 2, Parañaque, Southern Manila District, Metro Manila, 1700, Philippines', NULL, NULL, NULL, NULL, 'Van', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
+(95, 1, '2025-09-18 09:15:34', '2025-09-18', '2025-09-19', 'Supplies', 'Warehouse Legit', 'Soliera : Hotel and Restaurant', NULL, NULL, NULL, NULL, 'Van', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
+(96, 1, '2025-09-18 09:25:37', '2025-09-18', '2025-09-19', 'Guest Transport 1-2', 'NAIA Airport Pickup', 'Soliera : Hotel and Restaurant', 14.510474, 121.022666, 14.726544, 121.036862, 'Pickup', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
+(97, 1, '2025-09-18 09:33:40', '2025-09-18', '2025-09-19', 'Maintenance/Repair Run', 'Warehouse North', 'Maintenance Shop A', 14.751000, 121.025400, 14.733507, 121.056591, 'Pickup', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
+(99, 1, '2025-09-18 10:53:07', '2025-09-18', '2025-09-19', 'Delivery', 'Warehouse North', 'Soliera : Hotel and Restaurant', 14.751000, 121.025400, 14.726544, 121.036862, 'Van', NULL, 'Denied', NULL, NULL, NULL, NULL, ''),
+(100, 1, '2025-09-18 11:00:37', '2025-09-18', '2025-09-19', 'Delivery', 'Warehouse North', 'Soliera : Hotel and Restaurant', 14.751000, 121.025400, 14.726544, 121.036862, 'Van', NULL, '', NULL, NULL, NULL, NULL, ''),
+(101, 1, '2025-09-18 11:14:39', '2025-09-18', '2025-09-19', 'Event Logistics', 'Warehouse North', 'Soliera : Hotel and Restaurant', 14.751000, 121.025400, 14.726544, 121.036862, 'Pickup', NULL, 'Approved', NULL, NULL, NULL, NULL, ''),
+(102, 1, '2025-09-18 11:29:38', '2025-09-18', '2025-09-19', 'Maintenance / Repair Runs', 'Warehouse South', 'Maintenance Shop A', 14.409800, 121.041500, 14.733507, 121.056591, 'Pickup', NULL, 'Pending', NULL, NULL, NULL, NULL, ''),
+(103, 1, '2025-09-18 12:47:38', '2025-09-18', '2025-09-20', 'Supplies Pickup', 'Warehouse Legit', 'Supplier A', 14.651422, 121.049265, 14.688802, 121.034322, 'Pickup', NULL, 'Pending', NULL, NULL, NULL, NULL, ''),
+(104, 1, '2025-09-18 12:48:49', '2025-09-18', '2025-09-21', 'Supplies Pickup', 'Soliera : Hotel and Restaurant', 'Supplier B', 14.726544, 121.036862, 14.678258, 121.031576, 'Van', NULL, 'Approved', NULL, NULL, NULL, NULL, '');
 
 --
 -- Indexes for dumped tables
@@ -618,13 +746,13 @@ ALTER TABLE `vehicle_requests`
 -- AUTO_INCREMENT for table `audit_log`
 --
 ALTER TABLE `audit_log`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=176;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=273;
 
 --
 -- AUTO_INCREMENT for table `dispatches`
 --
 ALTER TABLE `dispatches`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
 
 --
 -- AUTO_INCREMENT for table `drivers`
@@ -636,7 +764,7 @@ ALTER TABLE `drivers`
 -- AUTO_INCREMENT for table `driver_trips`
 --
 ALTER TABLE `driver_trips`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `fleet_vehicles`
@@ -648,7 +776,7 @@ ALTER TABLE `fleet_vehicles`
 -- AUTO_INCREMENT for table `fleet_vehicle_logs`
 --
 ALTER TABLE `fleet_vehicle_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
 
 --
 -- AUTO_INCREMENT for table `notifications`
@@ -672,13 +800,13 @@ ALTER TABLE `recommendations`
 -- AUTO_INCREMENT for table `transport_costs`
 --
 ALTER TABLE `transport_costs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
 
 --
 -- AUTO_INCREMENT for table `trusted_devices`
 --
 ALTER TABLE `trusted_devices`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -690,7 +818,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `vehicle_requests`
 --
 ALTER TABLE `vehicle_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=93;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=105;
 
 --
 -- Constraints for dumped tables
