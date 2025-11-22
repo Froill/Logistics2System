@@ -40,7 +40,18 @@ if (!empty($_SESSION['otp_locked'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $inputOtp = trim($_POST['otp'] ?? '');
+
+    $inputArray = [
+        trim($_POST['otp1']),
+        trim($_POST['otp2']),
+        trim($_POST['otp3']),
+        trim($_POST['otp4']),
+        trim($_POST['otp5']),
+        trim($_POST['otp6'])
+    ];
+
+    $inputOtp = implode('', $inputArray);
+
     $user = $_SESSION['pending_user'];
 
     if (empty($inputOtp)) {
