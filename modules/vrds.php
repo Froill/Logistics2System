@@ -1,22 +1,22 @@
 <?php
 
 // VEHICLE RESERVATION AND DISPATCH SYSTEM (VRDS)
-                                require_once __DIR__ . '/../includes/functions.php';
-                                require_once __DIR__ . '/../includes/mailer.php';
-                                require_once __DIR__ . '/audit_log.php';
-                                require_once __DIR__ . '/../includes/vrds_logic.php';
-                                require_once __DIR__ . '/../includes/ajax.php';
+ require_once __DIR__ . '/../includes/functions.php';
+ require_once __DIR__ . '/../includes/mailer.php';
+ require_once __DIR__ . '/audit_log.php';
+ require_once __DIR__ . '/../includes/vrds_logic.php';
+ require_once __DIR__ . '/../includes/ajax.php';
 
-                                // Handle request rejection BEFORE any output
-                                if (isset($_POST['reject_request']) && isset($_POST['request_id'])) {
-                                    $rid = intval($_POST['request_id']);
-                                    global $conn;
-                                    $stmt = $conn->prepare("UPDATE vehicle_requests SET status='Denied' WHERE id=?");
-                                    $stmt->bind_param('i', $rid);
-                                    $stmt->execute();
-                                    header('Location: ' . $_SERVER['REQUEST_URI']);
-                                    exit;
-                                }
+ // Handle request rejection BEFORE any output
+ if (isset($_POST['reject_request']) && isset($_POST['request_id'])) {
+     $rid = intval($_POST['request_id']);
+     global $conn;
+     $stmt = $conn->prepare("UPDATE vehicle_requests SET status='Denied' WHERE id=?");
+     $stmt->bind_param('i', $rid);
+     $stmt->execute();
+     header('Location: ' . $_SERVER['REQUEST_URI']);
+     exit;
+ }
 
 function vrds_view($baseURL)
 {
@@ -938,59 +938,76 @@ function vrds_view($baseURL)
                 }
             });
 
-        document.addEventListener('DOMContentLoaded', function()) {
+        document.addEventListener('DOMContentLoaded', function() {
             const myPoisBtn = document.getElementById('myPoisBtn');
             const myPoisModal = document.getElementById('myPoisModal');
             const myPoiListContainer = document.getElementById('myPoiListContainer');
-             if (myPoisBtn && myPoisModal && myPoiListContainer) {
-                        myPoisBtn.onclick = function() {
-                            fetch('js/custom_pois.json?v=' + Date.now())
-                                .then(res => res.json())
-                                .then(data => {
-                                    if (!Array.isArray(data) || data.length === 0) {
-                                        myPoiListContainer.innerHTML = '<div>No POIs found.</div>';
-                                        return;
-                                    }
-                                    let html = '<ul class="list-disc pl-4">';
-                                    data.forEach((poi, idx) => {
-                                        html += `<li class="flex items-center justify-between mb-2">
-                                            <span><b>${poi.name}</b> (${poi.lat}, ${poi.lon})<br><small>${poi.description || ''}</small></span>
-                                            <button class="btn btn-xs btn-primary" data-edit-idx="${idx}"><i data-lucide="edit"></i> Edit</button>
-                                        </li>`;
-                                    });
-                                    html += '</ul>';
-                                    myPoiListContainer.innerHTML = html;
-                                    // Attach edit handlers
-                                    Array.from(myPoiListContainer.querySelectorAll('button[data-edit-idx]')).forEach(btn => {
-                                        btn.onclick = function(e) {
-                                            e.preventDefault();
-                                            const idx = parseInt(btn.getAttribute('data-edit-idx'));
-                                            const newDesc = prompt('Edit POI description:', data[idx].description || '');
-                                            if (newDesc === null) return;
-                                            data[idx].description = newDesc;
-                                            fetch('includes/ajax.php?edit_custom_poi=1', {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({ idx, poi: data[idx] })
-                                            })
-                                            .then(res => res.json())
-                                            .then(resp => {
-                                                if (resp.success) {
-                                                    alert('POI updated!');
-                                                    btn.parentElement.querySelector('span').innerHTML = `<b>${data[idx].name}</b> (${data[idx].lat}, ${data[idx].lon})<br><small>${data[idx].description || ''}</small>`;
-                                                    if (typeof fetchAndShowPOIs === 'function') fetchAndShowPOIs();
-                                                } else {
-                                                    alert('Failed to update POI.');
-                                                }
-                                            })
-                                            .catch(() => alert('Failed to update POI.'));
-                                        };
-                                    });
-                                });
-                            myPoisModal.showModal();
-                        };
+
+            if (myPoisBtn && myPoisModal && myPoiListContainer) {
+                myPoisBtn.addEventListener('click', function() {
+                    fetch('js/custom_pois.json?v=' + Date.now())
+                        .then(res => res.json())
+                        .then(data => {
+                            if (!Array.isArray(data) || data.length === 0) {
+                                myPoiListContainer.innerHTML = '<div>No POIs found.</div>';
+                                return;
+                            }
+                            let html = '<ul class="list-disc pl-4">';
+                            data.forEach((poi, idx) => {
+                                html += `<li class="flex items-center justify-between mb-2">
+                                    <span><b>${poi.name}</b> (${poi.lat}, ${poi.lon})<br><small>${poi.description || ''}</small></span>
+                                    <button class="btn btn-xs btn-primary" data-edit-idx="${idx}"><i data-lucide="edit"></i> Edit</button>
+                                </li>`;
+                            });
+                            html += '</ul>';
+                            myPoiListContainer.innerHTML = html;
+                            // Attach edit handlers
+                            Array.from(myPoiListContainer.querySelectorAll('button[data-edit-idx]')).forEach(btn => {
+                                btn.onclick = function(e) {
+                                    e.preventDefault();
+                                    const idx = parseInt(btn.getAttribute('data-edit-idx'));
+                                    const current = data[idx] || {};
+                                    // Prompt for name first (pre-filled), then description
+                                    const newName = prompt('Edit POI name:', current.name || '');
+                                    if (newName === null) return; // user cancelled
+                                    const newDesc = prompt('Edit POI description:', current.description || '');
+                                    if (newDesc === null) return; // user cancelled
+                                    current.name = newName;
+                                    current.description = newDesc;
+                                    // Send updated POI (including name & description) to backend
+                                    fetch('includes/ajax.php?edit_custom_poi=1', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ idx, poi: current })
+                                    })
+                                    .then(res => res.json())
+                                    .then(resp => {
+                                        if (resp.success) {
+                                            alert('POI updated!');
+                                            btn.parentElement.querySelector('span').innerHTML = `<b>${current.name}</b> (${current.lat}, ${current.lon})<br><small>${current.description || ''}</small>`;
+                                            if (typeof fetchAndShowPOIs === 'function') fetchAndShowPOIs();
+                                        } else {
+                                            alert('Failed to update POI.');
+                                        }
+                                    })
+                                    .catch(() => alert('Failed to update POI.'));
+                                };
+                            });
+                        })
+                        .catch(() => {
+                            myPoiListContainer.innerHTML = '<div>Failed to load POIs.</div>';
+                        });
+
+                    // Show modal after initiating fetch (modal content will update when data arrives)
+                    if (typeof myPoisModal.showModal === 'function') {
+                        myPoisModal.showModal();
+                    } else {
+                        // Fallback for browsers without dialog support
+                        myPoisModal.style.display = 'block';
                     }
-                }
+                });
+            }
+        });
             // Autocomplete for 'destination' input in request vehicle modal (POIs + Nominatim)
 document.addEventListener('DOMContentLoaded', function() {
     const destInput = document.getElementById('destination');
