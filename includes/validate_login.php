@@ -89,7 +89,7 @@ try {
     // Prepare statement with MySQLi
     $stmt = $conn->prepare("SELECT id, eid, full_name, password, role, email 
                         FROM users 
-                        WHERE eid = ? 
+                        WHERE email = ? 
                         LIMIT 1");
     $stmt->bind_param("s", $eid);
     $stmt->execute();
