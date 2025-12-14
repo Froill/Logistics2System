@@ -58,6 +58,20 @@ function profile_logic($baseURL)
         exit;
     }
 
+    // Add log to the current module that is being accessed by the user
+    $moduleName = 'profile';
+
+    if ($_SESSION['current_module'] !== $moduleName) {
+        log_audit_event(
+            'Profile',
+            'ACCESS',
+            null,
+            $_SESSION['full_name'],
+            'User accessed User Profile module'
+        );
+        $_SESSION['current_module'] = $moduleName;
+    }
+
     // Prepare flash messages (success/error)
     $GLOBALS['profile_success'] = $_SESSION['profile_success'] ?? '';
     $GLOBALS['profile_error']   = $_SESSION['profile_error'] ?? '';

@@ -1,7 +1,6 @@
 <?php
 //FLEET & VEHICLE MANAGEMENT MODULE
 // Manages fleet vehicles, their statuses, and logs (maintenance, fuel, etc.)
-require_once __DIR__ . '/audit_log.php';
 require_once __DIR__ . '/../includes/fvm_logic.php';
 
 function fvm_view($baseURL)
@@ -16,6 +15,20 @@ function fvm_view($baseURL)
     $inactiveCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Inactive'));
     $maintenanceCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Under Maintenance'));
     $dispatchedCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Dispatched')); // if applicable
+
+    // Add log to the current module that is being accessed by the user
+    $moduleName = 'fvm';
+
+    if ($_SESSION['current_module'] !== $moduleName) {
+        log_audit_event(
+            'FVM',
+            'ACCESS',
+            null,
+            $_SESSION['full_name'],
+            'User accessed Fleet & Vehicle Management module'
+        );
+        $_SESSION['current_module'] = $moduleName;
+    }
 ?>
     <div>
         <h2 class="text-2xl font-bold mb-4">Fleet & Vehicle Management</h2>
@@ -285,31 +298,31 @@ function fvm_view($baseURL)
             </button>
             <?php
             $role = strtolower($_SESSION['role'] ?? $_SESSION['user_type'] ?? '');
-            if (in_array($role, ['admin','manager'])): ?>
-            <!-- Export Monthly Report Button -->
-            <button class="btn btn-outline btn-success" onclick="exportReportModal.showModal()">
-                <i data-lucide="download" class="w-4 h-4 mr-1"></i> Export Monthly Report
-            </button>
+            if (in_array($role, ['admin', 'manager'])): ?>
+                <!-- Export Monthly Report Button -->
+                <button class="btn btn-outline btn-success" onclick="exportReportModal.showModal()">
+                    <i data-lucide="download" class="w-4 h-4 mr-1"></i> Export Monthly Report
+                </button>
             <?php endif; ?>
-        <!-- Export Report Modal -->
-        <dialog id="exportReportModal" class="modal">
-            <div class="modal-box">
-                <form method="dialog">
-                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            <!-- Export Report Modal -->
+            <dialog id="exportReportModal" class="modal">
+                <div class="modal-box">
+                    <form method="dialog">
+                        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                    </form>
+                    <h3 class="font-bold text-lg mb-4">Export Monthly Fleet KPI Report</h3>
+                    <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="flex flex-col gap-4">
+                        <div class="form-control">
+                            <label class="label">Select Month</label>
+                            <input type="month" name="export_month" class="input input-bordered" required>
+                        </div>
+                        <button type="submit" name="export_fleet_report" value="1" class="btn btn-success">Export as CSV</button>
+                    </form>
+                </div>
+                <form method="dialog" class="modal-backdrop">
+                    <button>close</button>
                 </form>
-                <h3 class="font-bold text-lg mb-4">Export Monthly Fleet KPI Report</h3>
-                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="flex flex-col gap-4">
-                    <div class="form-control">
-                        <label class="label">Select Month</label>
-                        <input type="month" name="export_month" class="input input-bordered" required>
-                    </div>
-                    <button type="submit" name="export_fleet_report" value="1" class="btn btn-success">Export as CSV</button>
-                </form>
-            </div>
-            <form method="dialog" class="modal-backdrop">
-                <button>close</button>
-            </form>
-        </dialog>
+            </dialog>
         </div>
 
         <!-- Maintenance Modal -->
@@ -503,7 +516,7 @@ function fvm_view($baseURL)
                                 <tr>
                                     <td>
                                         <div><?= htmlspecialchars($v['vehicle_name']) ?></div>
-                                        <div><?= htmlspecialchars('('.$v['vehicle_type'].')' ?? '-') ?></div>
+                                        <div><?= htmlspecialchars('(' . $v['vehicle_type'] . ')' ?? '-') ?></div>
                                     </td>
                                     <td><?= htmlspecialchars($v['plate_number']) ?></td>
                                     <td><?= $nextMaint ? $nextMaint->format('M d, Y') : '<span class="opacity-50">No record</span>' ?></td>
@@ -515,76 +528,127 @@ function fvm_view($baseURL)
                                             <i data-lucide="search-check"></i>
                                         </button>
                                         <script>
-// Vehicle Inspection Modal logic
-function showVehicleInspectionModal(vehicleId, vehicleName) {
-    let modal = document.getElementById('vehicleInspectionModal');
-    if (!modal) {
-        modal = document.createElement('dialog');
-        modal.id = 'vehicleInspectionModal';
-        modal.className = 'modal';
-        modal.innerHTML = '<div class="modal-box"><form method="dialog"><button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button></form><div id="vehicleInspectionContent"></div></div>';
-        document.body.appendChild(modal);
-    }
-    // Editable dropdowns for each item
-    const details = [
-        { label: 'Battery Level', key: 'battery', type: 'level' },
-        { label: 'Left Headlight', key: 'left_headlight', type: 'status' },
-        { label: 'Right Headlight', key: 'right_headlight', type: 'status' },
-        { label: 'Left Taillight', key: 'left_taillight', type: 'status' },
-        { label: 'Right Taillight', key: 'right_taillight', type: 'status' },
-        { label: 'Turn Signals', key: 'turn_signals', type: 'status' },
-        { label: 'Oil Level', key: 'oil', type: 'level' },
-        { label: 'Water Coolant Level', key: 'coolant', type: 'level' },
-        { label: 'Brakes Condition', key: 'brakes', type: 'status' },
-        { label: 'Air Pressure', key: 'air_pressure', type: 'status' },
-        { label: 'Gas/Fuel Tank Condition', key: 'fuel_tank', type: 'status' },
-        { label: 'Engine Condition', key: 'engine', type: 'status' },
-        { label: 'Tire Condition', key: 'tire', type: 'status' }
-    ];
-    const levelOptions = ['Empty', 'Low', 'Normal', 'Full'];
-    const statusOptions = ['Needs Maintenance', 'Needs Replacement', 'Operational'];
-    let html = `<h3 class="font-bold text-lg mb-2">Vehicle Inspection: <span class="text-primary">${vehicleName}</span></h3>`;
-    html += '<form id="vehicleInspectionForm"><table class="table table-compact w-full"><tbody>';
-    details.forEach(item => {
-        html += `<tr><td class="font-semibold">${item.label}</td><td>`;
-        if (item.type === 'level') {
-            html += `<select name="${item.key}" class="select select-bordered select-sm">`;
-            levelOptions.forEach(opt => {
-                html += `<option value="${opt}">${opt}</option>`;
-            });
-            html += `</select>`;
-        } else {
-            html += `<select name="${item.key}" class="select select-bordered select-sm">`;
-            statusOptions.forEach(opt => {
-                html += `<option value="${opt}">${opt}</option>`;
-            });
-            html += `</select>`;
-        }
-        html += `</td></tr>`;
-    });
-    html += '</tbody></table>';
-    html += '<div class="mt-4 text-right"><button type="submit" class="btn btn-primary btn-sm">Save</button></div></form>';
-    modal.querySelector('#vehicleInspectionContent').innerHTML = html;
-    if (typeof modal.showModal === 'function') {
-        modal.showModal();
-    } else {
-        modal.style.display = 'block';
-    }
-    // Optionally handle form submit (for now just close modal)
-    modal.querySelector('#vehicleInspectionForm').onsubmit = function(e) {
-        e.preventDefault();
-        modal.close();
-    };
-}
-document.querySelectorAll('.vehicle-inspect-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const vehId = btn.getAttribute('data-vehid');
-        const vehName = btn.getAttribute('data-vehname') || 'Vehicle';
-        showVehicleInspectionModal(vehId, vehName);
-    });
-});
-</script>
-           
+                                            // Vehicle Inspection Modal logic
+                                            function showVehicleInspectionModal(vehicleId, vehicleName) {
+                                                let modal = document.getElementById('vehicleInspectionModal');
+                                                if (!modal) {
+                                                    modal = document.createElement('dialog');
+                                                    modal.id = 'vehicleInspectionModal';
+                                                    modal.className = 'modal';
+                                                    modal.innerHTML = '<div class="modal-box"><form method="dialog"><button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button></form><div id="vehicleInspectionContent"></div></div>';
+                                                    document.body.appendChild(modal);
+                                                }
+                                                // Editable dropdowns for each item
+                                                const details = [{
+                                                        label: 'Battery Level',
+                                                        key: 'battery',
+                                                        type: 'level'
+                                                    },
+                                                    {
+                                                        label: 'Left Headlight',
+                                                        key: 'left_headlight',
+                                                        type: 'status'
+                                                    },
+                                                    {
+                                                        label: 'Right Headlight',
+                                                        key: 'right_headlight',
+                                                        type: 'status'
+                                                    },
+                                                    {
+                                                        label: 'Left Taillight',
+                                                        key: 'left_taillight',
+                                                        type: 'status'
+                                                    },
+                                                    {
+                                                        label: 'Right Taillight',
+                                                        key: 'right_taillight',
+                                                        type: 'status'
+                                                    },
+                                                    {
+                                                        label: 'Turn Signals',
+                                                        key: 'turn_signals',
+                                                        type: 'status'
+                                                    },
+                                                    {
+                                                        label: 'Oil Level',
+                                                        key: 'oil',
+                                                        type: 'level'
+                                                    },
+                                                    {
+                                                        label: 'Water Coolant Level',
+                                                        key: 'coolant',
+                                                        type: 'level'
+                                                    },
+                                                    {
+                                                        label: 'Brakes Condition',
+                                                        key: 'brakes',
+                                                        type: 'status'
+                                                    },
+                                                    {
+                                                        label: 'Air Pressure',
+                                                        key: 'air_pressure',
+                                                        type: 'status'
+                                                    },
+                                                    {
+                                                        label: 'Gas/Fuel Tank Condition',
+                                                        key: 'fuel_tank',
+                                                        type: 'status'
+                                                    },
+                                                    {
+                                                        label: 'Engine Condition',
+                                                        key: 'engine',
+                                                        type: 'status'
+                                                    },
+                                                    {
+                                                        label: 'Tire Condition',
+                                                        key: 'tire',
+                                                        type: 'status'
+                                                    }
+                                                ];
+                                                const levelOptions = ['Empty', 'Low', 'Normal', 'Full'];
+                                                const statusOptions = ['Needs Maintenance', 'Needs Replacement', 'Operational'];
+                                                let html = `<h3 class="font-bold text-lg mb-2">Vehicle Inspection: <span class="text-primary">${vehicleName}</span></h3>`;
+                                                html += '<form id="vehicleInspectionForm"><table class="table table-compact w-full"><tbody>';
+                                                details.forEach(item => {
+                                                    html += `<tr><td class="font-semibold">${item.label}</td><td>`;
+                                                    if (item.type === 'level') {
+                                                        html += `<select name="${item.key}" class="select select-bordered select-sm">`;
+                                                        levelOptions.forEach(opt => {
+                                                            html += `<option value="${opt}">${opt}</option>`;
+                                                        });
+                                                        html += `</select>`;
+                                                    } else {
+                                                        html += `<select name="${item.key}" class="select select-bordered select-sm">`;
+                                                        statusOptions.forEach(opt => {
+                                                            html += `<option value="${opt}">${opt}</option>`;
+                                                        });
+                                                        html += `</select>`;
+                                                    }
+                                                    html += `</td></tr>`;
+                                                });
+                                                html += '</tbody></table>';
+                                                html += '<div class="mt-4 text-right"><button type="submit" class="btn btn-primary btn-sm">Save</button></div></form>';
+                                                modal.querySelector('#vehicleInspectionContent').innerHTML = html;
+                                                if (typeof modal.showModal === 'function') {
+                                                    modal.showModal();
+                                                } else {
+                                                    modal.style.display = 'block';
+                                                }
+                                                // Optionally handle form submit (for now just close modal)
+                                                modal.querySelector('#vehicleInspectionForm').onsubmit = function(e) {
+                                                    e.preventDefault();
+                                                    modal.close();
+                                                };
+                                            }
+                                            document.querySelectorAll('.vehicle-inspect-btn').forEach(btn => {
+                                                btn.addEventListener('click', function() {
+                                                    const vehId = btn.getAttribute('data-vehid');
+                                                    const vehName = btn.getAttribute('data-vehname') || 'Vehicle';
+                                                    showVehicleInspectionModal(vehId, vehName);
+                                                });
+                                            });
+                                        </script>
+
                                         <!-- Set Maintenance Modal -->
                                         <dialog id="set_maint_modal_<?= $v['id'] ?>" class="modal">
                                             <div class="modal-box">
@@ -598,51 +662,53 @@ document.querySelectorAll('.vehicle-inspect-btn').forEach(btn => {
                                                         <label class="label">Set Maintenance Date</label>
                                                         <input type="date" name="next_maintenance_date" class="input input-bordered" required>
                                                     </div>
-                                                       <div class="form-control">
-                                                           <label class="label">Details</label>
-                                                           <select name="maintenance_part" class="select select-bordered" required>
-                                                               <option value="">Select part</option>
-                                                               <option value="Battery">Battery</option>
-                                                               <option value="Left Headlight">Left Headlight</option>
-                                                               <option value="Right Headlight">Right Headlight</option>
-                                                               <option value="Left Taillight">Left Taillight</option>
-                                                               <option value="Right Taillight">Right Taillight</option>
-                                                               <option value="Turn Signals">Turn Signals</option>
-                                                               <option value="Oil Level">Oil Level</option>
-                                                               <option value="Water Coolant Level">Water Coolant Level</option>
-                                                               <option value="Brakes Condition">Brakes Condition</option>
-                                                               <option value="Air Pressure">Air Pressure</option>
-                                                               <option value="Gas/Fuel Tank Condition">Gas/Fuel Tank Condition</option>
-                                                               <option value="Engine Condition">Engine Condition</option>
-                                                               <option value="Tire Condition">Tire Condition</option>
-                                                           </select>
-                                                       </div>
-                                                       <button type="submit" class="btn btn-primary">Save</button>
+                                                    <div class="form-control">
+                                                        <label class="label">Details</label>
+                                                        <select name="maintenance_part" class="select select-bordered" required>
+                                                            <option value="">Select part</option>
+                                                            <option value="Battery">Battery</option>
+                                                            <option value="Left Headlight">Left Headlight</option>
+                                                            <option value="Right Headlight">Right Headlight</option>
+                                                            <option value="Left Taillight">Left Taillight</option>
+                                                            <option value="Right Taillight">Right Taillight</option>
+                                                            <option value="Turn Signals">Turn Signals</option>
+                                                            <option value="Oil Level">Oil Level</option>
+                                                            <option value="Water Coolant Level">Water Coolant Level</option>
+                                                            <option value="Brakes Condition">Brakes Condition</option>
+                                                            <option value="Air Pressure">Air Pressure</option>
+                                                            <option value="Gas/Fuel Tank Condition">Gas/Fuel Tank Condition</option>
+                                                            <option value="Engine Condition">Engine Condition</option>
+                                                            <option value="Tire Condition">Tire Condition</option>
+                                                        </select>
+                                                    </div>
+                                                    <button type="submit" class="btn btn-primary">Save</button>
                                                 </form>
                                             </div>
                                             <form method="dialog" class="modal-backdrop">
                                                 <button>close</button>
                                             </form>
                                             <script>
-// Handle set maintenance form submission (details part)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adjust_maintenance_vehicle_id'], $_POST['next_maintenance_date'], $_POST['maintenance_part'])) {
-    $vehicleId = intval($_POST['adjust_maintenance_vehicle_id']);
-    $date = $_POST['next_maintenance_date'];
-    $part = trim($_POST['maintenance_part']);
-    if ($vehicleId && $date && $part) {
-        // Save to fleet_vehicle_logs as a maintenance log
-        $db = getDb();
-        $stmt = $db->prepare("INSERT INTO fleet_vehicle_logs (vehicle_id, log_type, details, created_at) VALUES (?, 'maintenance', ?, ?)");
-        $desc = $part . ' scheduled for maintenance';
-        $stmt->execute([$vehicleId, $desc, $date]);
-        $_SESSION['fvm_success'] = 'Maintenance scheduled for ' . htmlspecialchars($part) . '.';
-        header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
-        exit;
-    } else {
-        $_SESSION['fvm_error'] = 'Please fill out all maintenance details.';
-    }
-}
-</script>
+                                                // Handle set maintenance form submission (details part)
+                                                if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adjust_maintenance_vehicle_id'], $_POST['next_maintenance_date'], $_POST['maintenance_part'])) {
+                                                    $vehicleId = intval($_POST['adjust_maintenance_vehicle_id']);
+                                                    $date = $_POST['next_maintenance_date'];
+                                                    $part = trim($_POST['maintenance_part']);
+                                                    if ($vehicleId && $date && $part) {
+                                                        // Save to fleet_vehicle_logs as a maintenance log
+                                                        $db = getDb();
+                                                        $stmt = $db - > prepare("INSERT INTO fleet_vehicle_logs (vehicle_id, log_type, details, created_at) VALUES (?, 'maintenance', ?, ?)");
+                                                        $desc = $part.
+                                                        ' scheduled for maintenance';
+                                                        $stmt - > execute([$vehicleId, $desc, $date]);
+                                                        $_SESSION['fvm_success'] = 'Maintenance scheduled for '.htmlspecialchars($part).
+                                                        '.';
+                                                        header('Location: '.strtok($_SERVER['REQUEST_URI'], '?'));
+                                                        exit;
+                                                    } else {
+                                                        $_SESSION['fvm_error'] = 'Please fill out all maintenance details.';
+                                                    }
+                                                }
+                                            </script>
                                         </dialog>
                                     </td>
                                 </tr>
@@ -678,7 +744,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adjust_maintenance_ve
                         <tr>
                             <td>
                                 <div><?= htmlspecialchars($v['vehicle_name']) ?></div>
-                                <div><?= htmlspecialchars('('.$v['vehicle_type'].')' ?? '-') ?></div>
+                                <div><?= htmlspecialchars('(' . $v['vehicle_type'] . ')' ?? '-') ?></div>
                             </td>
                             <td><?= htmlspecialchars($v['plate_number']) ?></td>
                             <td><?= htmlspecialchars($v['weight_capacity'] ?? '-') ?>kg</td>
@@ -872,7 +938,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adjust_maintenance_ve
                                     </form>
                                 </dialog>
                             </td>
-                            
+
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

@@ -58,6 +58,20 @@ function user_management_logic($baseURL)
 
 function user_management_view($baseURL)
 {
+    // Add log to the current module that is being accessed by the user
+    $moduleName = 'user_management';
+
+    if ($_SESSION['current_module'] !== $moduleName) {
+        log_audit_event(
+            'User Mgmt',
+            'ACCESS',
+            null,
+            $_SESSION['full_name'],
+            'User accessed User Management module'
+        );
+        $_SESSION['current_module'] = $moduleName;
+    }
+
     $users   = $GLOBALS['um_users'] ?? [];
     $success = $GLOBALS['um_success'] ?? '';
     $error   = $GLOBALS['um_error'] ?? '';

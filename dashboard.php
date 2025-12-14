@@ -3,6 +3,7 @@ session_start();
 require_once __DIR__ . '/includes/security.php';
 require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/ajax.php';
+require_once __DIR__ . '/modules/audit_log.php';
 
 $id = $_SESSION['user_id'];
 $eid = $_SESSION['eid'];

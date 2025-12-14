@@ -21,6 +21,20 @@ function audit_log_view()
         exit;
     }
 
+    // Add log to the current module that is being accessed by the user
+    $moduleName = 'audit_log';
+
+    if ($_SESSION['current_module'] !== $moduleName) {
+        log_audit_event(
+            'Audit Logs',
+            'ACCESS',
+            null,
+            $_SESSION['full_name'],
+            'User accessed Audit logs module'
+        );
+        $_SESSION['current_module'] = $moduleName;
+    }
+
 
     global $conn;
 
@@ -52,6 +66,9 @@ function audit_log_view()
     echo '<thead><tr><th>ID</th><th>Module</th><th>Action</th><th>Record ID</th><th>User</th><th>Details</th><th>Timestamp</th></tr></thead><tbody>';
 
     foreach ($logs as $log) {
+        $dt = new DateTime($log['timestamp']);
+        $formattedTime = $dt->format('Y-m-d g:i A');
+
         echo '<tr>';
         echo '<td>' . htmlspecialchars($log['id']) . '</td>';
         echo '<td>' . htmlspecialchars($log['module']) . '</td>';
@@ -59,14 +76,14 @@ function audit_log_view()
         echo '<td>' . htmlspecialchars($log['record_id']) . '</td>';
         echo '<td>' . htmlspecialchars($log['user']) . '</td>';
         echo '<td>' . htmlspecialchars($log['details']) . '</td>';
-        echo '<td>' . htmlspecialchars($log['timestamp']) . '</td>';
+        echo '<td>' . htmlspecialchars($formattedTime) . '</td>';
         echo '</tr>';
     }
 
     echo '</tbody></table>';
 
     // Pagination controls
-    echo '<div class="flex justify-center mt-4 space-x-2 join">';
+    echo '<div class="flex flex-wrap justify-center mt-4 gap-x-3 gap-y-5 join">';
     if ($page > 1) {
         echo '<a href="dashboard.php?module=audit_log&page=' . ($page - 1) . '" class="join-item  btn btn-sm">Prev</a>';
     }
