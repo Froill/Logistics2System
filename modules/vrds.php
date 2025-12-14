@@ -1,25 +1,37 @@
 <?php
 
 // VEHICLE RESERVATION AND DISPATCH SYSTEM (VRDS)
- require_once __DIR__ . '/../includes/functions.php';
- require_once __DIR__ . '/../includes/mailer.php';
- require_once __DIR__ . '/audit_log.php';
- require_once __DIR__ . '/../includes/vrds_logic.php';
- require_once __DIR__ . '/../includes/ajax.php';
+require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/mailer.php';
+require_once __DIR__ . '/../includes/vrds_logic.php';
+require_once __DIR__ . '/../includes/ajax.php';
 
- // Handle request rejection BEFORE any output
- if (isset($_POST['reject_request']) && isset($_POST['request_id'])) {
-     $rid = intval($_POST['request_id']);
-     global $conn;
-     $stmt = $conn->prepare("UPDATE vehicle_requests SET status='Denied' WHERE id=?");
-     $stmt->bind_param('i', $rid);
-     $stmt->execute();
-     header('Location: ' . $_SERVER['REQUEST_URI']);
-     exit;
- }
+// Handle request rejection BEFORE any output
+if (isset($_POST['reject_request']) && isset($_POST['request_id'])) {
+    $rid = intval($_POST['request_id']);
+    global $conn;
+    $stmt = $conn->prepare("UPDATE vehicle_requests SET status='Denied' WHERE id=?");
+    $stmt->bind_param('i', $rid);
+    $stmt->execute();
+    header('Location: ' . $_SERVER['REQUEST_URI']);
+    exit;
+}
 
 function vrds_view($baseURL)
 {
+    // Add log to the current module that is being accessed by the user
+    $moduleName = 'vrds';
+
+    if ($_SESSION['current_module'] !== $moduleName) {
+        log_audit_event(
+            'VRDS',
+            'ACCESS',
+            null,
+            $_SESSION['full_name'],
+            'User accessed Vehicle Reservation & Dispatch module'
+        );
+        $_SESSION['current_module'] = $moduleName;
+    }
 
     $role = $_SESSION['role'];
 
@@ -59,89 +71,94 @@ function vrds_view($baseURL)
                 <button id="addPoiBtn" class="btn btn-sm btn-success" type="button"><i data-lucide="map-pin-plus"></i> Add a POI </button>
                 <button id="myPoisBtn" class="btn btn-sm btn-info" type="button"><i data-lucide="list"></i> POIs List</button>
                 <button id="deletePoiBtn" class="btn btn-sm btn-error" type="button"><i data-lucide="trash-2"></i> Delete POI</button>
-        <!-- My POIs Modal -->
-        <dialog id="myPoisModal" class="modal">
-            <div class="modal-box">
-                <form method="dialog">
-                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                </form>
-                <h3 class="font-bold text-lg mb-4">Points of Interest (POIs)</h3>
-                <div id="myPoiListContainer">
-                    <div>Loading POIs...</div>
-                </div>
-            </div>
-            <form method="dialog" class="modal-backdrop">
-                <button>close</button>
-            </form>
-        </dialog>
-        <!-- Delete POI Modal -->
-        <dialog id="deletePoiModal" class="modal">
-            <div class="modal-box">
-                <form method="dialog">
-                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                </form>
-                <h3 class="font-bold text-lg mb-4">Delete a Point of Interest (POI)</h3>
-                <div id="poiListContainer">
-                    <div>Loading POIs...</div>
-                </div>
-            </div>
-            <form method="dialog" class="modal-backdrop">
-                <button>close</button>
-            </form>
-        </dialog>
-        <script>
-        // Delete POI logic
-        document.addEventListener('DOMContentLoaded', function() {
-            const deletePoiBtn = document.getElementById('deletePoiBtn');
-            const deletePoiModal = document.getElementById('deletePoiModal');
-            const poiListContainer = document.getElementById('poiListContainer');
-            if (deletePoiBtn && deletePoiModal && poiListContainer) {
-                deletePoiBtn.onclick = function() {
-                    // Load POIs and show modal
-                    fetch('js/custom_pois.json?v=' + Date.now())
-                        .then(res => res.json())
-                        .then(data => {
-                            if (!Array.isArray(data) || data.length === 0) {
-                                poiListContainer.innerHTML = '<div>No POIs found.</div>';
-                                return;
-                            }
-                            let html = '<ul class="list-disc pl-4">';
-                            data.forEach((poi, idx) => {
-                                html += `<li class="flex items-center justify-between mb-2"><span><b>${poi.name}</b> (${poi.lat}, ${poi.lon})</span> <button class="btn btn-xs btn-error" data-poi-idx="${idx}"><i data-lucide="trash"></i> Delete</button></li>`;
-                            });
-                            html += '</ul>';
-                            poiListContainer.innerHTML = html;
-                            // Attach delete handlers
-                            Array.from(poiListContainer.querySelectorAll('button[data-poi-idx]')).forEach(btn => {
-                                btn.onclick = function(e) {
-                                    e.preventDefault();
-                                    const idx = parseInt(btn.getAttribute('data-poi-idx'));
-                                    if (!confirm('Delete this POI?')) return;
-                                    // Send only the POI index to backend for deletion
-                                    fetch('includes/ajax.php?delete_custom_poi=1', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ idx, name: data[idx]?.name })
-                                    })
+                <!-- My POIs Modal -->
+                <dialog id="myPoisModal" class="modal">
+                    <div class="modal-box">
+                        <form method="dialog">
+                            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                        </form>
+                        <h3 class="font-bold text-lg mb-4">Points of Interest (POIs)</h3>
+                        <div id="myPoiListContainer">
+                            <div>Loading POIs...</div>
+                        </div>
+                    </div>
+                    <form method="dialog" class="modal-backdrop">
+                        <button>close</button>
+                    </form>
+                </dialog>
+                <!-- Delete POI Modal -->
+                <dialog id="deletePoiModal" class="modal">
+                    <div class="modal-box">
+                        <form method="dialog">
+                            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                        </form>
+                        <h3 class="font-bold text-lg mb-4">Delete a Point of Interest (POI)</h3>
+                        <div id="poiListContainer">
+                            <div>Loading POIs...</div>
+                        </div>
+                    </div>
+                    <form method="dialog" class="modal-backdrop">
+                        <button>close</button>
+                    </form>
+                </dialog>
+                <script>
+                    // Delete POI logic
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const deletePoiBtn = document.getElementById('deletePoiBtn');
+                        const deletePoiModal = document.getElementById('deletePoiModal');
+                        const poiListContainer = document.getElementById('poiListContainer');
+                        if (deletePoiBtn && deletePoiModal && poiListContainer) {
+                            deletePoiBtn.onclick = function() {
+                                // Load POIs and show modal
+                                fetch('js/custom_pois.json?v=' + Date.now())
                                     .then(res => res.json())
-                                    .then(resp => {
-                                        if (resp.success) {
-                                            btn.parentElement.remove();
-                                            if (typeof fetchAndShowPOIs === 'function') fetchAndShowPOIs();
-                                            alert('POI deleted!');
-                                        } else {
-                                            alert('Failed to delete POI.');
+                                    .then(data => {
+                                        if (!Array.isArray(data) || data.length === 0) {
+                                            poiListContainer.innerHTML = '<div>No POIs found.</div>';
+                                            return;
                                         }
-                                    })
-                                    .catch(() => alert('Failed to delete POI...'));
-                                };
-                            });
-                        });
-                    deletePoiModal.showModal();
-                };
-            }
-        });
-        </script>
+                                        let html = '<ul class="list-disc pl-4">';
+                                        data.forEach((poi, idx) => {
+                                            html += `<li class="flex items-center justify-between mb-2"><span><b>${poi.name}</b> (${poi.lat}, ${poi.lon})</span> <button class="btn btn-xs btn-error" data-poi-idx="${idx}"><i data-lucide="trash"></i> Delete</button></li>`;
+                                        });
+                                        html += '</ul>';
+                                        poiListContainer.innerHTML = html;
+                                        // Attach delete handlers
+                                        Array.from(poiListContainer.querySelectorAll('button[data-poi-idx]')).forEach(btn => {
+                                            btn.onclick = function(e) {
+                                                e.preventDefault();
+                                                const idx = parseInt(btn.getAttribute('data-poi-idx'));
+                                                if (!confirm('Delete this POI?')) return;
+                                                // Send only the POI index to backend for deletion
+                                                fetch('includes/ajax.php?delete_custom_poi=1', {
+                                                        method: 'POST',
+                                                        headers: {
+                                                            'Content-Type': 'application/json'
+                                                        },
+                                                        body: JSON.stringify({
+                                                            idx,
+                                                            name: data[idx]?.name
+                                                        })
+                                                    })
+                                                    .then(res => res.json())
+                                                    .then(resp => {
+                                                        if (resp.success) {
+                                                            btn.parentElement.remove();
+                                                            if (typeof fetchAndShowPOIs === 'function') fetchAndShowPOIs();
+                                                            alert('POI deleted!');
+                                                        } else {
+                                                            alert('Failed to delete POI.');
+                                                        }
+                                                    })
+                                                    .catch(() => alert('Failed to delete POI...'));
+                                            };
+                                        });
+                                    });
+                                deletePoiModal.showModal();
+                            };
+                        }
+                    });
+                </script>
             </div>
             <div id="dispatchMap" style="height: 400px; width: 100%;"></div>
         </div>
@@ -154,7 +171,7 @@ function vrds_view($baseURL)
         <div class="flex flex-col gap-2">
 
             <div class="flex gap-2 flex-wrap">
-                <?php if (in_array($role, ['admin','requester', 'user'])): ?>
+                <?php if (in_array($role, ['admin', 'requester', 'user'])): ?>
                     <button class="btn btn-primary w-max" onclick="request_modal.showModal()">
                         <i data-lucide="plus-circle" class="w-4 h-4 mr-1"></i> Request Vehicle
                     </button>
@@ -172,13 +189,13 @@ function vrds_view($baseURL)
                     </form>
                     <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="mb-6">
                         <input type="hidden" name="request_vehicle" value="1">
-                                            <div class="form-control mb-2">
-                                                <label class="label">Trip Type</label>
-                                                <select name="trip_type" class="select select-bordered" required>
-                                                    <option value="One Way">One Way</option>
-                                                    <option value="Round Trip">Round Trip</option>
-                                                </select>
-                                            </div>
+                        <div class="form-control mb-2">
+                            <label class="label">Trip Type</label>
+                            <select name="trip_type" class="select select-bordered" required>
+                                <option value="One Way">One Way</option>
+                                <option value="Round Trip">Round Trip</option>
+                            </select>
+                        </div>
                         <div class="form-control mb-2">
                             <label class="label">Purpose</label>
                             <select name="purpose" class="select select-bordered" required>
@@ -252,7 +269,7 @@ function vrds_view($baseURL)
                             <?php if ($req['status'] === 'Pending' || $req['status'] === 'Approved'): ?>
                                 <?php $rec = recommend_assignment($req['requested_vehicle_type']); ?>
                                 <tr>
-                                                        <td><?= htmlspecialchars($req['trip_type'] ?? 'One Way') ?></td>
+                                    <td><?= htmlspecialchars($req['trip_type'] ?? 'One Way') ?></td>
                                     <td><?= htmlspecialchars($req['purpose']) ?></td>
                                     <td><?= htmlspecialchars($req['origin']) ?></td>
                                     <td><?= htmlspecialchars($req['destination']) ?></td>
@@ -261,22 +278,22 @@ function vrds_view($baseURL)
                                     <td><?= htmlspecialchars($req['expected_return'] ?? '') ?></td>
                                     <td>
                                         <?php
-                                $status = $req['status'];
-                                $badgeClass = 'badge p-3 text-nowrap';
-                                if ($status === 'Approved') {
-                                    $badgeClass .= ' badge-success';
-                                } elseif ($status === 'Denied') {
-                                    $badgeClass .= ' badge-error ';
-                                } elseif ($status === 'Pending') {
-                                    $badgeClass .= ' badge-warning';
-                                } else {
-                                    $badgeClass .= ' badge-info';
-                                }
-                                ?>
-                                <span class="<?= $badgeClass ?>">
-                                    <?= htmlspecialchars($status) ?>
-                                </span>
-                            </td>
+                                        $status = $req['status'];
+                                        $badgeClass = 'badge p-3 text-nowrap';
+                                        if ($status === 'Approved') {
+                                            $badgeClass .= ' badge-success';
+                                        } elseif ($status === 'Denied') {
+                                            $badgeClass .= ' badge-error ';
+                                        } elseif ($status === 'Pending') {
+                                            $badgeClass .= ' badge-warning';
+                                        } else {
+                                            $badgeClass .= ' badge-info';
+                                        }
+                                        ?>
+                                        <span class="<?= $badgeClass ?>">
+                                            <?= htmlspecialchars($status) ?>
+                                        </span>
+                                    </td>
                                     <td>
                                         <?php if ($rec['vehicle'] && $rec['driver']): ?>
                                             <?= htmlspecialchars($rec['vehicle']['vehicle_name']) ?> / <?= htmlspecialchars($rec['driver']['driver_name']) ?>
@@ -287,42 +304,42 @@ function vrds_view($baseURL)
                                     <td>
                                         <div class="flex flex-col md:flex-row gap-3">
                                             <?php if ($req['status'] === 'Pending'): ?>
-                                                    <button class="btn btn-primary btn-sm" onclick="assign_modal_<?= $req['id'] ?>.showModal()">Assign</button>
-                                                    <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" style="display:inline">
-                                                        <input type="hidden" name="reject_request" value="1">
-                                                        <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
-                                                        <button type="submit" class="btn btn-error btn-sm" style="margin-left: 0;" onclick="return confirm('Reject this vehicle request?')">Reject</button>
-                                                    </form>
+                                                <button class="btn btn-primary btn-sm" onclick="assign_modal_<?= $req['id'] ?>.showModal()">Assign</button>
+                                                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" style="display:inline">
+                                                    <input type="hidden" name="reject_request" value="1">
+                                                    <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
+                                                    <button type="submit" class="btn btn-error btn-sm" style="margin-left: 0;" onclick="return confirm('Reject this vehicle request?')">Reject</button>
+                                                </form>
                                             <?php elseif ($req['status'] === 'Approved'): ?>
                                                 <button class="btn btn-info btn-sm" onclick="view_modal_<?= $req['id'] ?>.showModal()">
                                                     <i data-lucide="eye" class="inline w-4 h-4"></i>View</button>
                                                 <a href="<?= htmlspecialchars($baseURL . '&remove_request=' . $req['id'] . '&approved=1') ?>" class="btn btn-error btn-sm" onclick="return confirm('Delete this approved request?')">
                                                     <i data-lucide="x" class="inline w-4 h-4"></i>Delete</a>
                                             <?php endif; ?>
-                                        <!-- View Modal for Approved Request -->
-                                        <?php if ($req['status'] === 'Approved'): ?>
-                                        <dialog id="view_modal_<?= $req['id'] ?>" class="modal">
-                                            <div class="modal-box">
-                                                <form method="dialog">
-                                                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                                                </form>
-                                                <h3 class="font-bold text-lg mb-4">Approved Vehicle Request Details</h3>
-                                                <div class="flex flex-col gap-2">
-                                                                        <div><b>Trip Type:</b> <?= htmlspecialchars($req['trip_type'] ?? 'One Way') ?></div>
-                                                    <div><b>Purpose:</b> <?= htmlspecialchars($req['purpose']) ?></div>
-                                                    <div><b>Origin:</b> <?= htmlspecialchars($req['origin']) ?></div>
-                                                    <div><b>Destination:</b> <?= htmlspecialchars($req['destination']) ?></div>
-                                                    <div><b>Requested Vehicle Type:</b> <?= htmlspecialchars($req['requested_vehicle_type']) ?></div>
-                                                    <div><b>Reservation Date:</b> <?= htmlspecialchars($req['reservation_date'] ?? '') ?></div>
-                                                    <div><b>Expected Return:</b> <?= htmlspecialchars($req['expected_return'] ?? '') ?></div>
-                                                    <div><b>Status:</b> <?= htmlspecialchars($req['status']) ?></div>
-                                                </div>
-                                            </div>
-                                            <form method="dialog" class="modal-backdrop">
-                                                <button>close</button>
-                                            </form>
-                                        </dialog>
-                                        <?php endif; ?>
+                                            <!-- View Modal for Approved Request -->
+                                            <?php if ($req['status'] === 'Approved'): ?>
+                                                <dialog id="view_modal_<?= $req['id'] ?>" class="modal">
+                                                    <div class="modal-box">
+                                                        <form method="dialog">
+                                                            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                                                        </form>
+                                                        <h3 class="font-bold text-lg mb-4">Approved Vehicle Request Details</h3>
+                                                        <div class="flex flex-col gap-2">
+                                                            <div><b>Trip Type:</b> <?= htmlspecialchars($req['trip_type'] ?? 'One Way') ?></div>
+                                                            <div><b>Purpose:</b> <?= htmlspecialchars($req['purpose']) ?></div>
+                                                            <div><b>Origin:</b> <?= htmlspecialchars($req['origin']) ?></div>
+                                                            <div><b>Destination:</b> <?= htmlspecialchars($req['destination']) ?></div>
+                                                            <div><b>Requested Vehicle Type:</b> <?= htmlspecialchars($req['requested_vehicle_type']) ?></div>
+                                                            <div><b>Reservation Date:</b> <?= htmlspecialchars($req['reservation_date'] ?? '') ?></div>
+                                                            <div><b>Expected Return:</b> <?= htmlspecialchars($req['expected_return'] ?? '') ?></div>
+                                                            <div><b>Status:</b> <?= htmlspecialchars($req['status']) ?></div>
+                                                        </div>
+                                                    </div>
+                                                    <form method="dialog" class="modal-backdrop">
+                                                        <button>close</button>
+                                                    </form>
+                                                </dialog>
+                                            <?php endif; ?>
                                         </div>
                                         <dialog id="assign_modal_<?= $req['id'] ?>" class="modal">
                                             <div class="modal-box">
@@ -397,12 +414,13 @@ function vrds_view($baseURL)
                                     <td><?= htmlspecialchars($req['reservation_date'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($req['expected_return'] ?? '') ?></td>
                                     <td><?php
-                                $status = $req['status'];
-                                $badgeClass = 'badge badge-error p-3 text-nowrap';
-                                ?>
-                                <span class="<?= $badgeClass ?>">
-                                    <?= htmlspecialchars($req['status']) ?>
-                                </span></td>
+                                        $status = $req['status'];
+                                        $badgeClass = 'badge badge-error p-3 text-nowrap';
+                                        ?>
+                                        <span class="<?= $badgeClass ?>">
+                                            <?= htmlspecialchars($req['status']) ?>
+                                        </span>
+                                    </td>
                                 </tr>
                             <?php endif; ?>
                         <?php endforeach; ?>
@@ -427,51 +445,51 @@ function vrds_view($baseURL)
                     $start = ($page - 1) * $perPage;
                     $pagedDispatches = array_slice($dispatches, $start, $perPage);
                     ?>
-                                        <?php
-                                        // Handle dispatch completion (including round trip logic)
-                                        if (isset($_GET['complete'])) {
-                                            $dispatchId = intval($_GET['complete']);
-                                            $dispatch = null;
-                                            foreach ($dispatches as $d) {
-                                                if ($d['id'] == $dispatchId) {
-                                                    $dispatch = $d;
-                                                    break;
-                                                }
-                                            }
-                                            if ($dispatch && $dispatch['status'] === 'Ongoing') {
-                                                // Mark as completed
-                                                updateById('dispatches', $dispatchId, ['status' => 'Completed']);
-                                                // Check if round trip
-                                                $request = null;
-                                                foreach ($requests as $r) {
-                                                    if ($r['id'] == $dispatch['request_id']) {
-                                                        $request = $r;
-                                                        break;
-                                                    }
-                                                }
-                                                if ($request && ($request['trip_type'] ?? 'One Way') === 'Round Trip') {
-                                                    // Create return dispatch (origin/destination swapped)
-                                                    $newDispatch = [
-                                                        'request_id' => $dispatch['request_id'],
-                                                        'vehicle_id' => $dispatch['vehicle_id'],
-                                                        'driver_id' => $dispatch['driver_id'],
-                                                        'origin' => $dispatch['destination'],
-                                                        'origin_lat' => $dispatch['destination_lat'],
-                                                        'origin_lon' => $dispatch['destination_lon'],
-                                                        'destination' => $dispatch['origin'],
-                                                        'destination_lat' => $dispatch['origin_lat'],
-                                                        'destination_lon' => $dispatch['origin_lon'],
-                                                        'purpose' => $dispatch['purpose'],
-                                                        'dispatch_date' => date('Y-m-d'),
-                                                        'status' => 'Ongoing'
-                                                    ];
-                                                    insertRow('dispatches', $newDispatch);
-                                                }
-                                                // Redirect to avoid repeat action on refresh
-                                                header('Location: ' . $baseURL);
-                                                exit;
-                                            }
-                                        }?>
+                    <?php
+                    // Handle dispatch completion (including round trip logic)
+                    if (isset($_GET['complete'])) {
+                        $dispatchId = intval($_GET['complete']);
+                        $dispatch = null;
+                        foreach ($dispatches as $d) {
+                            if ($d['id'] == $dispatchId) {
+                                $dispatch = $d;
+                                break;
+                            }
+                        }
+                        if ($dispatch && $dispatch['status'] === 'Ongoing') {
+                            // Mark as completed
+                            updateById('dispatches', $dispatchId, ['status' => 'Completed']);
+                            // Check if round trip
+                            $request = null;
+                            foreach ($requests as $r) {
+                                if ($r['id'] == $dispatch['request_id']) {
+                                    $request = $r;
+                                    break;
+                                }
+                            }
+                            if ($request && ($request['trip_type'] ?? 'One Way') === 'Round Trip') {
+                                // Create return dispatch (origin/destination swapped)
+                                $newDispatch = [
+                                    'request_id' => $dispatch['request_id'],
+                                    'vehicle_id' => $dispatch['vehicle_id'],
+                                    'driver_id' => $dispatch['driver_id'],
+                                    'origin' => $dispatch['destination'],
+                                    'origin_lat' => $dispatch['destination_lat'],
+                                    'origin_lon' => $dispatch['destination_lon'],
+                                    'destination' => $dispatch['origin'],
+                                    'destination_lat' => $dispatch['origin_lat'],
+                                    'destination_lon' => $dispatch['origin_lon'],
+                                    'purpose' => $dispatch['purpose'],
+                                    'dispatch_date' => date('Y-m-d'),
+                                    'status' => 'Ongoing'
+                                ];
+                                insertRow('dispatches', $newDispatch);
+                            }
+                            // Redirect to avoid repeat action on refresh
+                            header('Location: ' . $baseURL);
+                            exit;
+                        }
+                    } ?>
                     <form method="POST" action="<?= htmlspecialchars($baseURL) ?>">
                         <div class="mb-2 flex gap-2">
                             <button type="submit" name="clear_dispatch_logs" class="btn btn-error btn-sm" onclick="return confirm('Clear all dispatch logs?')">Remove All Records</button>
@@ -535,16 +553,16 @@ function vrds_view($baseURL)
                                             </td>
                                             <td>
                                                 <div class="flex flex-col md:flex-row gap-2">
-                                                <?php if ($d['status'] === 'Ongoing'): ?>
-                                                    <a href="<?= htmlspecialchars($baseURL . '&complete=' . $d['id']) ?>" class="btn btn-xs btn-success sm:btn-sm md:btn-md w-1/2" onclick="return confirm('Mark this dispatch as completed?')">
-                                                        <i data-lucide="check-circle" class="inline"></i>Complete
+                                                    <?php if ($d['status'] === 'Ongoing'): ?>
+                                                        <a href="<?= htmlspecialchars($baseURL . '&complete=' . $d['id']) ?>" class="btn btn-xs btn-success sm:btn-sm md:btn-md w-1/2" onclick="return confirm('Mark this dispatch as completed?')">
+                                                            <i data-lucide="check-circle" class="inline"></i>Complete
+                                                        </a>
+                                                    <?php endif; ?>
+                                                    <a href="<?= htmlspecialchars($baseURL . '&delete=' . $d['id']) ?>"
+                                                        class="btn btn-xs btn-error sm:btn-sm md:btn-md w-1/2"
+                                                        onclick="return confirm('Delete this dispatch log?')">
+                                                        <i data-lucide="delete" class="inline"></i>Delete
                                                     </a>
-                                                <?php endif; ?>
-                                                <a href="<?= htmlspecialchars($baseURL . '&delete=' . $d['id']) ?>"
-                                                    class="btn btn-xs btn-error sm:btn-sm md:btn-md w-1/2"
-                                                    onclick="return confirm('Delete this dispatch log?')">
-                                                    <i data-lucide="delete" class="inline"></i>Delete
-                                                </a>
                                                 </div>
                                             </td>
                                         </tr>
@@ -571,7 +589,8 @@ function vrds_view($baseURL)
             <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
             <link href="https://cdn.jsdelivr.net/npm/daisyui@4.0.0/dist/full.css" rel="stylesheet" type="text/css" />
-            <script>// OSM/Nominatim Autocomplete Logic
+            <script>
+                // OSM/Nominatim Autocomplete Logic
                 document.addEventListener('DOMContentLoaded', function() {
                     const vehicles = <?php echo json_encode($vehicles); ?>;
                     const drivers = <?php echo json_encode($drivers); ?>;
@@ -652,10 +671,10 @@ function vrds_view($baseURL)
                                     const toRad = deg => deg * Math.PI / 180;
                                     const dLat = toRad(lat2 - lat1);
                                     const dLon = toRad(lon2 - lon1);
-                                    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                                              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-                                              Math.sin(dLon/2) * Math.sin(dLon/2);
-                                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                                    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                                        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                                        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
                                     return R * c;
                                 }
                                 const distanceKm = haversine(oLat, oLon, dLat, dLon);
@@ -858,237 +877,242 @@ function vrds_view($baseURL)
             </style>
             <script>
                 // Autocomplete for 'origin' input in request vehicle modal (POIs + Nominatim)
-                
-            document.addEventListener('DOMContentLoaded', function() {
-                const originInput = document.getElementById('origin');
-                const originSuggestions = document.getElementById('origin-suggestions');
-                const originLat = document.getElementById('origin_lat');
-                const originLon = document.getElementById('origin_lon');
-                let searchTimeout = null;
-                // Helper to get POIs, always up-to-date
-                function getPois(callback) {
-                    if (window.pois && Array.isArray(window.pois) && window.pois.length > 0) {
-                        callback(window.pois);
-                    } else {
-                        fetch('js/custom_pois.json?v=' + Date.now())
-                            .then(res => res.json())
-                            .then(data => {
-                                window.pois = data;
-                                callback(window.pois);
-                            })
-                            .catch(() => callback([]));
+
+                document.addEventListener('DOMContentLoaded', function() {
+                    const originInput = document.getElementById('origin');
+                    const originSuggestions = document.getElementById('origin-suggestions');
+                    const originLat = document.getElementById('origin_lat');
+                    const originLon = document.getElementById('origin_lon');
+                    let searchTimeout = null;
+                    // Helper to get POIs, always up-to-date
+                    function getPois(callback) {
+                        if (window.pois && Array.isArray(window.pois) && window.pois.length > 0) {
+                            callback(window.pois);
+                        } else {
+                            fetch('js/custom_pois.json?v=' + Date.now())
+                                .then(res => res.json())
+                                .then(data => {
+                                    window.pois = data;
+                                    callback(window.pois);
+                                })
+                                .catch(() => callback([]));
+                        }
                     }
-                }
-                if (originInput && originSuggestions && originLat && originLon) {
-                    originInput.addEventListener('input', function() {
-                        // Clear lat/lon if user types
-                        originLat.value = '';
-                        originLon.value = '';
-                        const query = originInput.value.trim().toLowerCase();
-                        if (searchTimeout) clearTimeout(searchTimeout);
-                        if (query.length < 3) {
-                            originSuggestions.style.display = 'none';
-                            return;
-                        }
-                        searchTimeout = setTimeout(() => {
-                            originSuggestions.innerHTML = '';
-                            getPois(function(pois) {
-                                let poiMatches = pois.filter(poi => poi.name && poi.name.toLowerCase().includes(query));
-                                poiMatches.forEach(poi => {
-                                    const div = document.createElement('div');
-                                    div.textContent = poi.name + ' (POI)';
-                                    div.style.fontWeight = 'bold';
-                                    div.onclick = function() {
-                                        originInput.value = poi.name;
-                                        originLat.value = poi.lat;
-                                        originLon.value = poi.lon;
-                                        originSuggestions.style.display = 'none';
-                                    };
-                                    originSuggestions.appendChild(div);
-                                });
-                                // Then fetch Nominatim results
-                                fetch('https://corsproxy.io/?https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&q=' + encodeURIComponent(query))
-                                    .then(res => res.json())
-                                    .then(data => {
-                                        data.slice(0, 8).forEach(place => {
-                                            const div = document.createElement('div');
-                                            div.textContent = place.display_name;
-                                            div.onclick = function() {
-                                                originInput.value = place.display_name;
-                                                originLat.value = place.lat;
-                                                originLon.value = place.lon;
-                                                originSuggestions.style.display = 'none';
-                                            };
-                                            originSuggestions.appendChild(div);
-                                        });
-                                        if (originSuggestions.innerHTML !== '') {
-                                            originSuggestions.style.display = 'block';
-                                        } else {
-                                            originSuggestions.style.display = 'none';
-                                        }
-                                    });
-                            });
-                        }, 300);
-                    });
-                    document.addEventListener('click', function(e) {
-                        if (!originSuggestions.contains(e.target) && e.target !== originInput) {
-                            originSuggestions.style.display = 'none';
-                        }
-                    });
-                }
-            });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const myPoisBtn = document.getElementById('myPoisBtn');
-            const myPoisModal = document.getElementById('myPoisModal');
-            const myPoiListContainer = document.getElementById('myPoiListContainer');
-
-            if (myPoisBtn && myPoisModal && myPoiListContainer) {
-                myPoisBtn.addEventListener('click', function() {
-                    fetch('js/custom_pois.json?v=' + Date.now())
-                        .then(res => res.json())
-                        .then(data => {
-                            if (!Array.isArray(data) || data.length === 0) {
-                                myPoiListContainer.innerHTML = '<div>No POIs found.</div>';
+                    if (originInput && originSuggestions && originLat && originLon) {
+                        originInput.addEventListener('input', function() {
+                            // Clear lat/lon if user types
+                            originLat.value = '';
+                            originLon.value = '';
+                            const query = originInput.value.trim().toLowerCase();
+                            if (searchTimeout) clearTimeout(searchTimeout);
+                            if (query.length < 3) {
+                                originSuggestions.style.display = 'none';
                                 return;
                             }
-                            let html = '<ul class="list-disc pl-4">';
-                            data.forEach((poi, idx) => {
-                                html += `<li class="flex items-center justify-between mb-2">
+                            searchTimeout = setTimeout(() => {
+                                originSuggestions.innerHTML = '';
+                                getPois(function(pois) {
+                                    let poiMatches = pois.filter(poi => poi.name && poi.name.toLowerCase().includes(query));
+                                    poiMatches.forEach(poi => {
+                                        const div = document.createElement('div');
+                                        div.textContent = poi.name + ' (POI)';
+                                        div.style.fontWeight = 'bold';
+                                        div.onclick = function() {
+                                            originInput.value = poi.name;
+                                            originLat.value = poi.lat;
+                                            originLon.value = poi.lon;
+                                            originSuggestions.style.display = 'none';
+                                        };
+                                        originSuggestions.appendChild(div);
+                                    });
+                                    // Then fetch Nominatim results
+                                    fetch('https://corsproxy.io/?https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&q=' + encodeURIComponent(query))
+                                        .then(res => res.json())
+                                        .then(data => {
+                                            data.slice(0, 8).forEach(place => {
+                                                const div = document.createElement('div');
+                                                div.textContent = place.display_name;
+                                                div.onclick = function() {
+                                                    originInput.value = place.display_name;
+                                                    originLat.value = place.lat;
+                                                    originLon.value = place.lon;
+                                                    originSuggestions.style.display = 'none';
+                                                };
+                                                originSuggestions.appendChild(div);
+                                            });
+                                            if (originSuggestions.innerHTML !== '') {
+                                                originSuggestions.style.display = 'block';
+                                            } else {
+                                                originSuggestions.style.display = 'none';
+                                            }
+                                        });
+                                });
+                            }, 300);
+                        });
+                        document.addEventListener('click', function(e) {
+                            if (!originSuggestions.contains(e.target) && e.target !== originInput) {
+                                originSuggestions.style.display = 'none';
+                            }
+                        });
+                    }
+                });
+
+                document.addEventListener('DOMContentLoaded', function() {
+                    const myPoisBtn = document.getElementById('myPoisBtn');
+                    const myPoisModal = document.getElementById('myPoisModal');
+                    const myPoiListContainer = document.getElementById('myPoiListContainer');
+
+                    if (myPoisBtn && myPoisModal && myPoiListContainer) {
+                        myPoisBtn.addEventListener('click', function() {
+                            fetch('js/custom_pois.json?v=' + Date.now())
+                                .then(res => res.json())
+                                .then(data => {
+                                    if (!Array.isArray(data) || data.length === 0) {
+                                        myPoiListContainer.innerHTML = '<div>No POIs found.</div>';
+                                        return;
+                                    }
+                                    let html = '<ul class="list-disc pl-4">';
+                                    data.forEach((poi, idx) => {
+                                        html += `<li class="flex items-center justify-between mb-2">
                                     <span><b>${poi.name}</b> (${poi.lat}, ${poi.lon})<br><small>${poi.description || ''}</small></span>
                                     <button class="btn btn-xs btn-primary" data-edit-idx="${idx}"><i data-lucide="edit"></i> Edit</button>
                                 </li>`;
-                            });
-                            html += '</ul>';
-                            myPoiListContainer.innerHTML = html;
-                            // Attach edit handlers
-                            Array.from(myPoiListContainer.querySelectorAll('button[data-edit-idx]')).forEach(btn => {
-                                btn.onclick = function(e) {
-                                    e.preventDefault();
-                                    const idx = parseInt(btn.getAttribute('data-edit-idx'));
-                                    const current = data[idx] || {};
-                                    // Prompt for name first (pre-filled), then description
-                                    const newName = prompt('Edit POI name:', current.name || '');
-                                    if (newName === null) return; // user cancelled
-                                    const newDesc = prompt('Edit POI description:', current.description || '');
-                                    if (newDesc === null) return; // user cancelled
-                                    current.name = newName;
-                                    current.description = newDesc;
-                                    // Send updated POI (including name & description) to backend
-                                    fetch('includes/ajax.php?edit_custom_poi=1', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ idx, poi: current })
-                                    })
-                                    .then(res => res.json())
-                                    .then(resp => {
-                                        if (resp.success) {
-                                            alert('POI updated!');
-                                            btn.parentElement.querySelector('span').innerHTML = `<b>${current.name}</b> (${current.lat}, ${current.lon})<br><small>${current.description || ''}</small>`;
-                                            if (typeof fetchAndShowPOIs === 'function') fetchAndShowPOIs();
-                                        } else {
-                                            alert('Failed to update POI.');
-                                        }
-                                    })
-                                    .catch(() => alert('Failed to update POI.'));
-                                };
-                            });
-                        })
-                        .catch(() => {
-                            myPoiListContainer.innerHTML = '<div>Failed to load POIs.</div>';
-                        });
+                                    });
+                                    html += '</ul>';
+                                    myPoiListContainer.innerHTML = html;
+                                    // Attach edit handlers
+                                    Array.from(myPoiListContainer.querySelectorAll('button[data-edit-idx]')).forEach(btn => {
+                                        btn.onclick = function(e) {
+                                            e.preventDefault();
+                                            const idx = parseInt(btn.getAttribute('data-edit-idx'));
+                                            const current = data[idx] || {};
+                                            // Prompt for name first (pre-filled), then description
+                                            const newName = prompt('Edit POI name:', current.name || '');
+                                            if (newName === null) return; // user cancelled
+                                            const newDesc = prompt('Edit POI description:', current.description || '');
+                                            if (newDesc === null) return; // user cancelled
+                                            current.name = newName;
+                                            current.description = newDesc;
+                                            // Send updated POI (including name & description) to backend
+                                            fetch('includes/ajax.php?edit_custom_poi=1', {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'application/json'
+                                                    },
+                                                    body: JSON.stringify({
+                                                        idx,
+                                                        poi: current
+                                                    })
+                                                })
+                                                .then(res => res.json())
+                                                .then(resp => {
+                                                    if (resp.success) {
+                                                        alert('POI updated!');
+                                                        btn.parentElement.querySelector('span').innerHTML = `<b>${current.name}</b> (${current.lat}, ${current.lon})<br><small>${current.description || ''}</small>`;
+                                                        if (typeof fetchAndShowPOIs === 'function') fetchAndShowPOIs();
+                                                    } else {
+                                                        alert('Failed to update POI.');
+                                                    }
+                                                })
+                                                .catch(() => alert('Failed to update POI.'));
+                                        };
+                                    });
+                                })
+                                .catch(() => {
+                                    myPoiListContainer.innerHTML = '<div>Failed to load POIs.</div>';
+                                });
 
-                    // Show modal after initiating fetch (modal content will update when data arrives)
-                    if (typeof myPoisModal.showModal === 'function') {
-                        myPoisModal.showModal();
-                    } else {
-                        // Fallback for browsers without dialog support
-                        myPoisModal.style.display = 'block';
+                            // Show modal after initiating fetch (modal content will update when data arrives)
+                            if (typeof myPoisModal.showModal === 'function') {
+                                myPoisModal.showModal();
+                            } else {
+                                // Fallback for browsers without dialog support
+                                myPoisModal.style.display = 'block';
+                            }
+                        });
                     }
                 });
-            }
-        });
-            // Autocomplete for 'destination' input in request vehicle modal (POIs + Nominatim)
-document.addEventListener('DOMContentLoaded', function() {
-    const destInput = document.getElementById('destination');
-    const destSuggestions = document.getElementById('destination-suggestions');
-    const destLat = document.getElementById('destination_lat');
-    const destLon = document.getElementById('destination_lon');
-    let searchTimeout = null;
-    function getPois(callback) {
-        if (window.pois && Array.isArray(window.pois) && window.pois.length > 0) {
-            callback(window.pois);
-        } else {
-            fetch('js/custom_pois.json?v=' + Date.now())
-                .then(res => res.json())
-                .then(data => {
-                    window.pois = data;
-                    callback(window.pois);
-                })
-                .catch(() => callback([]));
-        }
-    }
-    if (destInput && destSuggestions && destLat && destLon) {
-        destInput.addEventListener('input', function() {
-            // Clear lat/lon if user types
-            destLat.value = '';
-            destLon.value = '';
-            const query = destInput.value.trim().toLowerCase();
-            if (searchTimeout) clearTimeout(searchTimeout);
-            if (query.length < 3) {
-                destSuggestions.style.display = 'none';
-                return;
-            }
-            searchTimeout = setTimeout(() => {
-                destSuggestions.innerHTML = '';
-                getPois(function(pois) {
-                    let poiMatches = pois.filter(poi => poi.name && poi.name.toLowerCase().includes(query));
-                    poiMatches.forEach(poi => {
-                        const div = document.createElement('div');
-                        div.textContent = poi.name + ' (POI)';
-                        div.style.fontWeight = 'bold';
-                        div.onclick = function() {
-                            destInput.value = poi.name;
-                            destLat.value = poi.lat;
-                            destLon.value = poi.lon;
-                            destSuggestions.style.display = 'none';
-                        };
-                        destSuggestions.appendChild(div);
-                    });
-                    // Then fetch Nominatim results
-                    fetch('https://corsproxy.io/?https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&q=' + encodeURIComponent(query))
-                        .then(res => res.json())
-                        .then(data => {
-                            data.slice(0, 8).forEach(place => {
-                                const div = document.createElement('div');
-                                div.textContent = place.display_name;
-                                div.onclick = function() {
-                                    destInput.value = place.display_name;
-                                    destLat.value = place.lat;
-                                    destLon.value = place.lon;
-                                    destSuggestions.style.display = 'none';
-                                };
-                                destSuggestions.appendChild(div);
-                            });
-                            if (destSuggestions.innerHTML !== '') {
-                                destSuggestions.style.display = 'block';
-                            } else {
+                // Autocomplete for 'destination' input in request vehicle modal (POIs + Nominatim)
+                document.addEventListener('DOMContentLoaded', function() {
+                    const destInput = document.getElementById('destination');
+                    const destSuggestions = document.getElementById('destination-suggestions');
+                    const destLat = document.getElementById('destination_lat');
+                    const destLon = document.getElementById('destination_lon');
+                    let searchTimeout = null;
+
+                    function getPois(callback) {
+                        if (window.pois && Array.isArray(window.pois) && window.pois.length > 0) {
+                            callback(window.pois);
+                        } else {
+                            fetch('js/custom_pois.json?v=' + Date.now())
+                                .then(res => res.json())
+                                .then(data => {
+                                    window.pois = data;
+                                    callback(window.pois);
+                                })
+                                .catch(() => callback([]));
+                        }
+                    }
+                    if (destInput && destSuggestions && destLat && destLon) {
+                        destInput.addEventListener('input', function() {
+                            // Clear lat/lon if user types
+                            destLat.value = '';
+                            destLon.value = '';
+                            const query = destInput.value.trim().toLowerCase();
+                            if (searchTimeout) clearTimeout(searchTimeout);
+                            if (query.length < 3) {
+                                destSuggestions.style.display = 'none';
+                                return;
+                            }
+                            searchTimeout = setTimeout(() => {
+                                destSuggestions.innerHTML = '';
+                                getPois(function(pois) {
+                                    let poiMatches = pois.filter(poi => poi.name && poi.name.toLowerCase().includes(query));
+                                    poiMatches.forEach(poi => {
+                                        const div = document.createElement('div');
+                                        div.textContent = poi.name + ' (POI)';
+                                        div.style.fontWeight = 'bold';
+                                        div.onclick = function() {
+                                            destInput.value = poi.name;
+                                            destLat.value = poi.lat;
+                                            destLon.value = poi.lon;
+                                            destSuggestions.style.display = 'none';
+                                        };
+                                        destSuggestions.appendChild(div);
+                                    });
+                                    // Then fetch Nominatim results
+                                    fetch('https://corsproxy.io/?https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&q=' + encodeURIComponent(query))
+                                        .then(res => res.json())
+                                        .then(data => {
+                                            data.slice(0, 8).forEach(place => {
+                                                const div = document.createElement('div');
+                                                div.textContent = place.display_name;
+                                                div.onclick = function() {
+                                                    destInput.value = place.display_name;
+                                                    destLat.value = place.lat;
+                                                    destLon.value = place.lon;
+                                                    destSuggestions.style.display = 'none';
+                                                };
+                                                destSuggestions.appendChild(div);
+                                            });
+                                            if (destSuggestions.innerHTML !== '') {
+                                                destSuggestions.style.display = 'block';
+                                            } else {
+                                                destSuggestions.style.display = 'none';
+                                            }
+                                        });
+                                });
+                            }, 300);
+                        });
+                        document.addEventListener('click', function(e) {
+                            if (!destSuggestions.contains(e.target) && e.target !== destInput) {
                                 destSuggestions.style.display = 'none';
                             }
                         });
+                    }
                 });
-            }, 300);
-        });
-        document.addEventListener('click', function(e) {
-            if (!destSuggestions.contains(e.target) && e.target !== destInput) {
-                destSuggestions.style.display = 'none';
-            }
-        });
-    }
-});
             </script>
 
         </div>
     <?php
 }
-                                

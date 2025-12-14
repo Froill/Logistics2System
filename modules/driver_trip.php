@@ -1,14 +1,26 @@
-
 <?php
 // DRIVER AND TRIP PERFORMANCE MONITORING
 require_once __DIR__ . '/../includes/functions.php';
-require_once __DIR__ . '/audit_log.php';
 require_once __DIR__ . '/../includes/driver_trip_logic.php';
 require_once __DIR__ . '/../includes/db.php';
 
 function driver_trip_view($baseURL)
 {
     global $conn; // use the mysqli connection
+
+    // Add log to the current module that is being accessed by the user
+    $moduleName = 'driver_trip';
+
+    if ($_SESSION['current_module'] !== $moduleName) {
+        log_audit_event(
+            'DTP',
+            'ACCESS',
+            null,
+            $_SESSION['full_name'],
+            'User accessed Driver & Trip Performance module'
+        );
+        $_SESSION['current_module'] = $moduleName;
+    }
 
     // Collect filters from GET request
     $filterDriver = isset($_GET['filter_driver']) ? trim($_GET['filter_driver']) : '';
@@ -103,42 +115,42 @@ function driver_trip_view($baseURL)
                 <button class="btn btn-success" onclick="export_trip_modal.showModal()">
                     <i data-lucide="download" class="w-4 h-4 mr-1"></i> Export Trip Data
                 </button>
-        <!-- Export Trip Data Modal -->
-        <dialog id="export_trip_modal" class="modal">
-            <div class="modal-box max-w-xl">
-                <form method="dialog">
-                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                </form>
-                <h3 class="font-bold text-lg mb-4">Export Trip Data</h3>
-                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="space-y-4">
-                    <div class="form-control">
-                        <label class="label">Export Type</label>
-                        <select name="export_type" class="select select-bordered w-full" required onchange="toggleExportDriver(this.value)">
-                            <option value="all">All Drivers & Vehicles</option>
-                            <option value="driver">Individual Driver Performance</option>
-                        </select>
+                <!-- Export Trip Data Modal -->
+                <dialog id="export_trip_modal" class="modal">
+                    <div class="modal-box max-w-xl">
+                        <form method="dialog">
+                            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                        </form>
+                        <h3 class="font-bold text-lg mb-4">Export Trip Data</h3>
+                        <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="space-y-4">
+                            <div class="form-control">
+                                <label class="label">Export Type</label>
+                                <select name="export_type" class="select select-bordered w-full" required onchange="toggleExportDriver(this.value)">
+                                    <option value="all">All Drivers & Vehicles</option>
+                                    <option value="driver">Individual Driver Performance</option>
+                                </select>
+                            </div>
+                            <div class="form-control" id="exportDriverSelect" style="display:none;">
+                                <label class="label">Select Driver</label>
+                                <select name="driver_id" class="select select-bordered w-full">
+                                    <option value="">Select Driver</option>
+                                    <?php foreach ($drivers as $d): ?>
+                                        <option value="<?= $d['id'] ?>"><?= htmlspecialchars($d['driver_name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <button type="submit" name="export_trip_data" class="btn btn-success w-full mt-4">Export</button>
+                        </form>
+                        <script>
+                            function toggleExportDriver(val) {
+                                document.getElementById('exportDriverSelect').style.display = (val === 'driver') ? '' : 'none';
+                            }
+                        </script>
                     </div>
-                    <div class="form-control" id="exportDriverSelect" style="display:none;">
-                        <label class="label">Select Driver</label>
-                        <select name="driver_id" class="select select-bordered w-full">
-                            <option value="">Select Driver</option>
-                            <?php foreach ($drivers as $d): ?>
-                                <option value="<?= $d['id'] ?>"><?= htmlspecialchars($d['driver_name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <button type="submit" name="export_trip_data" class="btn btn-success w-full mt-4">Export</button>
-                </form>
-                <script>
-                    function toggleExportDriver(val) {
-                        document.getElementById('exportDriverSelect').style.display = (val === 'driver') ? '' : 'none';
-                    }
-                </script>
-            </div>
-            <form method="dialog" class="modal-backdrop">
-                <button>close</button>
-            </form>
-        </dialog>
+                    <form method="dialog" class="modal-backdrop">
+                        <button>close</button>
+                    </form>
+                </dialog>
             </div>
         </div>
 
@@ -368,7 +380,7 @@ function driver_trip_view($baseURL)
                                     data-driver_id="<?= $cd['driver_id'] ?>"
                                     data-vehicle_id="<?= $cd['vehicle_id'] ?>"
                                     data-trip_date="<?= substr($cd['dispatch_date'], 0, 10) ?>"
-                                    data-vehicle_payload="<?= htmlspecialchars($cd['vehicle_payload']) ?>">                                    <?= htmlspecialchars($cd['dispatch_date']) ?> | <?= htmlspecialchars($cd['vehicle_name']) ?> | <?= htmlspecialchars($cd['driver_name']) ?> | <?= htmlspecialchars($cd['purpose']) ?>
+                                    data-vehicle_payload="<?= htmlspecialchars($cd['vehicle_payload']) ?>"> <?= htmlspecialchars($cd['dispatch_date']) ?> | <?= htmlspecialchars($cd['vehicle_name']) ?> | <?= htmlspecialchars($cd['driver_name']) ?> | <?= htmlspecialchars($cd['purpose']) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

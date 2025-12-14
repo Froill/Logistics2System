@@ -58,6 +58,20 @@ function user_management_logic($baseURL)
 
 function user_management_view($baseURL)
 {
+    // Add log to the current module that is being accessed by the user
+    $moduleName = 'user_management';
+
+    if ($_SESSION['current_module'] !== $moduleName) {
+        log_audit_event(
+            'User Mgmt',
+            'ACCESS',
+            null,
+            $_SESSION['full_name'],
+            'User accessed User Management module'
+        );
+        $_SESSION['current_module'] = $moduleName;
+    }
+
     $users   = $GLOBALS['um_users'] ?? [];
     $success = $GLOBALS['um_success'] ?? '';
     $error   = $GLOBALS['um_error'] ?? '';
@@ -81,6 +95,7 @@ function user_management_view($baseURL)
             <table class="table w-full">
                 <thead>
                     <tr>
+                        <th>ID</th>
                         <th class="sticky left-0 bg-base-100 z-10">EID</th>
                         <th>Name</th>
                         <th>Email</th>
@@ -92,6 +107,7 @@ function user_management_view($baseURL)
                 <tbody>
                     <?php foreach ($users as $u): ?>
                         <tr>
+                            <td><?= htmlspecialchars($u['id']) ?></td>
                             <td class="sticky left-0 bg-base-100 z-10"><?= htmlspecialchars($u['eid']) ?></td>
                             <td><?= htmlspecialchars($u['full_name']) ?></td>
                             <td><?= htmlspecialchars($u['email']) ?></td>

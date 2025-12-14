@@ -2,12 +2,26 @@
 // TRANSPORT COST ANALYSIS AND OPTIMIZATION (Multi-Stage Workflow)
 
 require_once __DIR__ . '/../includes/functions.php';
-require_once __DIR__ . '/audit_log.php';
 require_once __DIR__ . '/../includes/tcao_logic.php';
 
 
 function tcao_view($baseURL)
-{   
+{
+
+    // Add log to the current module that is being accessed by the user
+    $moduleName = 'tcao';
+
+    if ($_SESSION['current_module'] !== $moduleName) {
+        log_audit_event(
+            'TCAO',
+            'ACCESS',
+            null,
+            $_SESSION['full_name'],
+            'User accessed Transport Cost Analysis module'
+        );
+        $_SESSION['current_module'] = $moduleName;
+    }
+
     // Detect AJAX request
     $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
 
@@ -88,7 +102,7 @@ function tcao_view($baseURL)
                 </button>
             </form>
         </div>
-            <!--Add Cost Record modal -->
+        <!--Add Cost Record modal -->
         <dialog id="tcao_modal" class="modal">
             <div class="modal-box">
                 <form method="dialog">
