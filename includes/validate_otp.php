@@ -91,6 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['eid']       = $user['eid'];
         $_SESSION['role']      = $user['role'];
         $_SESSION['full_name'] = $user['full_name'];
+        $_SESSION['current_module'] = $user['current_module'];
 
         /*** Persist trusted device: cookie + fingerprint ***/
         $deviceToken = bin2hex(random_bytes(32)); // random 64-char token
