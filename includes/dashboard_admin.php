@@ -3,6 +3,19 @@
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
 
+$moduleName = 'dashboard';
+
+if ($_SESSION['current_module'] !== $moduleName) {
+  log_audit_event(
+    'Dashboard',
+    'ACCESS',
+    null,
+    $_SESSION['full_name'],
+    'User accessed dashboard'
+  );
+  $_SESSION['current_module'] = $moduleName;
+}
+
 function get_count($table)
 {
   global $conn;
