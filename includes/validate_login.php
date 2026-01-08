@@ -156,7 +156,7 @@ try {
             exit();
         }
     } else {
-        $_SESSION['error'] = "Invalid EID or password.";
+        $_SESSION['error'] = "Invalid email or password.";
         log_audit_event('User Management', 'Failed Attempt', $user['id'], $eid, 'Invalid EID or password');
         $_SESSION['eid'] = $eid;
         header("Location: ../login.php");
