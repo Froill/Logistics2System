@@ -124,6 +124,8 @@ try {
                 $_SESSION['eid']      = $user['eid'];
                 $_SESSION['role']     = $user['role'];
                 $_SESSION['full_name'] = $user['full_name'];
+                $_SESSION['current_module'] = 'dashboard';
+
 
                 log_audit_event('Authentication', 'Login', $user['id'], $eid, 'User logged in via trusted device');
                 header("Location: ../dashboard.php");
@@ -143,7 +145,9 @@ try {
             'eid' => $user['eid'],
             'role' => $user['role'],
             'full_name' => $user['full_name'],
-            'email' => $user['email']
+            'email' => $user['email'],
+            'current_module' => 'dashboard'
+
         ];
 
         if (sendOTPEmail($user['email'], $otp)) {
@@ -156,7 +160,7 @@ try {
             exit();
         }
     } else {
-        $_SESSION['error'] = "Invalid EID or password.";
+        $_SESSION['error'] = "Invalid email or password.";
         log_audit_event('User Management', 'Failed Attempt', $user['id'], $eid, 'Invalid EID or password');
         $_SESSION['eid'] = $eid;
         header("Location: ../login.php");
