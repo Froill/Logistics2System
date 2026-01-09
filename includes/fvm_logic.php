@@ -241,6 +241,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_fleet_report']
             $data['vehicle_image'] = $vehicleImagePath;
         }
         $result = updateData('fleet_vehicles', $_POST['edit_vehicle_id'], $data);
+        // Handle registration and insurance uploads/metadata
+        $vehicleId = intval($_POST['edit_vehicle_id']);
+        try {
+            $db = getDb();
+            // Registration document
+            if (!empty($_POST['registration_expiry']) || (isset($_FILES['registration_doc']) && $_FILES['registration_doc']['error'] === UPLOAD_ERR_OK)) {
+                $regExpiry = !empty($_POST['registration_expiry']) ? $_POST['registration_expiry'] : null;
+                if (isset($_FILES['registration_doc']) && $_FILES['registration_doc']['error'] === UPLOAD_ERR_OK) {
+                    // Validate registration file
+                    $allowedExt = ['pdf','jpg','jpeg','png'];
+                    $maxSize = 5 * 1024 * 1024; // 5MB
+                    $fileTmp = $_FILES['registration_doc']['tmp_name'];
+                    $fileName = basename($_FILES['registration_doc']['name']);
+                    $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+                    $finfoType = finfo_file(finfo_open(FILEINFO_MIME_TYPE), $fileTmp) ?: '';
+                    $validMime = in_array($fileExt, $allowedExt) && (strpos($finfoType, 'pdf') !== false || strpos($finfoType, 'image/') === 0);
+                    if (!$validMime || filesize($fileTmp) > $maxSize) {
+                        $_SESSION['fvm_error'] = 'Invalid registration file. Allowed: PDF, JPG, PNG. Max 5MB.';
+                    } else {
+                        $uploadDir = __DIR__ . '/../uploads/vehicles/' . $vehicleId . '/';
+                        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+                        $newFileName = 'registration_' . time() . '_' . rand(1000,9999) . '.' . $fileExt;
+                        $destPath = $uploadDir . $newFileName;
+                        if (move_uploaded_file($fileTmp, $destPath)) {
+                            $fileRel = 'uploads/vehicles/' . $vehicleId . '/' . $newFileName;
+                            $stmt = $db->prepare("INSERT INTO vehicle_documents (vehicle_id, doc_type, doc_name, file_path, expiry_date, uploaded_by) VALUES (?, 'Registration', ?, ?, ?, ?)");
+                            $uploadedBy = $_SESSION['user_id'] ?? null;
+                            $stmt->execute([$vehicleId, $fileName, $fileRel, $regExpiry, $uploadedBy]);
+                        }
+                    }
+                } elseif ($regExpiry) {
+                    // If only expiry provided, insert a record without a file
+                    $stmt = $db->prepare("INSERT INTO vehicle_documents (vehicle_id, doc_type, doc_name, file_path, expiry_date, uploaded_by) VALUES (?, 'Registration', ?, NULL, ?, ?)");
+                    $uploadedBy = $_SESSION['user_id'] ?? null;
+                    $stmt->execute([$vehicleId, 'Registration Record', $regExpiry, $uploadedBy]);
+                }
+            }
+
+            // Insurance metadata and document
+            if (!empty($_POST['insurer']) || !empty($_POST['policy_number']) || !empty($_POST['coverage_end']) || (isset($_FILES['insurance_doc']) && $_FILES['insurance_doc']['error'] === UPLOAD_ERR_OK)) {
+                $insurer = $_POST['insurer'] ?? null;
+                $policyNumber = $_POST['policy_number'] ?? null;
+                $coverageStart = $_POST['coverage_start'] ?? null;
+                $coverageEnd = $_POST['coverage_end'] ?? null;
+                $premium = isset($_POST['premium']) ? floatval($_POST['premium']) : null;
+                $documentPath = null;
+                if (isset($_FILES['insurance_doc']) && $_FILES['insurance_doc']['error'] === UPLOAD_ERR_OK) {
+                    // Validate insurance file
+                    $allowedExt = ['pdf','jpg','jpeg','png'];
+                    $maxSize = 5 * 1024 * 1024; // 5MB
+                    $fileTmp = $_FILES['insurance_doc']['tmp_name'];
+                    $fileName = basename($_FILES['insurance_doc']['name']);
+                    $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+                    $finfoType = finfo_file(finfo_open(FILEINFO_MIME_TYPE), $fileTmp) ?: '';
+                    $validMime = in_array($fileExt, $allowedExt) && (strpos($finfoType, 'pdf') !== false || strpos($finfoType, 'image/') === 0);
+                    if (!$validMime || filesize($fileTmp) > $maxSize) {
+                        $_SESSION['fvm_error'] = 'Invalid insurance file. Allowed: PDF, JPG, PNG. Max 5MB.';
+                    } else {
+                        $uploadDir = __DIR__ . '/../uploads/vehicles/' . $vehicleId . '/';
+                        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+                        $newFileName = 'insurance_' . time() . '_' . rand(1000,9999) . '.' . $fileExt;
+                        $destPath = $uploadDir . $newFileName;
+                        if (move_uploaded_file($fileTmp, $destPath)) {
+                            $documentPath = 'uploads/vehicles/' . $vehicleId . '/' . $newFileName;
+                        }
+                    }
+                }
+                $stmt = $db->prepare("INSERT INTO vehicle_insurance (vehicle_id, insurer, policy_number, coverage_type, coverage_start, coverage_end, premium, document_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $coverageType = $_POST['coverage_type'] ?? null;
+                $stmt->execute([$vehicleId, $insurer, $policyNumber, $coverageType, $coverageStart, $coverageEnd, $premium, $documentPath]);
+            }
+        } catch (Exception $e) {
+            $debugMsg .= ' Exception while handling docs: ' . $e->getMessage();
+        }
+
         if ($result === false) {
             $debugMsg .= 'Database update failed.';
             if (function_exists('mysqli_error') && isset($conn)) {

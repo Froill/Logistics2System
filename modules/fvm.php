@@ -284,9 +284,15 @@ function fvm_view($baseURL)
             <?php unset($_SESSION['fvm_error']); ?>
         <?php endif; ?>
         <div class="flex flex-col md:flex-row gap-2 mb-3">
-            <!-- Add Vehicle Button -->
+            <!-- Add Vehicle Button
             <button class="btn btn-soft btn-primary" onclick="fvm_modal.showModal()">
                 <i data-lucide="plus" class="w-4 h-4 mr-1"></i> Add Vehicle
+            </button>
+
+            -->
+            <!-- Documents Button -->
+            <button class="btn btn-outline btn-info" onclick="documentsModal.showModal()">
+                <i data-lucide="file-text" class="w-4 h-4 mr-1"></i> Documents
             </button>
             <!-- Maintenance Modal Button -->
             <button class="btn btn-secondary" onclick="schedule_maintenance_modal.showModal()">
@@ -318,6 +324,99 @@ function fvm_view($baseURL)
                         </div>
                         <button type="submit" name="export_fleet_report" value="1" class="btn btn-success">Export as CSV</button>
                     </form>
+                </div>
+                <form method="dialog" class="modal-backdrop">
+                    <button>close</button>
+                </form>
+            </dialog>
+            <!-- Documents Modal -->
+            <dialog id="documentsModal" class="modal">
+                <div class="modal-box w-11/12 max-w-4xl">
+                    <form method="dialog">
+                        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                    </form>
+                    <h3 class="font-bold text-lg mb-4">Vehicle Documents & Insurance</h3>
+                    <?php
+                        $regDocs = fetchAllQuery("SELECT vd.*, v.vehicle_name, v.plate_number FROM vehicle_documents vd JOIN fleet_vehicles v ON vd.vehicle_id = v.id WHERE vd.doc_type = 'Registration' ORDER BY vd.uploaded_at DESC");
+                        $insDocs = fetchAllQuery("SELECT vi.*, v.vehicle_name, v.plate_number FROM vehicle_insurance vi JOIN fleet_vehicles v ON vi.vehicle_id = v.id ORDER BY vi.coverage_end DESC");
+                    ?>
+                    <h4 class="font-semibold mt-2 mb-2">Registration (OR/CR)</h4>
+                    <div class="overflow-x-auto mb-4">
+                        <table class="table table-compact w-full">
+                            <thead>
+                                <tr>
+                                    <th>Vehicle</th>
+                                    <th>Plate</th>
+                                    <th>Document</th>
+                                    <th>Expiry</th>
+                                    <th>Uploaded</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($regDocs)): ?>
+                                    <tr><td colspan="6" class="text-center opacity-50">No registration documents found.</td></tr>
+                                <?php else: ?>
+                                    <?php foreach ($regDocs as $doc): ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($doc['vehicle_name']) ?></td>
+                                            <td><?= htmlspecialchars($doc['plate_number']) ?></td>
+                                            <td><?= htmlspecialchars($doc['doc_name'] ?? 'Registration') ?></td>
+                                            <td><?= !empty($doc['expiry_date']) ? htmlspecialchars(date('M d, Y', strtotime($doc['expiry_date']))) : '<span class="opacity-50">None</span>' ?></td>
+                                            <td><?= !empty($doc['uploaded_at']) ? htmlspecialchars(date('M d, Y', strtotime($doc['uploaded_at']))) : '<span class="opacity-50">Unknown</span>' ?></td>
+                                            <td>
+                                                <?php if (!empty($doc['file_path'])): ?>
+                                                    <a class="btn btn-xs btn-outline" href="<?= htmlspecialchars('includes/ajax.php?download_vehicle_file=1&doc_id=' . $doc['id'] . '&table=document') ?>">Download</a>
+                                                <?php else: ?>
+                                                    <span class="opacity-50">No file</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h4 class="font-semibold mt-2 mb-2">Insurance Records</h4>
+                    <div class="overflow-x-auto mb-2">
+                        <table class="table table-compact w-full">
+                            <thead>
+                                <tr>
+                                    <th>Vehicle</th>
+                                    <th>Plate</th>
+                                    <th>Insurer</th>
+                                    <th>Policy #</th>
+                                    <th>Coverage End</th>
+                                    <th>Premium</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($insDocs)): ?>
+                                    <tr><td colspan="7" class="text-center opacity-50">No insurance records found.</td></tr>
+                                <?php else: ?>
+                                    <?php foreach ($insDocs as $ins): ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($ins['vehicle_name']) ?></td>
+                                            <td><?= htmlspecialchars($ins['plate_number']) ?></td>
+                                            <td><?= htmlspecialchars($ins['insurer'] ?? '-') ?></td>
+                                            <td><?= htmlspecialchars($ins['policy_number'] ?? '-') ?></td>
+                                            <td><?= !empty($ins['coverage_end']) ? htmlspecialchars(date('M d, Y', strtotime($ins['coverage_end']))) : '<span class="opacity-50">None</span>' ?></td>
+                                            <td><?= !empty($ins['premium']) ? htmlspecialchars(number_format($ins['premium'],2)) : '<span class="opacity-50">-</span>' ?></td>
+                                            <td>
+                                                <?php if (!empty($ins['document_path'])): ?>
+                                                    <a class="btn btn-xs btn-outline" href="<?= htmlspecialchars('includes/ajax.php?download_vehicle_file=1&doc_id=' . $ins['id'] . '&table=insurance') ?>">Download</a>
+                                                <?php else: ?>
+                                                    <span class="opacity-50">No file</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
                 <form method="dialog" class="modal-backdrop">
                     <button>close</button>
@@ -753,10 +852,13 @@ function fvm_view($baseURL)
             <table class="table table-zebra w-full" id="vehicleTable">
                 <thead>
                     <tr>
+                        <th>ID</th>
                         <th>Vehicle Name & Type</th>
                         <th>License</th>
                         <th>Payload (kg)</th>
                         <th>Fuel Capacity (L)</th>
+                        <th>Insurance Expiry</th>
+                        <th>Registration Expiry</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
@@ -764,6 +866,7 @@ function fvm_view($baseURL)
                 <tbody id="vehicleBody">
                     <?php foreach ($vehicles as $v): ?>
                         <tr>
+                            <td><div><?= htmlspecialchars($v['id']) ?></div></td>
                             <td>
                                 <div><?= htmlspecialchars($v['vehicle_name']) ?></div>
                                 <div><?= htmlspecialchars('(' . $v['vehicle_type'] . ')' ?? '-') ?></div>
@@ -771,6 +874,38 @@ function fvm_view($baseURL)
                             <td><?= htmlspecialchars($v['plate_number']) ?></td>
                             <td><?= htmlspecialchars($v['weight_capacity'] ?? '-') ?>kg</td>
                             <td><?= htmlspecialchars($v['fuel_capacity'] ?? '-') ?>L</td>
+                            <?php
+                                $ins = fetchOneQuery("SELECT coverage_end FROM vehicle_insurance WHERE vehicle_id = ? ORDER BY coverage_end DESC LIMIT 1", [$v['id']]);
+                                $reg = fetchOneQuery("SELECT expiry_date FROM vehicle_documents WHERE vehicle_id = ? AND doc_type = 'Registration' ORDER BY expiry_date DESC LIMIT 1", [$v['id']]);
+                            ?>
+                            <?php
+                                $today = new DateTime('now', new DateTimeZone('Asia/Manila'));
+                                $today->setTime(0,0,0);
+                            ?>
+                            <td>
+                                <?php if ($ins && !empty($ins['coverage_end'])):
+                                    $insDate = DateTime::createFromFormat('Y-m-d', date('Y-m-d', strtotime($ins['coverage_end'])));
+                                    $insDate->setTime(0,0,0);
+                                    $insValid = $insDate >= $today;
+                                    $insClass = $insValid ? 'badge badge-sm badge-success' : 'badge badge-sm badge-error';
+                                ?>
+                                    <span class="<?= $insClass ?>"><?= htmlspecialchars(date('M d, Y', strtotime($ins['coverage_end']))) ?></span>
+                                <?php else: ?>
+                                    <span class="opacity-50">None</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($reg && !empty($reg['expiry_date'])):
+                                    $regDate = DateTime::createFromFormat('Y-m-d', date('Y-m-d', strtotime($reg['expiry_date'])));
+                                    $regDate->setTime(0,0,0);
+                                    $regValid = $regDate >= $today;
+                                    $regClass = $regValid ? 'badge badge-sm badge-success' : 'badge badge-sm badge- error';
+                                ?>
+                                    <span class="<?= $regClass ?>"><?= htmlspecialchars(date('M d, Y', strtotime($reg['expiry_date']))) ?></span>
+                                <?php else: ?>
+                                    <span class="opacity-50">None</span>
+                                <?php endif; ?>
+                            </td>
 
                             <td>
                                 <?php
@@ -813,10 +948,280 @@ function fvm_view($baseURL)
                                                 <img src="<?= htmlspecialchars($v['vehicle_image']) ?>" alt="Vehicle Image" style="max-width: 220px; max-height: 160px; border-radius: 8px; border: 1px solid #ccc;" />
                                             </div>
                                         <?php endif; ?>
+                                        <?php
+                                            $docs = fetchAllQuery("SELECT * FROM vehicle_documents WHERE vehicle_id = ? ORDER BY uploaded_at DESC", [$v['id']]);
+                                            $insData = fetchAllQuery("SELECT * FROM vehicle_insurance WHERE vehicle_id = ? ORDER BY coverage_end DESC", [$v['id']]);
+                                        ?>
+                                        <?php if (!empty($insData)): ?>
+                                            <div class="mb-2"><strong>Insurance:</strong>
+                                                <?php foreach ($insData as $ins): ?>
+                                                    <div class="mb-2 p-2 border rounded">
+                                                        <div class="font-semibold"><?= htmlspecialchars($ins['insurer'] ?? 'Unknown') ?> <?php if (!empty($ins['policy_number'])): ?>(<?= htmlspecialchars($ins['policy_number']) ?>)<?php endif; ?></div>
+                                                        <div class="text-sm opacity-70"><?php if (!empty($ins['coverage_end'])): ?>Expires <?= htmlspecialchars(date('M d, Y', strtotime($ins['coverage_end']))) ?><?php else: ?>No expiry<?php endif; ?></div>
+                                                        <?php if (!empty($ins['document_path'])):
+                                                            $insPath = $ins['document_path'];
+                                                            $abs = __DIR__ . '/../' . $insPath;
+                                                            $proxyUrl = '';
+                                                            if (file_exists($abs)) {
+                                                                // Use direct path if file exists on disk
+                                                                $proxyUrl = $insPath;
+                                                                $insExt = strtolower(pathinfo($insPath, PATHINFO_EXTENSION));
+                                                            } else {
+                                                                // Try common fallback filenames in the vehicle uploads folder
+                                                                $fallbacks = ['insurance1.jpg','insurance1.png','insurance.jpg','insurance.png','insurance_policy_1.jpg','insurance_policy_1.pdf','insurance_policy_1.png','orcr1.png','orcr1.jpg','orcr.png'];
+                                                                foreach ($fallbacks as $f) {
+                                                                    $p = 'uploads/vehicles/' . $v['id'] . '/' . $f;
+                                                                    if (file_exists(__DIR__ . '/../' . $p)) {
+                                                                        $proxyUrl = $p;
+                                                                        $insExt = strtolower(pathinfo($p, PATHINFO_EXTENSION));
+                                                                        break;
+                                                                    }
+                                                                }
+                                                                // fallback to proxy by db id
+                                                                if (empty($proxyUrl)) {
+                                                                    $proxyUrl = 'includes/ajax.php?download_vehicle_file=1&doc_id=' . $ins['id'] . '&table=insurance&inline=1';
+                                                                    $insExt = strtolower(pathinfo($insPath, PATHINFO_EXTENSION));
+                                                                }
+                                                            }
+                                                            if (!empty($insExt) && in_array($insExt, ['jpg','jpeg','png','gif'])): ?>
+                                                                <div class="mt-2"><img class="doc-thumb cursor-pointer" data-src="<?= htmlspecialchars($proxyUrl) ?>" src="<?= htmlspecialchars($proxyUrl) ?>" alt="Insurance Image" style="max-width:220px; max-height:160px; border-radius:6px; border:1px solid #ddd;"></div>
+                                                            <?php elseif (!empty($insExt) && $insExt === 'pdf'): ?>
+                                                                <div class="mt-2"><object data="<?= htmlspecialchars($proxyUrl) ?>" type="application/pdf" width="100%" height="220">PDF preview not available. <a href="<?= htmlspecialchars('includes/ajax.php?download_vehicle_file=1&doc_id=' . $ins['id'] . '&table=insurance') ?>">Download</a></object></div>
+                                                            <?php else: ?>
+                                                                <div class="mt-2"><a class="btn btn-xs btn-outline" href="<?= htmlspecialchars('includes/ajax.php?download_vehicle_file=1&doc_id=' . $ins['id'] . '&table=insurance') ?>">Download</a></div>
+                                                            <?php endif; ?>
+                                                        <?php else: ?>
+                                                            <div class="mt-2 opacity-50">No file</div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <?php if (!empty($docs)): ?>
+                                            <div class="mb-2"><strong>Documents:</strong>
+                                                <?php foreach ($docs as $doc): ?>
+                                                    <div class="mb-2 p-2 border rounded">
+                                                        <div class="font-semibold"><?= htmlspecialchars($doc['doc_type'] ?? 'Document') ?></div>
+                                                        <div class="text-sm opacity-70"><?php if (!empty($doc['expiry_date'])): ?>Expires <?= htmlspecialchars(date('M d, Y', strtotime($doc['expiry_date']))) ?><?php else: ?>No expiry<?php endif; ?></div>
+                                                        <?php if (!empty($doc['file_path'])):
+                                                            $dPath = $doc['file_path'];
+                                                            $absd = __DIR__ . '/../' . $dPath;
+                                                            $dProxy = '';
+                                                            if (file_exists($absd)) {
+                                                                $dProxy = $dPath;
+                                                                $dExt = strtolower(pathinfo($dPath, PATHINFO_EXTENSION));
+                                                            } else {
+                                                                $fallbacks = ['orcr1.png','orcr1.jpg','orcr.png','orcr.jpg','registration1.pdf','registration1.png'];
+                                                                foreach ($fallbacks as $f) {
+                                                                    $p = 'uploads/vehicles/' . $v['id'] . '/' . $f;
+                                                                    if (file_exists(__DIR__ . '/../' . $p)) {
+                                                                        $dProxy = $p;
+                                                                        $dExt = strtolower(pathinfo($p, PATHINFO_EXTENSION));
+                                                                        break;
+                                                                    }
+                                                                }
+                                                                if (empty($dProxy)) {
+                                                                    $dProxy = 'includes/ajax.php?download_vehicle_file=1&doc_id=' . $doc['id'] . '&table=document&inline=1';
+                                                                    $dExt = strtolower(pathinfo($dPath, PATHINFO_EXTENSION));
+                                                                }
+                                                            }
+                                                            if (!empty($dExt) && in_array($dExt, ['jpg','jpeg','png','gif'])): ?>
+                                                                <div class="mt-2"><img class="doc-thumb cursor-pointer" data-src="<?= htmlspecialchars($dProxy) ?>" src="<?= htmlspecialchars($dProxy) ?>" alt="Document Image" style="max-width:220px; max-height:160px; border-radius:6px; border:1px solid #ddd;"></div>
+                                                            <?php elseif (!empty($dExt) && $dExt === 'pdf'): ?>
+                                                                <div class="mt-2"><object data="<?= htmlspecialchars($dProxy) ?>" type="application/pdf" width="100%" height="220">PDF preview not available. <a href="<?= htmlspecialchars('includes/ajax.php?download_vehicle_file=1&doc_id=' . $doc['id'] . '&table=document') ?>">Download</a></object></div>
+                                                            <?php else: ?>
+                                                                <div class="mt-2"><a class="btn btn-xs btn-outline" href="<?= htmlspecialchars('includes/ajax.php?download_vehicle_file=1&doc_id=' . $doc['id'] . '&table=document') ?>">Download</a></div>
+                                                            <?php endif; ?>
+                                                        <?php else: ?>
+                                                            <div class="mt-2 opacity-50">No file</div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                     <form method="dialog" class="modal-backdrop">
                                         <button>close</button>
                                     </form>
+                                    <dialog id="docViewerModal" class="modal">
+                                        <div class="modal-box w-full h-screen max-w-full p-0" style="position:relative;">
+                                            <form method="dialog"><button class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4">✕</button></form>
+                                            <div id="docViewerToolbar" style="position:absolute; top:1rem; left:1rem; z-index:40; display:flex; gap:0.5rem;">
+                                                <button id="zoomOutBtn" class="btn btn-sm">−</button>
+                                                <button id="resetZoomBtn" class="btn btn-sm">Reset</button>
+                                                <button id="zoomInBtn" class="btn btn-sm">+</button>
+                                                <div id="zoomLevel" style="display:flex; align-items:center; padding-left:.5rem; color:#fff; opacity:.9;">100%</div>
+                                            </div>
+                                            <div id="docViewerContent" style="width:100%; height:calc(100vh - 3rem); display:flex; align-items:center; justify-content:center; overflow:auto; padding:1rem; box-sizing:border-box; background:#000;"></div>
+                                        </div>
+                                        <form method="dialog" class="modal-backdrop"><button>close</button></form>
+                                    </dialog>
+                                    <script>
+                                        (function(){
+                                            let currentImage = null;
+                                            let currentScale = 1;
+                                            let isPanning = false;
+                                            let panStart = {x:0,y:0,scrollLeft:0,scrollTop:0};
+
+                                            function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+                                            function setScale(newScale){
+                                                newScale = clamp(newScale, 0.2, 5);
+                                                if (!currentImage) { currentScale = newScale; updateZoomLabel(); return; }
+                                                const container = document.getElementById('docImageContainer');
+                                                const prev = currentScale;
+                                                // center-based adjust
+                                                const cx = container.clientWidth / 2;
+                                                const cy = container.clientHeight / 2;
+                                                currentScale = newScale;
+                                                currentImage.style.transform = 'scale(' + currentScale + ')';
+                                                // adjust scroll to keep center in view
+                                                const ratio = currentScale / prev;
+                                                container.scrollLeft = (container.scrollLeft + cx) * ratio - cx;
+                                                container.scrollTop = (container.scrollTop + cy) * ratio - cy;
+                                                updateZoomLabel();
+                                            }
+
+                                            function updateZoomLabel(){
+                                                const el = document.getElementById('zoomLevel');
+                                                if (el) el.textContent = Math.round(currentScale * 100) + '%';
+                                                const out = document.getElementById('zoomOutBtn');
+                                                const inc = document.getElementById('zoomInBtn');
+                                                if (out) out.disabled = currentScale <= 0.2;
+                                                if (inc) inc.disabled = currentScale >= 5;
+                                            }
+
+                                            function openViewer(src, ext) {
+                                                const modal = document.getElementById('docViewerModal');
+                                                const content = document.getElementById('docViewerContent');
+                                                const toolbar = document.getElementById('docViewerToolbar');
+                                                if (!modal || !content) return;
+                                                content.innerHTML = '';
+                                                currentImage = null;
+                                                currentScale = 1;
+                                                updateZoomLabel();
+                                                const cleanExt = (ext || '').toLowerCase();
+                                                if (['jpg','jpeg','png','gif'].includes(cleanExt)) {
+                                                    // create a scrollable container so we can pan when zoomed
+                                                    const wrapper = document.createElement('div');
+                                                    wrapper.id = 'docImageContainer';
+                                                    wrapper.style.width = '100%';
+                                                    wrapper.style.height = '100%';
+                                                    wrapper.style.overflow = 'auto';
+                                                    wrapper.style.display = 'flex';
+                                                    wrapper.style.alignItems = 'center';
+                                                    wrapper.style.justifyContent = 'center';
+
+                                                    const img = document.createElement('img');
+                                                    img.src = src;
+                                                    img.style.maxWidth = '100%';
+                                                    img.style.maxHeight = 'calc(100vh - 6rem)';
+                                                    img.style.transform = 'scale(1)';
+                                                    img.style.transition = 'transform .12s ease';
+                                                    img.style.borderRadius = '6px';
+                                                    img.style.boxShadow = '0 6px 24px rgba(0,0,0,0.6)';
+                                                    img.style.cursor = 'grab';
+                                                    img.draggable = false;
+
+                                                    wrapper.appendChild(img);
+                                                    content.appendChild(wrapper);
+                                                    currentImage = img;
+
+                                                    // pointer-based panning
+                                                    wrapper.addEventListener('pointerdown', function(e){
+                                                        if (currentScale <= 1) return;
+                                                        isPanning = true;
+                                                        panStart.x = e.clientX;
+                                                        panStart.y = e.clientY;
+                                                        panStart.scrollLeft = wrapper.scrollLeft;
+                                                        panStart.scrollTop = wrapper.scrollTop;
+                                                        img.style.cursor = 'grabbing';
+                                                        wrapper.setPointerCapture(e.pointerId);
+                                                    });
+                                                    wrapper.addEventListener('pointermove', function(e){
+                                                        if (!isPanning) return;
+                                                        const dx = e.clientX - panStart.x;
+                                                        const dy = e.clientY - panStart.y;
+                                                        wrapper.scrollLeft = panStart.scrollLeft - dx;
+                                                        wrapper.scrollTop = panStart.scrollTop - dy;
+                                                    });
+                                                    wrapper.addEventListener('pointerup', function(e){
+                                                        isPanning = false;
+                                                        img.style.cursor = 'grab';
+                                                        try { wrapper.releasePointerCapture(e.pointerId); } catch(e){}
+                                                    });
+                                                    wrapper.addEventListener('pointercancel', function(e){
+                                                        isPanning = false;
+                                                        img.style.cursor = 'grab';
+                                                    });
+
+                                                    // wheel-to-zoom when holding Ctrl (prevents accidental zoom)
+                                                    wrapper.addEventListener('wheel', function(e){
+                                                        if (!e.ctrlKey) return; // require ctrl to zoom with wheel
+                                                        e.preventDefault();
+                                                        const delta = -e.deltaY;
+                                                        const factor = delta > 0 ? 1.12 : 0.88;
+                                                        setScale(currentScale * factor);
+                                                    }, { passive: false });
+
+                                                    // toolbar visible for images
+                                                    if (toolbar) toolbar.style.display = 'flex';
+                                                } else if (cleanExt === 'pdf') {
+                                                    const iframe = document.createElement('iframe');
+                                                    iframe.src = src;
+                                                    iframe.style.width = '100%';
+                                                    iframe.style.height = 'calc(100vh - 6rem)';
+                                                    iframe.style.border = 'none';
+                                                    content.appendChild(iframe);
+                                                    if (toolbar) toolbar.style.display = 'none';
+                                                } else {
+                                                    const a = document.createElement('a');
+                                                    a.href = src;
+                                                    a.textContent = 'Open file in new tab';
+                                                    a.target = '_blank';
+                                                    a.className = 'btn btn-primary';
+                                                    content.appendChild(a);
+                                                    if (toolbar) toolbar.style.display = 'none';
+                                                }
+                                                if (typeof modal.showModal === 'function') modal.showModal(); else modal.style.display = 'block';
+                                            }
+
+                                            // wire toolbar buttons
+                                            document.getElementById('zoomInBtn').addEventListener('click', function(){ setScale(currentScale * 1.25); });
+                                            document.getElementById('zoomOutBtn').addEventListener('click', function(){ setScale(currentScale * 0.8); });
+                                            document.getElementById('resetZoomBtn').addEventListener('click', function(){ setScale(1); const wrapper = document.getElementById('docImageContainer'); if (wrapper) { wrapper.scrollLeft = 0; wrapper.scrollTop = 0; } });
+
+                                            document.addEventListener('click', function(e){
+                                                const t = e.target;
+                                                if (t && t.classList && t.classList.contains('doc-thumb')) {
+                                                    e.preventDefault();
+                                                    const src = t.getAttribute('data-src') || t.src;
+                                                    const ext = (src.split('.').pop() || '').toLowerCase();
+                                                    openViewer(src, ext);
+                                                }
+                                            });
+
+                                            // Close on ESC
+                                            document.addEventListener('keydown', function(e){
+                                                if (e.key === 'Escape') {
+                                                    const modal = document.getElementById('docViewerModal');
+                                                    if (modal && typeof modal.close === 'function') modal.close();
+                                                }
+                                            });
+
+                                            // cleanup when modal closes
+                                            const modalEl = document.getElementById('docViewerModal');
+                                            if (modalEl) {
+                                                modalEl.addEventListener('close', function(){
+                                                    const content = document.getElementById('docViewerContent');
+                                                    if (content) content.innerHTML = '';
+                                                    currentImage = null;
+                                                    currentScale = 1;
+                                                    updateZoomLabel();
+                                                });
+                                            }
+                                        })();
+                                    </script>
                                 </dialog>
 
                                 <!-- Manage Vehicle Modal -->
@@ -873,6 +1278,39 @@ function fvm_view($baseURL)
                                                     <option value="Inactive" <?= $v['status'] === 'Inactive' ? 'selected' : '' ?>>Inactive</option>
                                                     <option value="Under Maintenance" <?= $v['status'] === 'Under Maintenance' ? 'selected' : '' ?>>Under Maintenance</option>
                                                 </select>
+                                            </div>
+
+                                            <h4 class="font-semibold mt-2">Registration & Insurance</h4>
+                                            <div class="form-control">
+                                                <label class="label">Registration Expiry</label>
+                                                <input type="date" name="registration_expiry" class="input input-bordered" value="<?= htmlspecialchars($v['registration_expiry'] ?? '') ?>">
+                                            </div>
+                                            <div class="form-control">
+                                                <label class="label">Upload Registration Document</label>
+                                                <input type="file" name="registration_doc" accept="application/pdf,image/*" class="file-input file-input-bordered w-full" />
+                                            </div>
+                                            <div class="form-control">
+                                                <label class="label">Insurance Provider</label>
+                                                <input type="text" name="insurer" class="input input-bordered" value="<?= htmlspecialchars($v['insurer'] ?? '') ?>">
+                                            </div>
+                                            <div class="form-control">
+                                                <label class="label">Policy Number</label>
+                                                <input type="text" name="policy_number" class="input input-bordered" value="<?= htmlspecialchars($v['policy_number'] ?? '') ?>">
+                                            </div>
+                                            <div class="form-control">
+                                                <label class="label">Coverage Start / End</label>
+                                                <div class="flex gap-2">
+                                                    <input type="date" name="coverage_start" class="input input-bordered" value="">
+                                                    <input type="date" name="coverage_end" class="input input-bordered" value="">
+                                                </div>
+                                            </div>
+                                            <div class="form-control">
+                                                <label class="label">Premium</label>
+                                                <input type="number" step="0.01" name="premium" class="input input-bordered" value="">
+                                            </div>
+                                            <div class="form-control">
+                                                <label class="label">Upload Insurance Document</label>
+                                                <input type="file" name="insurance_doc" accept="application/pdf,image/*" class="file-input file-input-bordered w-full" />
                                             </div>
 
 

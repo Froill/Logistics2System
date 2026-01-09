@@ -55,18 +55,18 @@ function vrds_view($baseURL)
         return $d['status'] === 'Ongoing' && isset($d['origin_lat'], $d['origin_lon'], $d['destination_lat'], $d['destination_lon']);
     });
 ?>
-
+    
     <div>
-        <!-- OSM Map for Ongoing Dispatched Trips -->
+        <!--!--Dispatched Trips block-->
         <div class="mb-6">
             <?php if (!in_array($role, ['requester', 'user'])): ?>
                 <h3 class="text-lg font-bold mb-2">Dispatched Trips Map</h3>
             <?php endif; ?>
-            <div class="flex flex-wrap gap-2 mb-2">
-                <!-- Dispatched Trips mapsearch bar -->
-                <input id="mapSearch" class="input input-bordered" style="min-width:220px;max-width:350px;" placeholder="Search a place.." autocomplete="off">
-                <div id="searchSuggestions" class="osm-suggestions" style="position:absolute;z-index:1000;"></div>
-            </div>
+                <div class="flex flex-wrap gap-2 mb-2">
+                 <!-- Dispatched Trips mapsearch bar -->
+                    <input id="mapSearch" class="input input-bordered" style="min-width:220px;max-width:350px;" placeholder="Search a place.." autocomplete="off">
+                    <div id="searchSuggestions" class="osm-suggestions" style="position:absolute;z-index:1000;"></div>
+                </div>
             <div class="flex flex-wrap gap-2 mb-2">
                 <button id="addPoiBtn" class="btn btn-sm btn-success" type="button"><i data-lucide="map-pin-plus"></i> Add a POI </button>
                 <button id="myPoisBtn" class="btn btn-sm btn-info" type="button"><i data-lucide="list"></i> POIs List</button>
@@ -160,7 +160,16 @@ function vrds_view($baseURL)
                     });
                 </script>
             </div>
-            <div id="dispatchMap" style="height: 400px; width: 100%;"></div>
+            <!-- END of dispatched trips block-->
+
+            <!-- OSM Map for Ongoing Dispatched Trips + Ongoing List -->
+            <div class="flex gap-4" style="align-items:flex-start;">
+                <div id="dispatchMap" style="height: 400px; width: 70%; border-radius:150px;"></div>
+                <div id="ongoingDispatchList" style="width: 30%; max-height:400px; overflow:auto; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:8px;">
+                    <h4 class="font-semibold mb-2">Ongoing Dispatches</h4>
+                    <div id="ongoingDispatchItems">Loading...</div>
+                </div>
+            </div>
         </div>
 
         <?php if (!in_array($role, ['requester', 'user'])): ?>
@@ -182,23 +191,19 @@ function vrds_view($baseURL)
                     </button>
                 <?php endif; ?>
             </div>
+            <!-- Vehicle Request Modal -->
             <dialog id="request_modal" class="modal">
                 <div class="modal-box">
                     <form method="dialog">
                         <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                     </form>
-                    <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="mb-6">
+                    <form id="requestVehicleForm" method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="mb-6">
+                        <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4">
+  <legend class="fieldset-legend">Request a Vehicle</legend>
                         <input type="hidden" name="request_vehicle" value="1">
                         <div class="form-control mb-2">
-                            <label class="label">Trip Type</label>
-                            <select name="trip_type" class="select select-bordered" required>
-                                <option value="One Way">One Way</option>
-                                <option value="Round Trip">Round Trip</option>
-                            </select>
-                        </div>
-                        <div class="form-control mb-2">
                             <label class="label">Purpose</label>
-                            <select name="purpose" class="select select-bordered" required>
+                            <select id="purposeSelect" name="purpose" class="select select-bordered" required>
                                 <option value="">Select purpose</option>
                                 <option value="Delivery">Delivery</option>
                                 <option value="Supplies Pickup">Supplies Pickup</option>
@@ -209,7 +214,12 @@ function vrds_view($baseURL)
                                 <option value="Event Logistics">Event Logistics</option>
                                 <option value="Emergency Response">Emergency Response</option>
                                 <option value="Waste Disposal / Return">Waste Disposal / Return</option>
+                                <option value="Other">Other (Please Specify)</option>
                             </select>
+                        </div>
+                        <div id="purposeOtherWrap" class="form-control mb-2" style="display:none;">
+                            <label class="label">Please specify purpose</label>
+                            <input id="purposeOther" type="text" name="purpose_other" class="input input-bordered" placeholder="Please specify purpose">
                         </div>
                         <div class="form-control mb-2">
                             <label class="label">Origin</label>
@@ -227,32 +237,110 @@ function vrds_view($baseURL)
                         </div>
                         <div class="form-control mb-2">
                             <label class="label">Requested Vehicle Type</label>
-                            <select name="requested_vehicle_type" class="select select-bordered" required>
+                            <select id="requestedVehicleSelect" name="requested_vehicle_type" class="select select-bordered" required>
                                 <option value="">Select vehicle type</option>
                                 <?php foreach ($vehicle_types as $type): ?>
                                     <option value="<?= htmlspecialchars($type) ?>"><?= htmlspecialchars($type) ?></option>
                                 <?php endforeach; ?>
+                                <option value="Other">Other (Please Specify)</option>
                             </select>
+                        </div>
+                        <div id="requestedVehicleOtherWrap" class="form-control mb-2" style="display:none;">
+                            <label class="label">Please specify vehicle type</label>
+                            <input id="requestedVehicleOther" type="text" name="requested_vehicle_type_other" class="input input-bordered" placeholder="Please specify vehicle type">
                         </div>
                         <div class="form-control mb-2">
                             <label class="label">Reservation Date</label>
-                            <input type="date" name="reservation_date" class="input input-bordered" required>
+                            <input id="reservationDate" type="date" name="reservation_date" class="input input-bordered" required min="<?= (new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d') ?>">
                         </div>
                         <div class="form-control mb-2">
-                            <label class="label">Expected Return Date</label>
-                            <input type="date" name="expected_return" class="input input-bordered" required>
+                            <label class="label">Completion Date</label>
+                            <input id="expectedReturn" type="date" name="expected_return" class="input input-bordered" required min="<?= (new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d') ?>">
                         </div>
+                            
                         <button class="btn btn-primary btn-outline mt-2 w-full">Submit Request</button>
+                                </fieldset>
                     </form>
             </dialog>
 
+            <script>
+                document.addEventListener('DOMContentLoaded', function(){
+                    const purposeSelect = document.getElementById('purposeSelect');
+                    const purposeWrap = document.getElementById('purposeOtherWrap');
+                    const purposeOther = document.getElementById('purposeOther');
+                    const reqSelect = document.getElementById('requestedVehicleSelect');
+                    const reqWrap = document.getElementById('requestedVehicleOtherWrap');
+                    const reqOther = document.getElementById('requestedVehicleOther');
+                    const form = document.getElementById('requestVehicleForm');
+                    const reservationDate = document.getElementById('reservationDate');
+                    const expectedReturn = document.getElementById('expectedReturn');
+                    const todayDate = '<?= (new DateTime("now", new DateTimeZone("Asia/Manila")))->format("Y-m-d") ?>';
+
+                    function togglePurpose(){
+                        if (!purposeSelect) return;
+                        if (purposeSelect.value === 'Other') { purposeWrap.style.display = 'block'; purposeOther.required = true; purposeOther.focus(); }
+                        else { purposeWrap.style.display = 'none'; purposeOther.required = false; purposeOther.value = ''; }
+                    }
+                    function toggleReq(){
+                        if (!reqSelect) return;
+                        if (reqSelect.value === 'Other') { reqWrap.style.display = 'block'; reqOther.required = true; reqOther.focus(); }
+                        else { reqWrap.style.display = 'none'; reqOther.required = false; reqOther.value = ''; }
+                    }
+
+                    if (purposeSelect) purposeSelect.addEventListener('change', togglePurpose);
+                    if (reqSelect) reqSelect.addEventListener('change', toggleReq);
+
+                    if (form) form.addEventListener('submit', function(e){
+                        // If purpose is Other, replace select value with entered text
+                        if (purposeSelect && purposeSelect.value === 'Other'){
+                            const v = (purposeOther.value || '').trim();
+                            if (!v){ e.preventDefault(); purposeOther.focus(); alert('Please specify purpose'); return false; }
+                            if (!Array.from(purposeSelect.options).some(o => o.value === v)){
+                                const opt = new Option(v, v, true, true);
+                                purposeSelect.add(opt);
+                            } else { purposeSelect.value = v; }
+                        }
+                        // If requested vehicle type is Other, replace select value
+                        if (reqSelect && reqSelect.value === 'Other'){
+                            const v = (reqOther.value || '').trim();
+                            if (!v){ e.preventDefault(); reqOther.focus(); alert('Please specify vehicle type'); return false; }
+                            if (!Array.from(reqSelect.options).some(o => o.value === v)){
+                                const opt = new Option(v, v, true, true);
+                                reqSelect.add(opt);
+                            } else { reqSelect.value = v; }
+                        }
+                        // ensure expectedReturn is not before reservationDate
+                        if (reservationDate && expectedReturn){
+                            const resVal = reservationDate.value || todayDate;
+                            if (expectedReturn.value && expectedReturn.value < resVal){
+                                e.preventDefault();
+                                alert('Completion Date cannot be before Reservation Date');
+                                expectedReturn.focus();
+                                return false;
+                            }
+                        }
+                    });
+                    // initialize min values and listeners
+                    if (reservationDate){
+                        reservationDate.min = todayDate;
+                        reservationDate.addEventListener('change', function(){
+                            const minVal = reservationDate.value || todayDate;
+                            if (expectedReturn){
+                                expectedReturn.min = minVal;
+                                if (expectedReturn.value && expectedReturn.value < minVal) expectedReturn.value = minVal;
+                            }
+                        });
+                    }
+                    if (expectedReturn){ expectedReturn.min = todayDate; }
+                });
+            </script>
+
             <!-- Pending Requests Table (For Transport Officer Approval) -->
-            <h3 class="text-md md:text-xl font-bold mt-6 mb-2">Vehicle Requests</h3>
+            <h3 class="text-md md:text-xl font-bold mt-6 mb-2">Pending Vehicle Requests</h3>
             <div class="overflow-x-auto mb-6">
                 <table class="table table-zebra w-full">
                     <thead>
                         <tr>
-                            <th>Trip Type</th>
                             <th>Purpose</th>
                             <th>Origin</th>
                             <th>Destination</th>
@@ -266,13 +354,30 @@ function vrds_view($baseURL)
                     </thead>
                     <tbody>
                         <?php foreach ($requests as $req): ?>
-                            <?php if ($req['status'] === 'Pending' || $req['status'] === 'Approved'): ?>
+                            <?php if ($req['status'] === 'Pending'): ?>
                                 <?php $rec = recommend_assignment($req['requested_vehicle_type']); ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($req['trip_type'] ?? 'One Way') ?></td>
                                     <td><?= htmlspecialchars($req['purpose']) ?></td>
-                                    <td><?= htmlspecialchars($req['origin']) ?></td>
-                                    <td><?= htmlspecialchars($req['destination']) ?></td>
+                                    <?php
+                                        $fullOrigin = trim($req['origin'] ?? '');
+                                        $originWords = preg_split('/\s+/', $fullOrigin);
+                                        if (count($originWords) > 7) {
+                                            $short = implode(' ', array_slice($originWords, 0, 7)) . '...';
+                                            $originDisplay = '<span title="' . htmlspecialchars($fullOrigin) . '">' . htmlspecialchars($short) . '</span>';
+                                        } else {
+                                            $originDisplay = htmlspecialchars($fullOrigin);
+                                        }
+                                        $fullDest = trim($req['destination'] ?? '');
+                                        $destWords = preg_split('/\s+/', $fullDest);
+                                        if (count($destWords) > 7) {
+                                            $shortD = implode(' ', array_slice($destWords, 0, 7)) . '...';
+                                            $destDisplay = '<span title="' . htmlspecialchars($fullDest) . '">' . htmlspecialchars($shortD) . '</span>';
+                                        } else {
+                                            $destDisplay = htmlspecialchars($fullDest);
+                                        }
+                                    ?>
+                                    <td><?= $originDisplay ?></td>
+                                    <td><?= $destDisplay ?></td>
                                     <td><?= htmlspecialchars($req['requested_vehicle_type']) ?></td>
                                     <td><?= htmlspecialchars($req['reservation_date'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($req['expected_return'] ?? '') ?></td>
@@ -313,8 +418,7 @@ function vrds_view($baseURL)
                                             <?php elseif ($req['status'] === 'Approved'): ?>
                                                 <button class="btn btn-info btn-sm" onclick="view_modal_<?= $req['id'] ?>.showModal()">
                                                     <i data-lucide="eye" class="inline w-4 h-4"></i>View</button>
-                                                <a href="<?= htmlspecialchars($baseURL . '&remove_request=' . $req['id'] . '&approved=1') ?>" class="btn btn-error btn-sm" onclick="return confirm('Delete this approved request?')">
-                                                    <i data-lucide="x" class="inline w-4 h-4"></i>Delete</a>
+                                                <!-- Delete button removed per request -->
                                             <?php endif; ?>
                                             <!-- View Modal for Approved Request -->
                                             <?php if ($req['status'] === 'Approved'): ?>
@@ -325,7 +429,6 @@ function vrds_view($baseURL)
                                                         </form>
                                                         <h3 class="font-bold text-lg mb-4">Approved Vehicle Request Details</h3>
                                                         <div class="flex flex-col gap-2">
-                                                            <div><b>Trip Type:</b> <?= htmlspecialchars($req['trip_type'] ?? 'One Way') ?></div>
                                                             <div><b>Purpose:</b> <?= htmlspecialchars($req['purpose']) ?></div>
                                                             <div><b>Origin:</b> <?= htmlspecialchars($req['origin']) ?></div>
                                                             <div><b>Destination:</b> <?= htmlspecialchars($req['destination']) ?></div>
@@ -389,7 +492,7 @@ function vrds_view($baseURL)
             </div>
 
             <!-- Rejected Requests Table -->
-            <h3 class="text-md md:text-xl font-bold mt-6 mb-2">Rejected Vehicle Requests</h3>
+            <h3 class="text-md md:text-xl font-bold mt-6 mb-2">Vehicle Requests History</h3>
             <div class="overflow-x-auto mb-6">
                 <table class="table table-zebra w-full">
                     <thead>
@@ -401,25 +504,75 @@ function vrds_view($baseURL)
                             <th>Reservation Date</th>
                             <th>Return Date</th>
                             <th>Status</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($requests as $req): ?>
-                            <?php if ($req['status'] === 'Denied'): ?>
+                            <?php if (in_array($req['status'], ['Denied','Approved'])): ?>
+                                <?php
+                                    $fullOrigin = trim($req['origin'] ?? '');
+                                    $originWords = preg_split('/\s+/', $fullOrigin);
+                                    if (count($originWords) > 7) {
+                                        $short = implode(' ', array_slice($originWords, 0, 7)) . '...';
+                                        $originDisplay = '<span title="' . htmlspecialchars($fullOrigin) . '">' . htmlspecialchars($short) . '</span>';
+                                    } else {
+                                        $originDisplay = htmlspecialchars($fullOrigin);
+                                    }
+                                    $fullDest = trim($req['destination'] ?? '');
+                                    $destWords = preg_split('/\s+/', $fullDest);
+                                    if (count($destWords) > 7) {
+                                        $shortD = implode(' ', array_slice($destWords, 0, 7)) . '...';
+                                        $destDisplay = '<span title="' . htmlspecialchars($fullDest) . '">' . htmlspecialchars($shortD) . '</span>';
+                                    } else {
+                                        $destDisplay = htmlspecialchars($fullDest);
+                                    }
+                                ?>
                                 <tr>
                                     <td><?= htmlspecialchars($req['purpose']) ?></td>
-                                    <td><?= htmlspecialchars($req['origin']) ?></td>
-                                    <td><?= htmlspecialchars($req['destination']) ?></td>
+                                    <td><?= $originDisplay ?></td>
+                                    <td><?= $destDisplay ?></td>
                                     <td><?= htmlspecialchars($req['requested_vehicle_type']) ?></td>
                                     <td><?= htmlspecialchars($req['reservation_date'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($req['expected_return'] ?? '') ?></td>
-                                    <td><?php
+                                    <td>
+                                        <?php
                                         $status = $req['status'];
-                                        $badgeClass = 'badge badge-error p-3 text-nowrap';
+                                        $badgeClass = 'badge p-3 text-nowrap';
+                                        if ($status === 'Approved') {
+                                            $badgeClass .= ' badge-success';
+                                        } elseif ($status === 'Denied') {
+                                            $badgeClass .= ' badge-error ';
+                                        } elseif ($status === 'Pending') {
+                                            $badgeClass .= ' badge-warning';
+                                        } else {
+                                            $badgeClass .= ' badge-info';
+                                        }
                                         ?>
                                         <span class="<?= $badgeClass ?>">
-                                            <?= htmlspecialchars($req['status']) ?>
+                                            <?= htmlspecialchars($status) ?>
                                         </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-info btn-sm" onclick="document.getElementById('view_modal_<?= $req['id'] ?>').showModal()">View</button>
+                                        <dialog id="view_modal_<?= $req['id'] ?>" class="modal">
+                                            <div class="modal-box">
+                                                <form method="dialog">
+                                                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                                                </form>
+                                                <h3 class="font-bold text-lg mb-4">Vehicle Request Details</h3>
+                                                <div class="flex flex-col gap-2">
+                                                    <div><b>Purpose:</b> <?= htmlspecialchars($req['purpose']) ?></div>
+                                                    <div><b>Origin:</b> <?= htmlspecialchars($req['origin']) ?></div>
+                                                    <div><b>Destination:</b> <?= htmlspecialchars($req['destination']) ?></div>
+                                                    <div><b>Requested Vehicle Type:</b> <?= htmlspecialchars($req['requested_vehicle_type']) ?></div>
+                                                    <div><b>Reservation Date:</b> <?= htmlspecialchars($req['reservation_date'] ?? '') ?></div>
+                                                    <div><b>Expected Return:</b> <?= htmlspecialchars($req['expected_return'] ?? '') ?></div>
+                                                    <div><b>Status:</b> <?= htmlspecialchars($req['status']) ?></div>
+                                                </div>
+                                            </div>
+                                            <form method="dialog" class="modal-backdrop"><button>close</button></form>
+                                        </dialog>
                                     </td>
                                 </tr>
                             <?php endif; ?>
@@ -430,72 +583,21 @@ function vrds_view($baseURL)
 
             <!-- Dispatch Log Modal -->
             <dialog id="dispatch_log_modal" class="modal">
-                <div class="modal-box w-11-12 max-w-full">
+                <div class="modal-box">
                     <form method="dialog">
                         <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                     </form>
                     <h3 class="font-bold text-lg mb-4">Dispatched Trips</h3>
 
-                    <?php
-                    // Pagination logic
-                    $page = isset($_GET['dispatch_page']) ? max(1, intval($_GET['dispatch_page'])) : 1;
-                    $perPage = 10;
-                    $totalDispatches = count($dispatches);
-                    $totalPages = ceil($totalDispatches / $perPage);
-                    $start = ($page - 1) * $perPage;
-                    $pagedDispatches = array_slice($dispatches, $start, $perPage);
-                    ?>
-                    <?php
-                    // Handle dispatch completion (including round trip logic)
-                    if (isset($_GET['complete'])) {
-                        $dispatchId = intval($_GET['complete']);
-                        $dispatch = null;
-                        foreach ($dispatches as $d) {
-                            if ($d['id'] == $dispatchId) {
-                                $dispatch = $d;
-                                break;
-                            }
-                        }
-                        if ($dispatch && $dispatch['status'] === 'Ongoing') {
-                            // Mark as completed
-                            updateById('dispatches', $dispatchId, ['status' => 'Completed']);
-                            // Check if round trip
-                            $request = null;
-                            foreach ($requests as $r) {
-                                if ($r['id'] == $dispatch['request_id']) {
-                                    $request = $r;
-                                    break;
-                                }
-                            }
-                            if ($request && ($request['trip_type'] ?? 'One Way') === 'Round Trip') {
-                                // Create return dispatch (origin/destination swapped)
-                                $newDispatch = [
-                                    'request_id' => $dispatch['request_id'],
-                                    'vehicle_id' => $dispatch['vehicle_id'],
-                                    'driver_id' => $dispatch['driver_id'],
-                                    'origin' => $dispatch['destination'],
-                                    'origin_lat' => $dispatch['destination_lat'],
-                                    'origin_lon' => $dispatch['destination_lon'],
-                                    'destination' => $dispatch['origin'],
-                                    'destination_lat' => $dispatch['origin_lat'],
-                                    'destination_lon' => $dispatch['origin_lon'],
-                                    'purpose' => $dispatch['purpose'],
-                                    'dispatch_date' => date('Y-m-d'),
-                                    'status' => 'Ongoing'
-                                ];
-                                insertRow('dispatches', $newDispatch);
-                            }
-                            // Redirect to avoid repeat action on refresh
-                            header('Location: ' . $baseURL);
-                            exit;
-                        }
-                    } ?>
+                    <?php // Removed pagination: show all dispatches in modal ?>
                     <form method="POST" action="<?= htmlspecialchars($baseURL) ?>">
+                        <!--
                         <div class="mb-2 flex gap-2">
                             <button type="submit" name="clear_dispatch_logs" class="btn btn-error btn-sm" onclick="return confirm('Clear all dispatch logs?')">Remove All Records</button>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table class="table table-zebra w-full">
+                    -->
+                        <div>
+                            <table class="table table-zebra">
                                 <thead>
                                     <tr>
                                         <!-- No batch select -->
@@ -507,7 +609,7 @@ function vrds_view($baseURL)
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($pagedDispatches as $d): ?>
+                                    <?php foreach ($dispatches as $d): ?>
                                         <tr>
                                             <td>
                                                 <?php
@@ -552,17 +654,18 @@ function vrds_view($baseURL)
                                                 </span>
                                             </td>
                                             <td>
-                                                <div class="flex flex-col md:flex-row gap-2">
+                                                <div class="flex flex-col md:flex-row">
                                                     <?php if ($d['status'] === 'Ongoing'): ?>
-                                                        <a href="<?= htmlspecialchars($baseURL . '&complete=' . $d['id']) ?>" class="btn btn-xs btn-success sm:btn-sm md:btn-md w-1/2" onclick="return confirm('Mark this dispatch as completed?')">
-                                                            <i data-lucide="check-circle" class="inline"></i>Complete
+                                                        <a href="<?= htmlspecialchars($baseURL . '&complete=' . $d['id']) ?>" class="btn btn-md btn-success sm:btn-sm md:btn-md w-1/2" onclick="return confirm('Mark this dispatch as completed?')">
+                                                            <i data-lucide="check-circle" class="inline"></i><p class="inline">Complete</p>
                                                         </a>
                                                     <?php endif; ?>
+                                                    <!--
                                                     <a href="<?= htmlspecialchars($baseURL . '&delete=' . $d['id']) ?>"
                                                         class="btn btn-xs btn-error sm:btn-sm md:btn-md w-1/2"
                                                         onclick="return confirm('Delete this dispatch log?')">
                                                         <i data-lucide="delete" class="inline"></i>Delete
-                                                    </a>
+                                                    </a> -->
                                                 </div>
                                             </td>
                                         </tr>
@@ -571,18 +674,12 @@ function vrds_view($baseURL)
                             </table>
                         </div>
                     </form>
-                    <!-- Pagination Controls -->
-                    <div class="flex justify-center mt-4 gap-2">
-                        <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-                            <a href="<?= htmlspecialchars($baseURL . '&dispatch_page=' . $p) ?>" class="btn btn-xs <?= $p == $page ? 'btn-primary' : 'btn-outline' ?>">Page <?= $p ?></a>
-                        <?php endfor; ?>
-                    </div>
                 </div>
                 <form method="dialog" class="modal-backdrop">
                     <button>close</button>
                 </form>
             </dialog>
-            </form>
+            
             <!-- Leaflet.js & OSM/Nominatim Autocomplete JS & CSS -->
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
             <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -612,6 +709,7 @@ function vrds_view($baseURL)
                     let polylines = [];
                     let poiMarkers = [];
                     let pois = [];
+                    let originMarkersById = {};
 
                     function clearMap() {
                         markers.forEach(m => map.removeLayer(m));
@@ -626,6 +724,7 @@ function vrds_view($baseURL)
                     }
 
                     function addDispatchMarkers(dispatches) {
+                        originMarkersById = {};
                         dispatches.forEach(function(d) {
                             const vehicle = vehicles.find(v => v.id == d.vehicle_id);
                             const driver = drivers.find(dr => dr.id == d.driver_id);
@@ -640,6 +739,8 @@ function vrds_view($baseURL)
                                     title: 'Origin'
                                 }).addTo(map);
                                 originMarker.bindPopup('<b>Vehicle:</b> ' + (vehicle ? vehicle.vehicle_name : d.vehicle_id) + '<br><b>Driver:</b> ' + (driver ? driver.driver_name : d.driver_id) + '<br><b>Origin:</b> ' + (d.origin || '-') + '<br><b>Destination:</b> ' + (d.destination || '-') + '<br><b>Status:</b> ' + d.status);
+                                originMarker._dispatchId = d.id;
+                                originMarkersById[d.id] = originMarker;
                                 markers.push(originMarker);
                             }
                             if (!isNaN(dLat) && !isNaN(dLon)) {
@@ -697,6 +798,43 @@ function vrds_view($baseURL)
                                 poly.bindPopup(popupHtml);
                                 polylines.push(poly);
                             }
+                        });
+                        // After adding markers, render the sidebar list
+                        renderOngoingList(dispatches);
+                    }
+
+                    function renderOngoingList(dispatches){
+                        const container = document.getElementById('ongoingDispatchItems');
+                        if (!container) return;
+                        if (!dispatches || dispatches.length === 0){ container.innerHTML = '<div class="opacity-50">No ongoing dispatches</div>'; return; }
+                        container.innerHTML = '';
+                        dispatches.forEach(d => {
+                            const vehicle = vehicles.find(v => v.id == d.vehicle_id);
+                            const driver = drivers.find(dr => dr.id == d.driver_id);
+                            const el = document.createElement('div');
+                            el.className = 'mb-2 p-2 border rounded hover:bg-gray-50 cursor-pointer';
+                            el.style.display = 'flex';
+                            el.style.flexDirection = 'column';
+                            el.style.gap = '4px';
+                            const title = document.createElement('div');
+                            title.innerHTML = '<b>' + (vehicle ? vehicle.vehicle_name : 'Vehicle #' + d.vehicle_id) + '</b>';
+                            const sub = document.createElement('div');
+                            sub.style.fontSize = '0.9rem';
+                            sub.style.opacity = '0.9';
+                            sub.textContent = (driver ? driver.driver_name : 'Driver #' + d.driver_id) + ' — ' + (d.origin || '-') ;
+                            el.appendChild(title);
+                            el.appendChild(sub);
+                            el.onclick = function(){
+                                const m = originMarkersById[d.id];
+                                if (m){
+                                    const latlng = m.getLatLng();
+                                    map.setView([latlng.lat, latlng.lng], 15);
+                                    m.openPopup();
+                                } else if (d.origin_lat && d.origin_lon) {
+                                    map.setView([parseFloat(d.origin_lat), parseFloat(d.origin_lon)], 15);
+                                }
+                            };
+                            container.appendChild(el);
                         });
                     }
 

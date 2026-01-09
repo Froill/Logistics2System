@@ -107,3 +107,62 @@ if (isset($_GET['edit_custom_poi'])) {
     exit;
 }
 // Add more AJAX endpoints as needed
+// Secure download proxy for vehicle documents/insurance
+if (isset($_GET['download_vehicle_file']) && $_GET['download_vehicle_file'] == 1) {
+    // require login
+    session_start();
+    if (empty($_SESSION['user_id'])) {
+        http_response_code(403);
+        echo 'Forbidden';
+        exit;
+    }
+    // Restrict downloads to admin/manager by default
+    $role = strtolower($_SESSION['user_role'] ?? $_SESSION['role'] ?? '');
+    if (!in_array($role, ['admin', 'manager'])) {
+        http_response_code(403);
+        echo 'Forbidden';
+        exit;
+    }
+    $docId = isset($_GET['doc_id']) ? intval($_GET['doc_id']) : 0;
+    $table = isset($_GET['table']) && $_GET['table'] === 'insurance' ? 'vehicle_insurance' : 'vehicle_documents';
+    if (!$docId) {
+        http_response_code(400);
+        echo 'Invalid request';
+        exit;
+    }
+    require_once __DIR__ . '/functions.php';
+    $db = getDb();
+    $stmt = $db->prepare("SELECT * FROM {$table} WHERE id = ? LIMIT 1");
+    $stmt->execute([$docId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$row || empty($row['file_path'])) {
+        http_response_code(404);
+        echo 'File not found';
+        exit;
+    }
+    $path = __DIR__ . '/../' . $row['file_path'];
+    if (!file_exists($path)) {
+        http_response_code(404);
+        echo 'File not found';
+        exit;
+    }
+    // Serve file securely (allow inline display for images/PDFs)
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime = finfo_file($finfo, $path) ?: 'application/octet-stream';
+    finfo_close($finfo);
+    $inline = isset($_GET['inline']) && ($_GET['inline'] == '1' || $_GET['inline'] === 1);
+    header('Content-Description: File Transfer');
+    header('Content-Type: ' . $mime);
+    // If inline requested and file is displayable, send inline disposition
+    if ($inline && (strpos($mime, 'image/') === 0 || $mime === 'application/pdf')) {
+        header('Content-Disposition: inline; filename="' . basename($row['file_path']) . '"');
+    } else {
+        header('Content-Disposition: attachment; filename="' . basename($row['file_path']) . '"');
+    }
+    header('Expires: 0');
+    header('Cache-Control: must-revalidate');
+    header('Pragma: public');
+    header('Content-Length: ' . filesize($path));
+    readfile($path);
+    exit;
+}
