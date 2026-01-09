@@ -660,7 +660,8 @@ function fvm_view($baseURL)
                                                     <input type="hidden" name="adjust_maintenance_vehicle_id" value="<?= $v['id'] ?>">
                                                     <div class="form-control">
                                                         <label class="label">Set Maintenance Date</label>
-                                                        <input type="date" name="next_maintenance_date" class="input input-bordered" required>
+                                                        <?php $minDate = (new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d'); ?>
+                                                        <input type="date" id="next_maintenance_date_<?= $v['id'] ?>" name="next_maintenance_date" class="input input-bordered" min="<?= $minDate ?>" value="<?= $minDate ?>" required>
                                                     </div>
                                                     <div class="form-control">
                                                         <label class="label">Details</label>
@@ -688,27 +689,50 @@ function fvm_view($baseURL)
                                                 <button>close</button>
                                             </form>
                                             <script>
-                                                // Handle set maintenance form submission (details part)
-                                                if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adjust_maintenance_vehicle_id'], $_POST['next_maintenance_date'], $_POST['maintenance_part'])) {
-                                                    $vehicleId = intval($_POST['adjust_maintenance_vehicle_id']);
-                                                    $date = $_POST['next_maintenance_date'];
-                                                    $part = trim($_POST['maintenance_part']);
-                                                    if ($vehicleId && $date && $part) {
-                                                        // Save to fleet_vehicle_logs as a maintenance log
-                                                        $db = getDb();
-                                                        $stmt = $db - > prepare("INSERT INTO fleet_vehicle_logs (vehicle_id, log_type, details, created_at) VALUES (?, 'maintenance', ?, ?)");
-                                                        $desc = $part.
-                                                        ' scheduled for maintenance';
-                                                        $stmt - > execute([$vehicleId, $desc, $date]);
-                                                        $_SESSION['fvm_success'] = 'Maintenance scheduled for '.htmlspecialchars($part).
-                                                        '.';
-                                                        header('Location: '.strtok($_SERVER['REQUEST_URI'], '?'));
-                                                        exit;
+                                                // Ensure client cannot pick past dates (extra safety)
+                                                (function() {
+                                                    try {
+                                                        var dateInput = document.getElementById('next_maintenance_date_<?= $v['id'] ?>');
+                                                        if (dateInput) {
+                                                            dateInput.min = '<?= $minDate ?>';
+                                                        }
+                                                    } catch (e) {}
+                                                })();
+                                            </script>
+                                            <?php
+                                            // Handle set maintenance form submission (server-side validation)
+                                            if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adjust_maintenance_vehicle_id'], $_POST['next_maintenance_date'], $_POST['maintenance_part'])) {
+                                                $vehicleId = intval($_POST['adjust_maintenance_vehicle_id']);
+                                                $date = $_POST['next_maintenance_date'];
+                                                $part = trim($_POST['maintenance_part']);
+                                                // Basic validation
+                                                if (!($vehicleId && $date && $part)) {
+                                                    $_SESSION['fvm_error'] = 'Please fill out all maintenance details.';
+                                                } else {
+                                                    $today = new DateTime('now', new DateTimeZone('Asia/Manila'));
+                                                    $inputDate = DateTime::createFromFormat('Y-m-d', $date);
+                                                    if (!$inputDate) {
+                                                        $_SESSION['fvm_error'] = 'Invalid maintenance date.';
                                                     } else {
-                                                        $_SESSION['fvm_error'] = 'Please fill out all maintenance details.';
+                                                        // compare dates only (ignore time)
+                                                        $today->setTime(0,0,0);
+                                                        $inputDate->setTime(0,0,0);
+                                                        if ($inputDate < $today) {
+                                                            $_SESSION['fvm_error'] = 'Maintenance date cannot be in the past.';
+                                                        } else {
+                                                            // Save to fleet_vehicle_logs as a maintenance log
+                                                            $db = getDb();
+                                                            $stmt = $db->prepare("INSERT INTO fleet_vehicle_logs (vehicle_id, log_type, details, created_at) VALUES (?, 'maintenance', ?, ?)");
+                                                            $desc = $part . ' scheduled for maintenance';
+                                                            $stmt->execute([$vehicleId, $desc, $date]);
+                                                            $_SESSION['fvm_success'] = 'Maintenance scheduled for ' . htmlspecialchars($part) . '.';
+                                                            header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
+                                                            exit;
+                                                        }
                                                     }
                                                 }
-                                            </script>
+                                            }
+                                            ?>
                                         </dialog>
                                     </td>
                                 </tr>
@@ -733,8 +757,6 @@ function fvm_view($baseURL)
                         <th>License</th>
                         <th>Payload (kg)</th>
                         <th>Fuel Capacity (L)</th>
-                        <th>Fuel Consumption (Last Dispatch)</th>
-                        <th>Current Fuel Tank</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
@@ -749,64 +771,6 @@ function fvm_view($baseURL)
                             <td><?= htmlspecialchars($v['plate_number']) ?></td>
                             <td><?= htmlspecialchars($v['weight_capacity'] ?? '-') ?>kg</td>
                             <td><?= htmlspecialchars($v['fuel_capacity'] ?? '-') ?>L</td>
-                            <!-- Fuel Consumption and Current Fuel Tank with Radial Progress -->
-                            <td class=" text-center">
-                                <?php
-                                $trip = fetchOneQuery(
-                                    "SELECT fuel_consumed FROM driver_trips WHERE vehicle_id = ? ORDER BY id DESC LIMIT 1",
-                                    [$v['id']]
-                                );
-                                $fuelCapacity = isset($v['fuel_capacity']) && is_numeric($v['fuel_capacity']) ? floatval($v['fuel_capacity']) : 0;
-
-                                if ($trip && isset($trip['fuel_consumed']) && $fuelCapacity > 0):
-                                    $fuelConsumed = floatval($trip['fuel_consumed']);
-                                    $percent = min(100, max(0, round(($fuelConsumed / $fuelCapacity) * 100)));
-                                ?>
-                                    <div class="flex flex-col gap-2 items-center font-bold text-info">
-                                        <div class=""><?= htmlspecialchars($fuelConsumed) ?> L / <?= htmlspecialchars($fuelCapacity) ?> L</div>
-                                        <div class="radial-progress bg-base-100" style="--value:<?= $percent ?>; --size:4rem; --thickness:6px;">
-                                            <?= $percent ?>%
-                                        </div>
-                                    </div>
-                                <?php elseif ($trip && isset($trip['fuel_consumed'])): ?>
-                                    <div class="flex flex-col gap-2 items-center font-bold text-info">
-                                        <div class=""><?= htmlspecialchars($trip['fuel_consumed']) ?> L / N/A</div>
-                                        <div class="radial-progress" style="--value:0; --size:4rem; --thickness:6px;">0%</div>
-                                    </div>
-                                <?php else: ?>
-                                    <div class="flex flex-col gap-2 items-center font-bold text-info">
-                                        <div class="">No Records Yet</div>
-                                        <div class="radial-progress" style="--value:0; --size:4rem; --thickness:6px;">0%</div>
-                                    </div>
-                                <?php endif; ?>
-                            </td>
-
-                            <td class="text-center">
-                                <?php
-                                if ($trip && isset($trip['fuel_consumed']) && $fuelCapacity > 0):
-                                    $fuelConsumed = floatval($trip['fuel_consumed']);
-                                    $fuelLeft = max(0, $fuelCapacity - $fuelConsumed);
-                                    $percentLeft = min(100, max(0, round(($fuelLeft / $fuelCapacity) * 100)));
-                                ?>
-                                    <div class="flex flex-col gap-2 items-center font-bold text-success">
-                                        <div><?= htmlspecialchars($fuelLeft) ?> L / <?= htmlspecialchars($fuelCapacity) ?> L</div>
-                                        <div class="radial-progress" style="--value:<?= $percentLeft ?>; --size:4rem; --thickness:6px;">
-                                            <?= $percentLeft ?>%
-                                        </div>
-                                    </div>
-                                <?php elseif ($fuelCapacity > 0): ?>
-                                    <div class="flex flex-col gap-2 items-center font-bold text-success">
-                                        <div><?= htmlspecialchars($fuelCapacity) ?> L / <?= htmlspecialchars($fuelCapacity) ?> L</div>
-                                        <div class="radial-progress text-success" style="--value:100; --size:4rem; --thickness:6px;">100%</div>
-                                    </div>
-                                <?php else: ?>
-                                    <div class="flex flex-col gap-2 items-center font-bold text-success">
-
-                                        <div class="">N/A</div>
-                                        <div class="radial-progress text-success" style="--value:0; --size:4rem; --thickness:6px;">0%</div>
-                                    </div>
-                                <?php endif; ?>
-                            </td>
 
                             <td>
                                 <?php
@@ -830,14 +794,6 @@ function fvm_view($baseURL)
                                 <div class="flex flex-col gap-3 ">
                                     <button class="btn btn-sm btn-info" onclick="document.getElementById('view_modal_<?= $v['id'] ?>').showModal()" title="View">
                                         <i data-lucide="eye"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-primary" onclick="document.getElementById('manage_modal_<?= $v['id'] ?>').showModal()" title="Edit">
-                                        <i data-lucide="pencil"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-error"
-                                        title="Delete"
-                                        onclick="if (confirm('Delete this vehicle?')) { window.location.href='<?= htmlspecialchars($baseURL . '&delete=' . $v['id']) ?>'; }">
-                                        <i data-lucide="trash-2"></i>
                                     </button>
                                 </div>
 
