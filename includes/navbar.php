@@ -1,11 +1,11 @@
 <header class="bg-[#001f54] shadow-sm z-10 border-b border-base-300 dark:border-gray-700 w-full">
 
-<!--<header class="shadow-sm z-10 border-b border-base-300 dark:border-gray-700 w-full">-->
+  <!--<header class="shadow-sm z-10 border-b border-base-300 dark:border-gray-700 w-full">-->
   <div class="px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
       <div class="flex items-center">
         <button onclick="toggleSidebar()" class="text-white btn btn-ghost btn-sm  transition-all hover:scale-105">
-          <i data-lucide="menu" class="w-5 h-5"></i>
+          <i data-lucide="menu" class="w-5 h-5 text-white"></i>
         </button>
       </div>
       <div class="flex items-center gap-4">

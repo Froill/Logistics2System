@@ -2,8 +2,8 @@
 shadow-xl transform -translate-x-full md:transform-none md:translate-x-0 z-40 h-screen md:h-auto" id="sidebar">
   <!-- Sidebar Header -->
   <div class="flex flex-col items-center justify-between flex-shrink-0 px-4 mb-6 text-center">
-    <button onclick="toggleSidebar()" class="btn text-white btn-ghost btn-sm self-end block md:hidden">
-      <i data-lucide="x" class="w-5 h-5"></i>
+    <button onclick="toggleSidebar()" class="btn text-white btn-ghost btn-sm self-end block sm:hidden pointer-events-auto sm:pointer-events-none">
+      <i data-lucide="x" class="w-5 h-5 text-white sm:hidden"></i>
     </button>
     <h1 class="text-xl font-bold text-white items-center gap-2 px-1 justify-center flex">
       <img id="sidebar-logo" class="hidden" src="images/logo/logofinal.png" alt="">
@@ -11,8 +11,6 @@ shadow-xl transform -translate-x-full md:transform-none md:translate-x-0 z-40 h-
 
     </h1>
   </div>
-
-
 
   <!-- Navigation Menu -->
   <div class="flex-1 flex flex-col overflow-y-auto overscroll-contain">
