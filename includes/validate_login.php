@@ -15,25 +15,7 @@ function ua_hash(): string
 {
     return hash('sha256', $_SERVER['HTTP_USER_AGENT'] ?? '');
 }
-function ip_net(): string
-{
-    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
-    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-        // IPv4 /24 (zero out last octet)
-        $parts = explode('.', $ip);
-        if (count($parts) === 4) {
-            $parts[3] = '0';
-        }
-        return implode('.', $parts) . '/24';
-    }
-    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-        // IPv6 /64 (keep first 4 hextets)
-        $hextets = explode(':', $ip);
-        $first4 = array_slice($hextets, 0, 4);
-        return implode(':', $first4) . '::/64';
-    }
-    return 'unknown';
-}
+
 
 $eid = sanitize($_POST['eid'] ?? '');
 $password = $_POST['password'] ?? '';
@@ -103,11 +85,10 @@ try {
         if (!empty($_COOKIE['device_token'])) {
             $deviceToken = $_COOKIE['device_token'];
             $ua = ua_hash();
-            $net = ip_net();
 
             // Fetch device row
             $q = $conn->prepare("
-                SELECT id, expires_at, ua_hash, ip_net
+                SELECT id, expires_at, ua_hash
                 FROM trusted_devices
                 WHERE user_id = ? AND device_token = ? AND expires_at > NOW()
                 LIMIT 1
@@ -118,7 +99,7 @@ try {
             $q->close();
 
             // Check fingerprint match
-            if ($row && hash_equals($row['ua_hash'], $ua) && $row['ip_net'] === $net) {
+            if ($row && hash_equals($row['ua_hash'], $ua)) {
                 // Trusted device & fingerprint OK → login without OTP
                 $_SESSION['user_id']  = $user['id'];
                 $_SESSION['eid']      = $user['eid'];
