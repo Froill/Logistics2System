@@ -41,6 +41,22 @@ function vrds_view($baseURL)
     $vehicles = fetchAll('fleet_vehicles');
     $drivers = fetchAll('drivers');
 
+    // Driver linkage: find driver record by session eid (drivers.eid)
+    $currentUserEid = $_SESSION['eid'] ?? null;
+    $isDriverUser = ($role === 'driver');
+    $driverRecordId = null;
+    if ($isDriverUser && $currentUserEid) {
+        if ($stmt = $conn->prepare('SELECT id FROM drivers WHERE eid = ? LIMIT 1')) {
+            $stmt->bind_param('s', $currentUserEid);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($r = $res->fetch_assoc()) {
+                $driverRecordId = (int)$r['id'];
+            }
+            $stmt->close();
+        }
+    }
+
     // Get unique vehicle types for dropdown
     $vehicle_types = [];
     foreach ($vehicles as $v) {
@@ -62,15 +78,19 @@ function vrds_view($baseURL)
             <?php if (!in_array($role, ['requester', 'user'])): ?>
                 <h3 class="text-lg font-bold mb-2">Dispatched Trips Map</h3>
             <?php endif; ?>
+                <?php if (!in_array($role, ['requester', 'driver'])): ?>
                 <div class="flex flex-wrap gap-2 mb-2">
                  <!-- Dispatched Trips mapsearch bar -->
                     <input id="mapSearch" class="input input-bordered" style="min-width:220px;max-width:350px;" placeholder="Search a place.." autocomplete="off">
                     <div id="searchSuggestions" class="osm-suggestions" style="position:absolute;z-index:1000;"></div>
                 </div>
+                <?php endif; ?>
             <div class="flex flex-wrap gap-2 mb-2">
+                <?php if (!in_array($role, ['requester', 'driver'])): ?>
                 <button id="addPoiBtn" class="btn btn-sm btn-success" type="button"><i data-lucide="map-pin-plus"></i> Add a POI </button>
                 <button id="myPoisBtn" class="btn btn-sm btn-info" type="button"><i data-lucide="list"></i> POIs List</button>
                 <button id="deletePoiBtn" class="btn btn-sm btn-error" type="button"><i data-lucide="trash-2"></i> Delete POI</button>
+                <?php endif; ?>
                 <!-- My POIs Modal -->
                 <dialog id="myPoisModal" class="modal">
                     <div class="modal-box">
@@ -101,70 +121,13 @@ function vrds_view($baseURL)
                         <button>close</button>
                     </form>
                 </dialog>
-                <script>
-                    // Delete POI logic
-                    document.addEventListener('DOMContentLoaded', function() {
-                        const deletePoiBtn = document.getElementById('deletePoiBtn');
-                        const deletePoiModal = document.getElementById('deletePoiModal');
-                        const poiListContainer = document.getElementById('poiListContainer');
-                        if (deletePoiBtn && deletePoiModal && poiListContainer) {
-                            deletePoiBtn.onclick = function() {
-                                // Load POIs and show modal
-                                fetch('js/custom_pois.json?v=' + Date.now())
-                                    .then(res => res.json())
-                                    .then(data => {
-                                        if (!Array.isArray(data) || data.length === 0) {
-                                            poiListContainer.innerHTML = '<div>No POIs found.</div>';
-                                            return;
-                                        }
-                                        let html = '<ul class="list-disc pl-4">';
-                                        data.forEach((poi, idx) => {
-                                            html += `<li class="flex items-center justify-between mb-2"><span><b>${poi.name}</b> (${poi.lat}, ${poi.lon})</span> <button class="btn btn-xs btn-error" data-poi-idx="${idx}"><i data-lucide="trash"></i> Delete</button></li>`;
-                                        });
-                                        html += '</ul>';
-                                        poiListContainer.innerHTML = html;
-                                        // Attach delete handlers
-                                        Array.from(poiListContainer.querySelectorAll('button[data-poi-idx]')).forEach(btn => {
-                                            btn.onclick = function(e) {
-                                                e.preventDefault();
-                                                const idx = parseInt(btn.getAttribute('data-poi-idx'));
-                                                if (!confirm('Delete this POI?')) return;
-                                                // Send only the POI index to backend for deletion
-                                                fetch('includes/ajax.php?delete_custom_poi=1', {
-                                                        method: 'POST',
-                                                        headers: {
-                                                            'Content-Type': 'application/json'
-                                                        },
-                                                        body: JSON.stringify({
-                                                            idx,
-                                                            name: data[idx]?.name
-                                                        })
-                                                    })
-                                                    .then(res => res.json())
-                                                    .then(resp => {
-                                                        if (resp.success) {
-                                                            btn.parentElement.remove();
-                                                            if (typeof fetchAndShowPOIs === 'function') fetchAndShowPOIs();
-                                                            alert('POI deleted!');
-                                                        } else {
-                                                            alert('Failed to delete POI.');
-                                                        }
-                                                    })
-                                                    .catch(() => alert('Failed to delete POI...'));
-                                            };
-                                        });
-                                    });
-                                deletePoiModal.showModal();
-                            };
-                        }
-                    });
-                </script>
+                <script src="js/delete-poi-logic.js"></script>
             </div>
             <!-- END of dispatched trips block-->
 
             <!-- OSM Map for Ongoing Dispatched Trips + Ongoing List -->
             <div class="flex gap-4" style="align-items:flex-start;">
-                <div id="dispatchMap" style="height: 400px; width: 70%; border-radius:150px;"></div>
+                <div id="dispatchMap" style="height: 400px; width: 70%; border-radius:10px;"></div>
                 <div id="ongoingDispatchList" style="width: 30%; max-height:400px; overflow:auto; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:8px;">
                     <h4 class="font-semibold mb-2">Ongoing Dispatches</h4>
                     <div id="ongoingDispatchItems">Loading...</div>
@@ -199,7 +162,7 @@ function vrds_view($baseURL)
                     </form>
                     <form id="requestVehicleForm" method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="mb-6">
                         <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4">
-  <legend class="fieldset-legend">Request a Vehicle</legend>
+                        <legend class="fieldset-legend">Request a Vehicle</legend>
                         <input type="hidden" name="request_vehicle" value="1">
                         <div class="form-control mb-2">
                             <label class="label">Purpose</label>
@@ -263,84 +226,15 @@ function vrds_view($baseURL)
                     </form>
             </dialog>
 
-            <script>
-                document.addEventListener('DOMContentLoaded', function(){
-                    const purposeSelect = document.getElementById('purposeSelect');
-                    const purposeWrap = document.getElementById('purposeOtherWrap');
-                    const purposeOther = document.getElementById('purposeOther');
-                    const reqSelect = document.getElementById('requestedVehicleSelect');
-                    const reqWrap = document.getElementById('requestedVehicleOtherWrap');
-                    const reqOther = document.getElementById('requestedVehicleOther');
-                    const form = document.getElementById('requestVehicleForm');
-                    const reservationDate = document.getElementById('reservationDate');
-                    const expectedReturn = document.getElementById('expectedReturn');
-                    const todayDate = '<?= (new DateTime("now", new DateTimeZone("Asia/Manila")))->format("Y-m-d") ?>';
-
-                    function togglePurpose(){
-                        if (!purposeSelect) return;
-                        if (purposeSelect.value === 'Other') { purposeWrap.style.display = 'block'; purposeOther.required = true; purposeOther.focus(); }
-                        else { purposeWrap.style.display = 'none'; purposeOther.required = false; purposeOther.value = ''; }
-                    }
-                    function toggleReq(){
-                        if (!reqSelect) return;
-                        if (reqSelect.value === 'Other') { reqWrap.style.display = 'block'; reqOther.required = true; reqOther.focus(); }
-                        else { reqWrap.style.display = 'none'; reqOther.required = false; reqOther.value = ''; }
-                    }
-
-                    if (purposeSelect) purposeSelect.addEventListener('change', togglePurpose);
-                    if (reqSelect) reqSelect.addEventListener('change', toggleReq);
-
-                    if (form) form.addEventListener('submit', function(e){
-                        // If purpose is Other, replace select value with entered text
-                        if (purposeSelect && purposeSelect.value === 'Other'){
-                            const v = (purposeOther.value || '').trim();
-                            if (!v){ e.preventDefault(); purposeOther.focus(); alert('Please specify purpose'); return false; }
-                            if (!Array.from(purposeSelect.options).some(o => o.value === v)){
-                                const opt = new Option(v, v, true, true);
-                                purposeSelect.add(opt);
-                            } else { purposeSelect.value = v; }
-                        }
-                        // If requested vehicle type is Other, replace select value
-                        if (reqSelect && reqSelect.value === 'Other'){
-                            const v = (reqOther.value || '').trim();
-                            if (!v){ e.preventDefault(); reqOther.focus(); alert('Please specify vehicle type'); return false; }
-                            if (!Array.from(reqSelect.options).some(o => o.value === v)){
-                                const opt = new Option(v, v, true, true);
-                                reqSelect.add(opt);
-                            } else { reqSelect.value = v; }
-                        }
-                        // ensure expectedReturn is not before reservationDate
-                        if (reservationDate && expectedReturn){
-                            const resVal = reservationDate.value || todayDate;
-                            if (expectedReturn.value && expectedReturn.value < resVal){
-                                e.preventDefault();
-                                alert('Completion Date cannot be before Reservation Date');
-                                expectedReturn.focus();
-                                return false;
-                            }
-                        }
-                    });
-                    // initialize min values and listeners
-                    if (reservationDate){
-                        reservationDate.min = todayDate;
-                        reservationDate.addEventListener('change', function(){
-                            const minVal = reservationDate.value || todayDate;
-                            if (expectedReturn){
-                                expectedReturn.min = minVal;
-                                if (expectedReturn.value && expectedReturn.value < minVal) expectedReturn.value = minVal;
-                            }
-                        });
-                    }
-                    if (expectedReturn){ expectedReturn.min = todayDate; }
-                });
-            </script>
+            <script src="js/dynamic-field-val.js"></script>
 
             <!-- Pending Requests Table (For Transport Officer Approval) -->
             <h3 class="text-md md:text-xl font-bold mt-6 mb-2">Pending Vehicle Requests</h3>
             <div class="overflow-x-auto mb-6">
-                <table class="table table-zebra w-full">
+                <table class="table table-zebra">
                     <thead>
                         <tr>
+                            <th>Ref ID</th>
                             <th>Purpose</th>
                             <th>Origin</th>
                             <th>Destination</th>
@@ -353,10 +247,19 @@ function vrds_view($baseURL)
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($requests as $req): ?>
+                            <?php foreach ($requests as $req): ?>
                             <?php if ($req['status'] === 'Pending'): ?>
-                                <?php $rec = recommend_assignment($req['requested_vehicle_type']); ?>
+                                <?php $rec = recommend_assignment($req['requested_vehicle_type']);
+                                // If current user is a driver, only show pending requests where they are recommended
+                                if ($isDriverUser) {
+                                    $recommendedDriverId = $rec['driver']['id'] ?? null;
+                                    if (!$recommendedDriverId || $recommendedDriverId != $driverRecordId) {
+                                        continue;
+                                    }
+                                }
+                                ?>
                                 <tr>
+                                    <td><?= 'REQ' . str_pad($req['id'], 5, '0', STR_PAD_LEFT) ?></td>
                                     <td><?= htmlspecialchars($req['purpose']) ?></td>
                                     <?php
                                         $fullOrigin = trim($req['origin'] ?? '');
@@ -407,17 +310,21 @@ function vrds_view($baseURL)
                                         <?php endif; ?>
                                     </td>
                                     <td>
-                                        <div class="flex flex-col md:flex-row gap-3">
+                                        <div class="flex flex-col">
                                             <?php if ($req['status'] === 'Pending'): ?>
-                                                <button class="btn btn-primary btn-sm" onclick="assign_modal_<?= $req['id'] ?>.showModal()">Assign</button>
-                                                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" style="display:inline">
-                                                    <input type="hidden" name="reject_request" value="1">
-                                                    <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
-                                                    <button type="submit" class="btn btn-error btn-sm" style="margin-left: 0;" onclick="return confirm('Reject this vehicle request?')">Reject</button>
-                                                </form>
+                                                <?php if (!$isDriverUser): ?>
+                                                    <button class="btn btn-primary btn-sm mb-2" style="width:110%;" onclick="assign_modal_<?= $req['id'] ?>.showModal()">Assign</button>
+                                                    <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" style="display:block">
+                                                        <input type="hidden" name="reject_request" value="1">
+                                                        <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
+                                                        <button type="submit" class="btn btn-error btn-sm" style="width:110%;" onclick="return confirm('Reject this vehicle request?')">Reject</button>
+                                                    </form>
+                                                <?php else: ?>
+                                                    <div class="text-sm opacity-75">Pending (recommended)</div>
+                                                <?php endif; ?>
                                             <?php elseif ($req['status'] === 'Approved'): ?>
                                                 <button class="btn btn-info btn-sm" onclick="view_modal_<?= $req['id'] ?>.showModal()">
-                                                    <i data-lucide="eye" class="inline w-4 h-4"></i>View</button>
+                                                    <i data-lucide="eye" style="width:5%;" class="inline w-4 h-4"></i>View</button>
                                                 <!-- Delete button removed per request -->
                                             <?php endif; ?>
                                             <!-- View Modal for Approved Request -->
@@ -497,6 +404,7 @@ function vrds_view($baseURL)
                 <table class="table table-zebra w-full">
                     <thead>
                         <tr>
+                            <th>Ref ID</th>
                             <th>Purpose</th>
                             <th>Origin</th>
                             <th>Destination</th>
@@ -509,7 +417,18 @@ function vrds_view($baseURL)
                     </thead>
                     <tbody>
                         <?php foreach ($requests as $req): ?>
-                            <?php if (in_array($req['status'], ['Denied','Approved'])): ?>
+                            <?php
+                                if (!in_array($req['status'], ['Denied','Approved'])) continue;
+                                // If driver user, only show history items relevant to them
+                                if ($isDriverUser) {
+                                    $rec = recommend_assignment($req['requested_vehicle_type']);
+                                    $recommendedDriverId = $rec['driver']['id'] ?? null;
+                                    $assignedDriverId = $req['driver_id'] ?? ($req['assigned_driver_id'] ?? null);
+                                    if (!($recommendedDriverId == $driverRecordId || $assignedDriverId == $driverRecordId)) {
+                                        continue;
+                                    }
+                                }
+                            ?>
                                 <?php
                                     $fullOrigin = trim($req['origin'] ?? '');
                                     $originWords = preg_split('/\s+/', $fullOrigin);
@@ -529,6 +448,7 @@ function vrds_view($baseURL)
                                     }
                                 ?>
                                 <tr>
+                                    <td><?= 'REQ' . str_pad($req['id'], 5, '0', STR_PAD_LEFT) ?></td>
                                     <td><?= htmlspecialchars($req['purpose']) ?></td>
                                     <td><?= $originDisplay ?></td>
                                     <td><?= $destDisplay ?></td>
@@ -554,7 +474,7 @@ function vrds_view($baseURL)
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-info btn-sm" onclick="document.getElementById('view_modal_<?= $req['id'] ?>').showModal()">View</button>
+                                        <button class="btn btn-info btn-sm" style="width:120%;" onclick="document.getElementById('view_modal_<?= $req['id'] ?>').showModal()">View</button>
                                         <dialog id="view_modal_<?= $req['id'] ?>" class="modal">
                                             <div class="modal-box">
                                                 <form method="dialog">
@@ -575,7 +495,7 @@ function vrds_view($baseURL)
                                         </dialog>
                                     </td>
                                 </tr>
-                            <?php endif; ?>
+                           
                         <?php endforeach; ?>
                     </tbody>
                 </table>
@@ -596,11 +516,12 @@ function vrds_view($baseURL)
                             <button type="submit" name="clear_dispatch_logs" class="btn btn-error btn-sm" onclick="return confirm('Clear all dispatch logs?')">Remove All Records</button>
                         </div>
                     -->
-                        <div>
-                            <table class="table table-zebra">
+                        <div class="overflow-x-auto">
+                            <table class="table table-zebra" style="min-width:700px;">
                                 <thead>
                                     <tr>
                                         <!-- No batch select -->
+                                        <th>Ref ID</th>
                                         <th>Vehicle</th>
                                         <th>Driver</th>
                                         <th>Dispatch Date</th>
@@ -611,6 +532,8 @@ function vrds_view($baseURL)
                                 <tbody>
                                     <?php foreach ($dispatches as $d): ?>
                                         <tr>
+                                            <?php if ($isDriverUser && isset($driverRecordId) && $d['driver_id'] != $driverRecordId) { continue; } ?>
+                                            <td><?= 'DSP' . str_pad($d['id'], 5, '0', STR_PAD_LEFT) ?></td>
                                             <td>
                                                 <?php
                                                 $vehName = '';
@@ -657,7 +580,7 @@ function vrds_view($baseURL)
                                                 <div class="flex flex-col md:flex-row">
                                                     <?php if ($d['status'] === 'Ongoing'): ?>
                                                         <a href="<?= htmlspecialchars($baseURL . '&complete=' . $d['id']) ?>" class="btn btn-md btn-success sm:btn-sm md:btn-md w-1/2" onclick="return confirm('Mark this dispatch as completed?')">
-                                                            <i data-lucide="check-circle" class="inline"></i><p class="inline">Complete</p>
+                                                            <i data-lucide="check-circle" style="width:110%;" class="inline"></i><p class="inline">Complete</p>
                                                         </a>
                                                     <?php endif; ?>
                                                     <!--
@@ -877,7 +800,9 @@ function vrds_view($baseURL)
                             });
                     }
                     // Add POI button logic
-                    document.getElementById('addPoiBtn').onclick = function() {
+                    const _addPoiBtn = document.getElementById('addPoiBtn');
+                    if (_addPoiBtn) {
+                        _addPoiBtn.onclick = function() {
                         // Prevent multiple listeners
                         if (window._poiMapClickHandler) {
                             map.off('click', window._poiMapClickHandler);
@@ -918,10 +843,13 @@ function vrds_view($baseURL)
                         map.on('click', window._poiMapClickHandler);
                         alert('Click on the map to set POI location.');
                     };
+                    }
+
                     // Search bar autocomplete
                     const searchInput = document.getElementById('mapSearch');
                     const suggestionsDiv = document.getElementById('searchSuggestions');
                     let searchTimeout = null;
+                    if (searchInput && suggestionsDiv) {
                     searchInput.addEventListener('input', function() {
                         const query = searchInput.value.trim().toLowerCase();
                         if (searchTimeout) clearTimeout(searchTimeout);
@@ -981,9 +909,22 @@ function vrds_view($baseURL)
                     addDispatchMarkers(<?php echo json_encode(array_values($ongoingDispatches)); ?>);
                     fetchAndShowPOIs();
                     setInterval(fetchAndUpdateDispatches, 10000);
-                });
+}                });
             </script>
             <style>
+                /* Responsive adjustments for VRDS page */
+                .modal-box { box-sizing: border-box; max-width: 50vw !important; }
+                dialog.modal { padding: 0.5rem; }
+                .overflow-x-auto { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+                .table { width: 100%; min-width: 0; table-layout: auto; }
+                .table th, .table td { white-space: normal; word-break: break-word; }
+
+                /* Small screens: allow tables to scroll instead of overflowing */
+                @media (max-width: 640px) {
+                    .modal-box { padding: 0.5rem; }
+                    .table { font-size: 0.9rem; }
+                    .leaflet-container { max-width: 100%; }
+                }
                 .osm-suggestions {
                     position: absolute;
                     /* z-index: 1000; */

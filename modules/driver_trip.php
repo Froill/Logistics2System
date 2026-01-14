@@ -245,6 +245,7 @@ function driver_trip_view($baseURL)
                 </div>
             </div>
         <?php else: ?>
+            <h3 class="card-title mb-2">Driver Performance</h3>
             <table class="table table-zebra w-full">
                 <thead>
                     <tr>

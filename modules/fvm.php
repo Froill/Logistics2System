@@ -899,7 +899,7 @@ function fvm_view($baseURL)
                                     $regDate = DateTime::createFromFormat('Y-m-d', date('Y-m-d', strtotime($reg['expiry_date'])));
                                     $regDate->setTime(0,0,0);
                                     $regValid = $regDate >= $today;
-                                    $regClass = $regValid ? 'badge badge-sm badge-success' : 'badge badge-sm badge- error';
+                                    $regClass = $regValid ? 'badge badge-sm badge-success' : 'badge badge-sm badge-error';
                                 ?>
                                     <span class="<?= $regClass ?>"><?= htmlspecialchars(date('M d, Y', strtotime($reg['expiry_date']))) ?></span>
                                 <?php else: ?>

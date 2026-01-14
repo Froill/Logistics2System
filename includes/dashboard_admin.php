@@ -39,17 +39,17 @@ $audit_count = get_count('audit_log');
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
   <div class="card bg-base-100 shadow p-3 flex flex-col items-center">
     <i data-lucide="truck" class="w-7 h-7 text-info mb-1"></i>
-    <div class="text-base font-bold">Vehicles</div>
+    <div class="text-base font-bold">Total Vehicles</div>
     <div class="text-xl mt-1"><?php echo $vehicle_count; ?></div>
   </div>
   <div class="card bg-base-100 shadow p-3 flex flex-col items-center">
     <i data-lucide="users" class="w-7 h-7 text-info mb-1"></i>
-    <div class="text-base font-bold">Users</div>
+    <div class="text-base font-bold">Total Users</div>
     <div class="text-xl mt-1"><?php echo $user_count; ?></div>
   </div>
   <div class="card bg-base-100 shadow p-3 flex flex-col items-center">
     <i data-lucide="map" class="w-7 h-7 text-info mb-1"></i>
-    <div class="text-base font-bold">Trips</div>
+    <div class="text-base font-bold">Driver Trips</div>
     <div class="text-xl mt-1"><?php echo $trip_count; ?></div>
   </div>
   <div class="card bg-base-100 shadow p-3 flex flex-col items-center">
