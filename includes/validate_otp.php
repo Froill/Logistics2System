@@ -8,23 +8,7 @@ function ua_hash(): string
 {
     return hash('sha256', $_SERVER['HTTP_USER_AGENT'] ?? '');
 }
-function ip_net(): string
-{
-    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
-    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-        $parts = explode('.', $ip);
-        if (count($parts) === 4) {
-            $parts[3] = '0';
-        }
-        return implode('.', $parts) . '/24';
-    }
-    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-        $hextets = explode(':', $ip);
-        $first4 = array_slice($hextets, 0, 4);
-        return implode(':', $first4) . '::/64';
-    }
-    return 'unknown';
-}
+
 
 if (!isset($_SESSION['otp']) || !isset($_SESSION['pending_user'])) {
     header('Location: ../login.php');
@@ -96,16 +80,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /*** Persist trusted device: cookie + fingerprint ***/
         $deviceToken = bin2hex(random_bytes(32)); // random 64-char token
         $ua = ua_hash();
-        $net = ip_net();
         $expiresAt = date('Y-m-d H:i:s', time() + 7 * 24 * 60 * 60);
 
         $stmt = $conn->prepare("
-            INSERT INTO trusted_devices (user_id, device_token, ua_hash, ip_net, expires_at, last_seen)
-            VALUES (?, ?, ?, ?, ?, NOW())
-            ON DUPLICATE KEY UPDATE ua_hash = VALUES(ua_hash), ip_net = VALUES(ip_net),
+            INSERT INTO trusted_devices (user_id, device_token, ua_hash, expires_at, last_seen)
+            VALUES (?, ?, ?, ?, NOW())
+            ON DUPLICATE KEY UPDATE ua_hash = VALUES(ua_hash),
                                     expires_at = VALUES(expires_at), last_seen = NOW()
         ");
-        $stmt->bind_param("issss", $user['id'], $deviceToken, $ua, $net, $expiresAt);
+        $stmt->bind_param("isss", $user['id'], $deviceToken, $ua, $expiresAt);
         $stmt->execute();
         $stmt->close();
 
