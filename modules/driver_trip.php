@@ -395,6 +395,7 @@ function driver_trip_view($baseURL)
                                     <option value="<?= $driver['id'] ?>"><?= htmlspecialchars($driver['driver_name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
+                            <input type="hidden" id="driver_id_hidden" name="driver_id" disabled>
                         </div>
                         <div class="form-control">
                             <label class="label">Vehicle</label>
@@ -404,6 +405,7 @@ function driver_trip_view($baseURL)
                                     <option value="<?= $vehicle['id'] ?>"><?= htmlspecialchars($vehicle['vehicle_name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
+                            <input type="hidden" id="vehicle_id_hidden" name="vehicle_id" disabled>
                         </div>
                         <div class="form-control">
                             <label class="label">Trip Date</label>
@@ -415,7 +417,7 @@ function driver_trip_view($baseURL)
                         </div>
                         <div class="form-control">
                             <label class="label">Vehicle Capacity (kg)</label>
-                            <input type="number" name="vehicle_capacity" step="0.01" min="0" class="input input-bordered" required>
+                            <input id="vehicle_capacity_field" type="number" name="vehicle_capacity" step="0.01" min="0" class="input input-bordered" required>
                         </div>
                         <div class="form-control">
                             <label class="label">Start Time</label>
@@ -442,13 +444,53 @@ function driver_trip_view($baseURL)
                     <button type="submit" class="btn btn-primary w-full mt-6">Submit Trip Data</button>
                 </form>
                 <script>
+                    function setAutofilledLocked(isLocked) {
+                        var driverSel = document.getElementById('driver_id_field');
+                        var vehicleSel = document.getElementById('vehicle_id_field');
+                        var tripDate = document.getElementById('trip_date_field');
+                        var capacity = document.getElementById('vehicle_capacity_field');
+
+                        var driverHidden = document.getElementById('driver_id_hidden');
+                        var vehicleHidden = document.getElementById('vehicle_id_hidden');
+
+                        if (driverSel && driverHidden) {
+                            driverSel.disabled = !!isLocked;
+                            driverHidden.disabled = !isLocked;
+                            driverHidden.value = driverSel.value || '';
+                        }
+                        if (vehicleSel && vehicleHidden) {
+                            vehicleSel.disabled = !!isLocked;
+                            vehicleHidden.disabled = !isLocked;
+                            vehicleHidden.value = vehicleSel.value || '';
+                        }
+
+                        if (tripDate) {
+                            tripDate.readOnly = !!isLocked;
+                            tripDate.style.pointerEvents = isLocked ? 'none' : '';
+                            tripDate.tabIndex = isLocked ? -1 : 0;
+                        }
+                        if (capacity) {
+                            capacity.readOnly = !!isLocked;
+                            capacity.style.pointerEvents = isLocked ? 'none' : '';
+                            capacity.tabIndex = isLocked ? -1 : 0;
+                        }
+                    }
+
                     function fillDispatchFields(sel) {
                         var opt = sel.options[sel.selectedIndex];
                         if (!opt || !opt.dataset) return;
+
+                        if (!sel.value) {
+                            setAutofilledLocked(false);
+                            return;
+                        }
+
                         document.getElementById('driver_id_field').value = opt.dataset.driver_id || '';
                         document.getElementById('vehicle_id_field').value = opt.dataset.vehicle_id || '';
                         document.getElementById('trip_date_field').value = opt.dataset.trip_date || '';
-                        document.querySelector('input[name="vehicle_capacity"]').value = opt.dataset.vehicle_payload || '';
+                        document.getElementById('vehicle_capacity_field').value = opt.dataset.vehicle_payload || '';
+
+                        setAutofilledLocked(true);
                     }
                 </script>
             </div>
@@ -456,6 +498,7 @@ function driver_trip_view($baseURL)
                 <button>close</button>
             </form>
         </dialog>
+        <!--end of add trip modal-->
 
         <!-- Trip Log Modal -->
         <dialog id="trip_log_modal" class="modal">
