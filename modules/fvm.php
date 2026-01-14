@@ -198,66 +198,66 @@ function fvm_view($baseURL)
             </form>
         </dialog>
 
-        <div class="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6">
+        <div class="grid grid-cols-3 grid-rows-1 mb-5">
             <!-- Vehicle Status Pie Chart -->
-            <div class="card shadow-lg p-4">
+            <div class="card col-start-2 shadow-lg p-4">
                 <h3 class="text-lg font-bold mb-2">Vehicle Status Distribution</h3>
                 <div class="w-full max-w-sm mx-auto">
                     <canvas id="vehicleStatusChart" class="w-full h-64"></canvas>
                 </div>
             </div>
-
-            <!-- Vehicle Metrics -->
-            <section class="card shadow-lg p-4 ">
-                <h3 class="text-lg text-center md:text-left font-bold mb-2">Key Metrics</h3>
-                <div class="stats stats-vertical md:stats-horizontal shadow">
-                    <div class="stat text-primary">
-                        <div class="stat-figure">
-                            <i data-lucide="car" class="inline-block h-10 w-auto stroke-current"></i>
-                        </div>
-                        <div class="stat-title">Total Vehicles</div>
-                        <div class="stat-value"><?= $totalVehicles ?></div>
-                        <div class="stat-desc">Fleet size across all operations</div>
-                    </div>
-
-                    <div class="stat text-success">
-                        <div class="stat-figure">
-                            <i data-lucide="circle-check" class="inline-block h-10 w-auto stroke-current"></i>
-                        </div>
-                        <div class="stat-title">Active</div>
-                        <div class="stat-value"><?= $activeCount ?></div>
-                        <div class="stat-desc">Currently available for dispatch</div>
-                    </div>
-
-                    <div class="stat text-error">
-                        <div class="stat-figure">
-                            <i data-lucide="pause-circle" class="inline-block h-10 w-auto stroke-current"></i>
-                        </div>
-                        <div class="stat-title">Inactive</div>
-                        <div class="stat-value"><?= $inactiveCount ?></div>
-                        <div class="stat-desc">Idle or temporarily unused</div>
-                    </div>
-
-                    <div class="stat text-info">
-                        <div class="stat-figure">
-                            <i data-lucide="navigation" class="inline-block h-10 w-auto stroke-current"></i>
-                        </div>
-                        <div class="stat-title">Dispatched</div>
-                        <div class="stat-value"><?= $dispatchedCount ?></div>
-                        <div class="stat-desc">On an active trip or delivery</div>
-                    </div>
-
-                    <div class="stat text-secondary">
-                        <div class="stat-figure">
-                            <i data-lucide="wrench" class="inline-block h-10 w-auto stroke-current"></i>
-                        </div>
-                        <div class="stat-title">Under Maintenance</div>
-                        <div class="stat-value"><?= $maintenanceCount ?></div>
-                        <div class="stat-desc">Scheduled or ongoing repairs</div>
-                    </div>
-                </div>
-            </section>
         </div>
+
+        <section class="card bg-base-100 shadow-xl p-4 lg:p-6 mb-8">
+    <h3 class="text-lg font-bold mb-6 text-center lg:text-left">Key Metrics</h3>
+    
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
+        <div class="stat bg-base-200 p-6 rounded-box text-primary">
+            <div class="stat-figure">
+                <i data-lucide="car" class="inline-block w-10 h-10 stroke-current"></i>
+            </div>
+            <div class="stat-title">Total Vehicles</div>
+            <div class="stat-value"><?= $totalVehicles ?></div>
+            <div class="stat-desc">Fleet size across all operations</div>
+        </div>
+
+        <div class="stat bg-base-200 p-6 rounded-box text-success">
+            <div class="stat-figure">
+                <i data-lucide="circle-check" class="inline-block w-10 h-10 stroke-current"></i>
+            </div>
+            <div class="stat-title">Active</div>
+            <div class="stat-value"><?= $activeCount ?></div>
+            <div class="stat-desc">Currently available for dispatch</div>
+        </div>
+
+        <div class="stat bg-base-200 p-6 rounded-box text-error">
+            <div class="stat-figure">
+                <i data-lucide="pause-circle" class="inline-block w-10 h-10 stroke-current"></i>
+            </div>
+            <div class="stat-title">Inactive</div>
+            <div class="stat-value"><?= $inactiveCount ?></div>
+            <div class="stat-desc">Idle or temporarily unused</div>
+        </div>
+        
+        <div class="stat bg-base-200 p-6 rounded-box text-info">
+            <div class="stat-figure">
+                <i data-lucide="navigation" class="inline-block w-10 h-10 stroke-current"></i>
+            </div>
+            <div class="stat-title">Dispatched</div>
+            <div class="stat-value"><?= $dispatchedCount ?></div>
+            <div class="stat-desc">On an active trip or delivery</div>
+        </div>
+
+        <div class="stat bg-base-200 p-6 rounded-box text-secondary">
+            <div class="stat-figure">
+                <i data-lucide="wrench" class="inline-block w-10 h-10 stroke-current"></i>
+            </div>
+            <div class="stat-title">Under Maintenance</div>
+            <div class="stat-value"><?= $maintenanceCount ?></div>
+            <div class="stat-desc">Scheduled or ongoing repairs</div>
+        </div>
+    </div>
+</section>
 
         <?php if (!empty($_SESSION['fvm_success'])): ?>
             <div class="alert alert-success mb-3">

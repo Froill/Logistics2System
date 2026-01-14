@@ -63,3 +63,26 @@
   --er: 63% 0.237 25.331; /* error */
   --erc: 17% 0.013 17.38; /* error-content */
 }
+
+.stat-icon-bubble {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.9rem;
+  background-color: #0b2a7a !important;
+  color: #f2c94c !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(11, 42, 122, 0.25);
+}
+
+.stat-icon-bubble svg {
+  color: inherit !important;
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+.stat-icon-bubble i,
+.stat-icon-bubble svg {
+  color: inherit !important;
+}

@@ -81,7 +81,7 @@ function vrds_view($baseURL)
                 <?php if (!in_array($role, ['requester', 'driver'])): ?>
                 <div class="flex flex-wrap gap-2 mb-2">
                  <!-- Dispatched Trips mapsearch bar -->
-                    <input id="mapSearch" class="input input-bordered" style="min-width:220px;max-width:350px;" placeholder="Search a place.." autocomplete="off">
+                    <input id="mapSearch" class="input input-bordered" style="min-width:350px;max-width:500px;" placeholder="Search a place.." autocomplete="off">
                     <div id="searchSuggestions" class="osm-suggestions" style="position:absolute;z-index:1000;"></div>
                 </div>
                 <?php endif; ?>
@@ -149,7 +149,7 @@ function vrds_view($baseURL)
                     </button>
                 <?php endif; ?>
                 <?php if (!in_array($role, ['requester', 'user'])): ?>
-                    <button class="btn btn-secondary w-max" onclick="dispatch_log_modal.showModal()">
+                    <button class="btn btn-accent btn-soft w-max" onclick="dispatch_log_modal.showModal()">
                         <i data-lucide="list" class="w-4 h-4 mr-1"></i> Dispatched Trips
                     </button>
                 <?php endif; ?>
@@ -313,11 +313,11 @@ function vrds_view($baseURL)
                                         <div class="flex flex-col">
                                             <?php if ($req['status'] === 'Pending'): ?>
                                                 <?php if (!$isDriverUser): ?>
-                                                    <button class="btn btn-primary btn-sm mb-2" style="width:110%;" onclick="assign_modal_<?= $req['id'] ?>.showModal()">Assign</button>
+                                                    <button class="btn btn-primary btn-sm mb-2" style="width:110%;" onclick="assign_modal_<?= $req['id'] ?>.showModal()"><i data-lucide="check"></i></button>
                                                     <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" style="display:block">
                                                         <input type="hidden" name="reject_request" value="1">
                                                         <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
-                                                        <button type="submit" class="btn btn-error btn-sm" style="width:110%;" onclick="return confirm('Reject this vehicle request?')">Reject</button>
+                                                        <button type="submit" class="btn btn-error btn-sm" style="width:110%;" onclick="return confirm('Reject this vehicle request?')"><i data-lucide="x"></i></button>
                                                     </form>
                                                 <?php else: ?>
                                                     <div class="text-sm opacity-75">Pending (recommended)</div>
@@ -356,7 +356,8 @@ function vrds_view($baseURL)
                                                 <form method="dialog">
                                                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                                                 </form>
-                                                <h3 class="font-bold text-lg mb-4">Assign Vehicle & Driver</h3>
+                                                <h3 class="font-bold text-lg mb-4">Approve Vehicle Request</h3>
+                                                <h2 class="text-md mb-4">Assign Vehicle and Driver</h2>
                                                 <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="flex flex-col gap-4">
                                                     <input type="hidden" name="approve_request" value="1">
                                                     <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
@@ -474,7 +475,7 @@ function vrds_view($baseURL)
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-info btn-sm" style="width:120%;" onclick="document.getElementById('view_modal_<?= $req['id'] ?>').showModal()">View</button>
+                                        <button class="btn btn-info btn-sm" style="width:120%;" onclick="document.getElementById('view_modal_<?= $req['id'] ?>').showModal()"><i data-lucide="eye"></i></button>
                                         <dialog id="view_modal_<?= $req['id'] ?>" class="modal">
                                             <div class="modal-box">
                                                 <form method="dialog">
@@ -517,7 +518,7 @@ function vrds_view($baseURL)
                         </div>
                     -->
                         <div class="overflow-x-auto">
-                            <table class="table table-zebra" style="min-width:700px;">
+                            <table class="table table-zebra table-sm">
                                 <thead>
                                     <tr>
                                         <!-- No batch select -->
@@ -579,8 +580,8 @@ function vrds_view($baseURL)
                                             <td>
                                                 <div class="flex flex-col md:flex-row">
                                                     <?php if ($d['status'] === 'Ongoing'): ?>
-                                                        <a href="<?= htmlspecialchars($baseURL . '&complete=' . $d['id']) ?>" class="btn btn-md btn-success sm:btn-sm md:btn-md w-1/2" onclick="return confirm('Mark this dispatch as completed?')">
-                                                            <i data-lucide="check-circle" style="width:110%;" class="inline"></i><p class="inline">Complete</p>
+                                                        <a href="<?= htmlspecialchars($baseURL . '&complete=' . $d['id']) ?>" class="btn btn-md btn-success" onclick="return confirm('Mark this dispatch as completed?')">
+                                                        <i data-lucide="check" class="inline"></i>
                                                         </a>
                                                     <?php endif; ?>
                                                     <!--

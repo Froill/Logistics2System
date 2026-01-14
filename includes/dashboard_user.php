@@ -43,15 +43,27 @@ $user_pending_requests = $id ? get_user_pending_requests($id) : 0;
 
 ?>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-  <div class="card bg-base-100 shadow p-6 flex flex-col items-center">
-    <i data-lucide="map" class="w-10 h-10 text-primary mb-2"></i>
-    <div class="text-xl font-bold">My Trips</div>
-    <div class="text-3xl mt-2"><?php echo $user_trip_count; ?></div>
+  <div class="card bg-white shadow p-4">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <div class="text-xs font-semibold uppercase opacity-70">My Trips</div>
+        <div class="text-3xl font-bold mt-1"><?php echo $user_trip_count; ?></div>
+      </div>
+      <span class="stat-icon-bubble">
+        <i data-lucide="map" class="w-6 h-6"></i>
+      </span>
+    </div>
   </div>
-  <div class="card bg-base-100 shadow p-6 flex flex-col items-center">
-    <i data-lucide="file-clock" class="w-10 h-10 text-primary mb-2"></i>
-    <div class="text-xl font-bold">Pending Requests</div>
-    <div class="text-3xl mt-2"><?php echo $user_pending_requests; ?></div>
+  <div class="card bg-white shadow p-4">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <div class="text-xs font-semibold uppercase opacity-70">Pending Requests</div>
+        <div class="text-3xl font-bold mt-1"><?php echo $user_pending_requests; ?></div>
+      </div>
+      <span class="stat-icon-bubble">
+        <i data-lucide="file-clock" class="w-6 h-6"></i>
+      </span>
+    </div>
   </div>
 </div>
 

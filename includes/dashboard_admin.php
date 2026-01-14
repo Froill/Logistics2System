@@ -37,30 +37,60 @@ $audit_count = get_count('audit_log');
 <div class="text-2xl font-bold mb-4">Overview</div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-  <div class="card bg-base-100 shadow p-3 flex flex-col items-center">
-    <i data-lucide="truck" class="w-7 h-7 text-info mb-1"></i>
-    <div class="text-base font-bold">Total Vehicles</div>
-    <div class="text-xl mt-1"><?php echo $vehicle_count; ?></div>
+  <div class="card bg-white shadow p-4">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <div class="text-xs font-semibold uppercase opacity-70">Total Vehicles</div>
+        <div class="text-3xl font-bold mt-1"><?php echo $vehicle_count; ?></div>
+      </div>
+      <span class="stat-icon-bubble">
+        <i data-lucide="truck" class="w-6 h-6"></i>
+      </span>
+    </div>
   </div>
-  <div class="card bg-base-100 shadow p-3 flex flex-col items-center">
-    <i data-lucide="users" class="w-7 h-7 text-info mb-1"></i>
-    <div class="text-base font-bold">Total Users</div>
-    <div class="text-xl mt-1"><?php echo $user_count; ?></div>
+  <div class="card bg-white shadow p-4">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <div class="text-xs font-semibold uppercase opacity-70">Total Users</div>
+        <div class="text-3xl font-bold mt-1"><?php echo $user_count; ?></div>
+      </div>
+      <span class="stat-icon-bubble">
+        <i data-lucide="users" class="w-6 h-6"></i>
+      </span>
+    </div>
   </div>
-  <div class="card bg-base-100 shadow p-3 flex flex-col items-center">
-    <i data-lucide="map" class="w-7 h-7 text-info mb-1"></i>
-    <div class="text-base font-bold">Driver Trips</div>
-    <div class="text-xl mt-1"><?php echo $trip_count; ?></div>
+  <div class="card bg-white shadow p-4">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <div class="text-xs font-semibold uppercase opacity-70">Driver Trips</div>
+        <div class="text-3xl font-bold mt-1"><?php echo $trip_count; ?></div>
+      </div>
+      <span class="stat-icon-bubble">
+        <i data-lucide="map" class="w-6 h-6"></i>
+      </span>
+    </div>
   </div>
-  <div class="card bg-base-100 shadow p-3 flex flex-col items-center">
-    <i data-lucide="file-clock" class="w-7 h-7 text-info mb-1"></i>
-    <div class="text-base font-bold">Vehicle Requests</div>
-    <div class="text-xl mt-1"><?php echo $pending_requests; ?></div>
+  <div class="card bg-white shadow p-4">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <div class="text-xs font-semibold uppercase opacity-70">Vehicle Requests</div>
+        <div class="text-3xl font-bold mt-1"><?php echo $pending_requests; ?></div>
+      </div>
+      <span class="stat-icon-bubble">
+        <i data-lucide="file-clock" class="w-6 h-6"></i>
+      </span>
+    </div>
   </div>
-  <div class="card bg-base-100 shadow p-3 flex flex-col items-center">
-    <i data-lucide="clipboard-list" class="w-7 h-7 text-info mb-1"></i>
-    <div class="text-base font-bold">Audit Log Entries</div>
-    <div class="text-xl mt-1"><?php echo $audit_count; ?></div>
+  <div class="card bg-white shadow p-4">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <div class="text-xs font-semibold uppercase opacity-70">Audit Log Entries</div>
+        <div class="text-3xl font-bold mt-1"><?php echo $audit_count; ?></div>
+      </div>
+      <span class="stat-icon-bubble">
+        <i data-lucide="clipboard-list" class="w-6 h-6"></i>
+      </span>
+    </div>
   </div>
 </div>
 
