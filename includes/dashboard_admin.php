@@ -99,7 +99,7 @@ $audit_count = get_count('audit_log');
     <div class="text-xl font-bold mb-2"><i data-lucide="activity" class="inline w-6 h-6 mr-2"></i>Recent Activity</div>
     <ul class="grid gap-4 sm:grid-cols-1">
       <?php
-      $result = $conn->query("SELECT action, id, timestamp FROM audit_log ORDER BY timestamp DESC LIMIT 5");
+      $result = $conn->query("SELECT action, id, timestamp, details FROM audit_log ORDER BY timestamp DESC LIMIT 5");
       if ($result) {
         while ($row = $result->fetch_assoc()) {
           // Calculate time ago
@@ -127,7 +127,8 @@ $audit_count = get_count('audit_log');
               <h2 class='card-title text-lg font-bold badge badge-outline'># {$row['id']}</h2>
               <span class='text-xs text-center md:text-left opacity-75'>($ago)</span>
             </div>
-            <p class='text-md mt-2 text-center md:text-left'>{$row['action']}</p>
+            <p class='text-md mt-2 text-center font-bold md:text-left'>{$row['action']}</p>
+            <p class='text-sm mt-1 text-gray-600 text-center md:text-left'>{$row['details']}</p>
           </li>
           ";
         }
