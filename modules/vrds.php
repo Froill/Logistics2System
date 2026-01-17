@@ -19,6 +19,7 @@ if (isset($_POST['reject_request']) && isset($_POST['request_id'])) {
 
 function vrds_view($baseURL)
 {
+    global $conn;
     // Add log to the current module that is being accessed by the user
     $moduleName = 'vrds';
 
@@ -67,7 +68,10 @@ function vrds_view($baseURL)
 
 
     // Prepare ongoing dispatches for map (with real coordinates)
-    $ongoingDispatches = array_filter($dispatches, function ($d) {
+    $ongoingDispatches = array_filter($dispatches, function ($d) use ($isDriverUser, $driverRecordId) {
+        if ($isDriverUser && (!isset($driverRecordId) || (int)$d['driver_id'] !== (int)$driverRecordId)) {
+            return false;
+        }
         return $d['status'] === 'Ongoing' && isset($d['origin_lat'], $d['origin_lon'], $d['destination_lat'], $d['destination_lon']);
     });
 ?>
@@ -126,11 +130,11 @@ function vrds_view($baseURL)
             <!-- END of dispatched trips block-->
 
             <!-- OSM Map for Ongoing Dispatched Trips + Ongoing List -->
-            <div class="flex gap-4" style="align-items:flex-start;">
-                <div id="dispatchMap" style="height: 400px; width: 70%; border-radius:10px;"></div>
-                <div id="ongoingDispatchList" style="width: 30%; max-height:400px; overflow:auto; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:8px;">
+            <div class="<?= ($isDriverUser ? 'flex flex-col lg:flex-row gap-4' : 'flex gap-4') ?>" style="align-items:flex-start;">
+                <div id="dispatchMap" style="height: 400px; width: <?= ($isDriverUser ? '100%' : '70%') ?>; border-radius:10px;"></div>
+                <div id="ongoingDispatchList" style="width: <?= ($isDriverUser ? '100%' : '30%') ?>; max-height:400px; overflow:auto; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:8px;">
                     <h4 class="font-semibold mb-2">Ongoing Dispatches</h4>
-                    <div id="ongoingDispatchItems">Loading...</div>
+                    <div id="ongoingDispatchItems" class="text-center text-gray-500">Nothing to show</div>
                 </div>
             </div>
         </div>
@@ -148,13 +152,14 @@ function vrds_view($baseURL)
                         <i data-lucide="plus-circle" class="w-4 h-4 mr-1"></i> Request Vehicle
                     </button>
                 <?php endif; ?>
-                <?php if (!in_array($role, ['requester', 'user'])): ?>
+                <?php if (!in_array($role, ['requester', 'user', 'driver'])): ?>
                     <button class="btn btn-accent btn-soft w-max" onclick="dispatch_log_modal.showModal()">
                         <i data-lucide="list" class="w-4 h-4 mr-1"></i> Dispatched Trips
                     </button>
                 <?php endif; ?>
             </div>
             <!-- Vehicle Request Modal -->
+            <?php if (in_array($role, ['admin', 'requester', 'user'])): ?>
             <dialog id="request_modal" class="modal">
                 <div class="modal-box">
                     <form method="dialog">
@@ -225,179 +230,257 @@ function vrds_view($baseURL)
                                 </fieldset>
                     </form>
             </dialog>
+            <?php endif; ?>
 
             <script src="js/dynamic-field-val.js"></script>
 
-            <!-- Pending Requests Table (For Transport Officer Approval) -->
-            <h3 class="text-md md:text-xl font-bold mt-6 mb-2">Pending Vehicle Requests</h3>
-            <div class="overflow-x-auto mb-6">
-                <table class="table table-zebra">
-                    <thead>
-                        <tr>
-                            <th>Ref ID</th>
-                            <th>Purpose</th>
-                            <th>Origin</th>
-                            <th>Destination</th>
-                            <th>Requested Vehicle Type</th>
-                            <th>Reservation Date</th>
-                            <th>Return Date</th>
-                            <th>Status</th>
-                            <th>Recommendation</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                            <?php foreach ($requests as $req): ?>
-                            <?php if ($req['status'] === 'Pending'): ?>
-                                <?php $rec = recommend_assignment($req['requested_vehicle_type']);
-                                // If current user is a driver, only show pending requests where they are recommended
-                                if ($isDriverUser) {
-                                    $recommendedDriverId = $rec['driver']['id'] ?? null;
-                                    if (!$recommendedDriverId || $recommendedDriverId != $driverRecordId) {
-                                        continue;
+            <?php if (!$isDriverUser): ?>
+                <!-- Pending Requests Table (For Transport Officer Approval) -->
+                <h3 class="text-md md:text-xl font-bold mt-6 mb-2">Pending Vehicle Requests</h3>
+                <div class="overflow-x-auto mb-6">
+                    <table class="table table-zebra">
+                        <thead>
+                            <tr>
+                                <th>Ref ID</th>
+                                <th>Purpose</th>
+                                <th>Origin</th>
+                                <th>Destination</th>
+                                <th>Requested Vehicle Type</th>
+                                <th>Reservation Date</th>
+                                <th>Return Date</th>
+                                <th>Status</th>
+                                <th>Recommendation</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                                <?php foreach ($requests as $req): ?>
+                                <?php if ($req['status'] === 'Pending'): ?>
+                                    <?php $rec = recommend_assignment($req['requested_vehicle_type']);
+                                    // If current user is a driver, only show pending requests where they are recommended
+                                    if ($isDriverUser) {
+                                        $recommendedDriverId = $rec['driver']['id'] ?? null;
+                                        if (!$recommendedDriverId || $recommendedDriverId != $driverRecordId) {
+                                            continue;
+                                        }
                                     }
-                                }
-                                ?>
-                                <tr>
-                                    <td><?= 'REQ' . str_pad($req['id'], 5, '0', STR_PAD_LEFT) ?></td>
-                                    <td><?= htmlspecialchars($req['purpose']) ?></td>
-                                    <?php
-                                        $fullOrigin = trim($req['origin'] ?? '');
-                                        $originWords = preg_split('/\s+/', $fullOrigin);
-                                        if (count($originWords) > 7) {
-                                            $short = implode(' ', array_slice($originWords, 0, 7)) . '...';
-                                            $originDisplay = '<span title="' . htmlspecialchars($fullOrigin) . '">' . htmlspecialchars($short) . '</span>';
-                                        } else {
-                                            $originDisplay = htmlspecialchars($fullOrigin);
-                                        }
-                                        $fullDest = trim($req['destination'] ?? '');
-                                        $destWords = preg_split('/\s+/', $fullDest);
-                                        if (count($destWords) > 7) {
-                                            $shortD = implode(' ', array_slice($destWords, 0, 7)) . '...';
-                                            $destDisplay = '<span title="' . htmlspecialchars($fullDest) . '">' . htmlspecialchars($shortD) . '</span>';
-                                        } else {
-                                            $destDisplay = htmlspecialchars($fullDest);
-                                        }
                                     ?>
-                                    <td><?= $originDisplay ?></td>
-                                    <td><?= $destDisplay ?></td>
-                                    <td><?= htmlspecialchars($req['requested_vehicle_type']) ?></td>
-                                    <td><?= htmlspecialchars($req['reservation_date'] ?? '') ?></td>
-                                    <td><?= htmlspecialchars($req['expected_return'] ?? '') ?></td>
+                                    <tr>
+                                        <td><?= 'REQ' . str_pad($req['id'], 5, '0', STR_PAD_LEFT) ?></td>
+                                        <td><?= htmlspecialchars($req['purpose']) ?></td>
+                                        <?php
+                                            $fullOrigin = trim($req['origin'] ?? '');
+                                            $originWords = preg_split('/\s+/', $fullOrigin);
+                                            if (count($originWords) > 7) {
+                                                $short = implode(' ', array_slice($originWords, 0, 7)) . '...';
+                                                $originDisplay = '<span title="' . htmlspecialchars($fullOrigin) . '">' . htmlspecialchars($short) . '</span>';
+                                            } else {
+                                                $originDisplay = htmlspecialchars($fullOrigin);
+                                            }
+                                            $fullDest = trim($req['destination'] ?? '');
+                                            $destWords = preg_split('/\s+/', $fullDest);
+                                            if (count($destWords) > 7) {
+                                                $shortD = implode(' ', array_slice($destWords, 0, 7)) . '...';
+                                                $destDisplay = '<span title="' . htmlspecialchars($fullDest) . '">' . htmlspecialchars($shortD) . '</span>';
+                                            } else {
+                                                $destDisplay = htmlspecialchars($fullDest);
+                                            }
+                                        ?>
+                                        <td><?= $originDisplay ?></td>
+                                        <td><?= $destDisplay ?></td>
+                                        <td><?= htmlspecialchars($req['requested_vehicle_type']) ?></td>
+                                        <td><?= htmlspecialchars($req['reservation_date'] ?? '') ?></td>
+                                        <td><?= htmlspecialchars($req['expected_return'] ?? '') ?></td>
+                                        <td>
+                                            <?php
+                                            $status = $req['status'];
+                                            $badgeClass = 'badge p-3 text-nowrap';
+                                            if ($status === 'Approved') {
+                                                $badgeClass .= ' badge-success';
+                                            } elseif ($status === 'Denied') {
+                                                $badgeClass .= ' badge-error ';
+                                            } elseif ($status === 'Pending') {
+                                                $badgeClass .= ' badge-warning';
+                                            } else {
+                                                $badgeClass .= ' badge-info';
+                                            }
+                                            ?>
+                                            <span class="<?= $badgeClass ?>">
+                                                <?= htmlspecialchars($status) ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <?php if ($rec['vehicle'] && $rec['driver']): ?>
+                                                <?= htmlspecialchars($rec['vehicle']['vehicle_name']) ?> / <?= htmlspecialchars($rec['driver']['driver_name']) ?>
+                                            <?php else: ?>
+                                                <span class="text-error">No available match</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <div class="flex flex-col">
+                                                <?php if ($req['status'] === 'Pending'): ?>
+                                                    <?php if (!$isDriverUser): ?>
+                                                        <button class="btn btn-primary btn-sm mb-2" style="width:110%;" onclick="assign_modal_<?= $req['id'] ?>.showModal()"><i data-lucide="check"></i></button>
+                                                        <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" style="display:block">
+                                                            <input type="hidden" name="reject_request" value="1">
+                                                            <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
+                                                            <button type="submit" class="btn btn-error btn-sm" style="width:110%;" onclick="return confirm('Reject this vehicle request?')"><i data-lucide="x"></i></button>
+                                                        </form>
+                                                    <?php else: ?>
+                                                        <div class="text-sm opacity-75">Pending (recommended)</div>
+                                                    <?php endif; ?>
+                                                <?php elseif ($req['status'] === 'Approved'): ?>
+                                                    <button class="btn btn-info btn-sm" onclick="view_modal_<?= $req['id'] ?>.showModal()">
+                                                        <i data-lucide="eye" style="width:5%;" class="inline w-4 h-4"></i>View</button>
+                                                    <!-- Delete button removed per request -->
+                                                <?php endif; ?>
+                                                <!-- View Modal for Approved Request -->
+                                                <?php if ($req['status'] === 'Approved'): ?>
+                                                    <dialog id="view_modal_<?= $req['id'] ?>" class="modal">
+                                                        <div class="modal-box">
+                                                            <form method="dialog">
+                                                                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                                                            </form>
+                                                            <h3 class="font-bold text-lg mb-4">Approved Vehicle Request Details</h3>
+                                                            <div class="flex flex-col gap-2">
+                                                                <div><b>Purpose:</b> <?= htmlspecialchars($req['purpose']) ?></div>
+                                                                <div><b>Origin:</b> <?= htmlspecialchars($req['origin']) ?></div>
+                                                                <div><b>Destination:</b> <?= htmlspecialchars($req['destination']) ?></div>
+                                                                <div><b>Requested Vehicle Type:</b> <?= htmlspecialchars($req['requested_vehicle_type']) ?></div>
+                                                                <div><b>Reservation Date:</b> <?= htmlspecialchars($req['reservation_date'] ?? '') ?></div>
+                                                                <div><b>Expected Return:</b> <?= htmlspecialchars($req['expected_return'] ?? '') ?></div>
+                                                                <div><b>Status:</b> <?= htmlspecialchars($req['status']) ?></div>
+                                                            </div>
+                                                        </div>
+                                                        <form method="dialog" class="modal-backdrop">
+                                                            <button>close</button>
+                                                        </form>
+                                                    </dialog>
+                                                <?php endif; ?>
+                                            </div>
+                                            <dialog id="assign_modal_<?= $req['id'] ?>" class="modal">
+                                                <div class="modal-box">
+                                                    <form method="dialog">
+                                                        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                                                    </form>
+                                                    <h3 class="font-bold text-lg mb-4">Approve Vehicle Request</h3>
+                                                    <h2 class="text-md mb-4">Assign Vehicle and Driver</h2>
+                                                    <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="flex flex-col gap-4">
+                                                        <input type="hidden" name="approve_request" value="1">
+                                                        <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
+                                                        <div class="form-control">
+                                                            <label class="label">Vehicle:</label>
+                                                            <select name="vehicle_id" class="select select-bordered w-full" required>
+                                                                <option value="">Select a vehicle</option>
+                                                                <?php foreach ($vehicles as $veh): ?>
+                                                                    <?php if ($veh['status'] === 'Active'): ?>
+                                                                        <option value="<?= $veh['id'] ?>"><?= htmlspecialchars($veh['vehicle_name']) ?></option>
+                                                                    <?php endif; ?>
+                                                                <?php endforeach; ?>
+                                                            </select>
+                                                        </div>
+                                                        <!-- Driver selection -->
+                                                        <div class="form-control">
+                                                            <label class="label">Driver:</label>
+                                                            <select name="driver_id" class="select select-bordered w-full" required>
+                                                                <option value="">Select a driver</option>
+                                                                <?php foreach ($drivers as $drv): ?>
+                                                                    <?php if ($drv['status'] === 'Available'): ?>
+                                                                        <option value="<?= $drv['id'] ?>"><?= htmlspecialchars($drv['driver_name']) ?></option>
+                                                                    <?php endif; ?>
+                                                                <?php endforeach; ?>
+                                                            </select>
+                                                        </div>
+                                                        <button type="submit" class="btn btn-success mt-4">Approve & Dispatch</button>
+                                                    </form>
+                                                </div>
+                                                <form method="dialog" class="modal-backdrop">
+                                                    <button>close</button>
+                                                </form>
+                                            </dialog>
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <h3 class="text-md md:text-xl font-bold mt-6 mb-2">My Dispatched Trips</h3>
+                <div class="overflow-x-auto mb-6">
+                    <table class="table table-zebra table-sm w-full">
+                        <thead>
+                            <tr>
+                                <th>Ref ID</th>
+                                <th>Vehicle</th>
+                                <th class="hidden md:table-cell">Driver</th>
+                                <th>Dispatch Date</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($dispatches as $d): ?>
+                                <?php if (!isset($driverRecordId) || $d['driver_id'] != $driverRecordId) { continue; } ?>
+                                <tr>
+                                    <td><?= 'DSP' . str_pad($d['id'], 5, '0', STR_PAD_LEFT) ?></td>
                                     <td>
                                         <?php
-                                        $status = $req['status'];
-                                        $badgeClass = 'badge p-3 text-nowrap';
-                                        if ($status === 'Approved') {
-                                            $badgeClass .= ' badge-success';
-                                        } elseif ($status === 'Denied') {
-                                            $badgeClass .= ' badge-error ';
-                                        } elseif ($status === 'Pending') {
-                                            $badgeClass .= ' badge-warning';
+                                        $vehName = '';
+                                        foreach ($vehicles as $veh) {
+                                            if ($veh['id'] == $d['vehicle_id']) {
+                                                $vehName = $veh['vehicle_name'];
+                                                break;
+                                            }
+                                        }
+                                        echo htmlspecialchars($vehName);
+                                        ?>
+                                    </td>
+                                    <td class="hidden md:table-cell">
+                                        <?php
+                                        $drvName = '';
+                                        foreach ($drivers as $drv) {
+                                            if ($drv['id'] == $d['driver_id']) {
+                                                $drvName = $drv['driver_name'];
+                                                break;
+                                            }
+                                        }
+                                        echo htmlspecialchars($drvName);
+                                        ?>
+                                    </td>
+                                    <td><?= htmlspecialchars($d['dispatch_date']) ?></td>
+                                    <td>
+                                        <?php
+                                        $badgeClass = 'badge badge-soft p-3 text-nowrap';
+                                        if ($d['status'] === 'Ongoing') {
+                                            $badgeClass .= ' badge-soft badge-warning';
+                                        } elseif ($d['status'] === 'Completed') {
+                                            $badgeClass .= ' badge-soft badge-success';
+                                        } elseif ($d['status'] === 'Cancelled') {
+                                            $badgeClass .= ' badge-soft badge-error ';
                                         } else {
-                                            $badgeClass .= ' badge-info';
+                                            $badgeClass .= ' badge-soft badge-info';
                                         }
                                         ?>
                                         <span class="<?= $badgeClass ?>">
-                                            <?= htmlspecialchars($status) ?>
+                                            <?= htmlspecialchars($d['status']) ?>
                                         </span>
                                     </td>
                                     <td>
-                                        <?php if ($rec['vehicle'] && $rec['driver']): ?>
-                                            <?= htmlspecialchars($rec['vehicle']['vehicle_name']) ?> / <?= htmlspecialchars($rec['driver']['driver_name']) ?>
-                                        <?php else: ?>
-                                            <span class="text-error">No available match</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <div class="flex flex-col">
-                                            <?php if ($req['status'] === 'Pending'): ?>
-                                                <?php if (!$isDriverUser): ?>
-                                                    <button class="btn btn-primary btn-sm mb-2" style="width:110%;" onclick="assign_modal_<?= $req['id'] ?>.showModal()"><i data-lucide="check"></i></button>
-                                                    <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" style="display:block">
-                                                        <input type="hidden" name="reject_request" value="1">
-                                                        <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
-                                                        <button type="submit" class="btn btn-error btn-sm" style="width:110%;" onclick="return confirm('Reject this vehicle request?')"><i data-lucide="x"></i></button>
-                                                    </form>
-                                                <?php else: ?>
-                                                    <div class="text-sm opacity-75">Pending (recommended)</div>
-                                                <?php endif; ?>
-                                            <?php elseif ($req['status'] === 'Approved'): ?>
-                                                <button class="btn btn-info btn-sm" onclick="view_modal_<?= $req['id'] ?>.showModal()">
-                                                    <i data-lucide="eye" style="width:5%;" class="inline w-4 h-4"></i>View</button>
-                                                <!-- Delete button removed per request -->
-                                            <?php endif; ?>
-                                            <!-- View Modal for Approved Request -->
-                                            <?php if ($req['status'] === 'Approved'): ?>
-                                                <dialog id="view_modal_<?= $req['id'] ?>" class="modal">
-                                                    <div class="modal-box">
-                                                        <form method="dialog">
-                                                            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                                                        </form>
-                                                        <h3 class="font-bold text-lg mb-4">Approved Vehicle Request Details</h3>
-                                                        <div class="flex flex-col gap-2">
-                                                            <div><b>Purpose:</b> <?= htmlspecialchars($req['purpose']) ?></div>
-                                                            <div><b>Origin:</b> <?= htmlspecialchars($req['origin']) ?></div>
-                                                            <div><b>Destination:</b> <?= htmlspecialchars($req['destination']) ?></div>
-                                                            <div><b>Requested Vehicle Type:</b> <?= htmlspecialchars($req['requested_vehicle_type']) ?></div>
-                                                            <div><b>Reservation Date:</b> <?= htmlspecialchars($req['reservation_date'] ?? '') ?></div>
-                                                            <div><b>Expected Return:</b> <?= htmlspecialchars($req['expected_return'] ?? '') ?></div>
-                                                            <div><b>Status:</b> <?= htmlspecialchars($req['status']) ?></div>
-                                                        </div>
-                                                    </div>
-                                                    <form method="dialog" class="modal-backdrop">
-                                                        <button>close</button>
-                                                    </form>
-                                                </dialog>
+                                        <div class="flex flex-col md:flex-row">
+                                            <?php if ($d['status'] === 'Ongoing'): ?>
+                                                <a href="<?= htmlspecialchars($baseURL . '&complete=' . $d['id']) ?>" class="btn btn-md btn-success" onclick="return confirm('Mark this dispatch as completed?')">
+                                                <i data-lucide="check" class="inline"></i>
+                                                </a>
                                             <?php endif; ?>
                                         </div>
-                                        <dialog id="assign_modal_<?= $req['id'] ?>" class="modal">
-                                            <div class="modal-box">
-                                                <form method="dialog">
-                                                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                                                </form>
-                                                <h3 class="font-bold text-lg mb-4">Approve Vehicle Request</h3>
-                                                <h2 class="text-md mb-4">Assign Vehicle and Driver</h2>
-                                                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="flex flex-col gap-4">
-                                                    <input type="hidden" name="approve_request" value="1">
-                                                    <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
-                                                    <div class="form-control">
-                                                        <label class="label">Vehicle:</label>
-                                                        <select name="vehicle_id" class="select select-bordered w-full" required>
-                                                            <option value="">Select a vehicle</option>
-                                                            <?php foreach ($vehicles as $veh): ?>
-                                                                <?php if ($veh['status'] === 'Active'): ?>
-                                                                    <option value="<?= $veh['id'] ?>"><?= htmlspecialchars($veh['vehicle_name']) ?></option>
-                                                                <?php endif; ?>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                    </div>
-                                                    <!-- Driver selection -->
-                                                    <div class="form-control">
-                                                        <label class="label">Driver:</label>
-                                                        <select name="driver_id" class="select select-bordered w-full" required>
-                                                            <option value="">Select a driver</option>
-                                                            <?php foreach ($drivers as $drv): ?>
-                                                                <?php if ($drv['status'] === 'Available'): ?>
-                                                                    <option value="<?= $drv['id'] ?>"><?= htmlspecialchars($drv['driver_name']) ?></option>
-                                                                <?php endif; ?>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                    </div>
-                                                    <button type="submit" class="btn btn-success mt-4">Approve & Dispatch</button>
-                                                </form>
-                                            </div>
-                                            <form method="dialog" class="modal-backdrop">
-                                                <button>close</button>
-                                            </form>
-                                        </dialog>
                                     </td>
                                 </tr>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
 
             <!-- Rejected Requests Table -->
             <h3 class="text-md md:text-xl font-bold mt-6 mb-2">Vehicle Requests History</h3>
@@ -502,6 +585,7 @@ function vrds_view($baseURL)
                 </table>
             </div>
 
+            <?php if (!in_array($role, ['requester', 'user', 'driver'])): ?>
             <!-- Dispatch Log Modal -->
             <dialog id="dispatch_log_modal" class="modal">
                 <div class="modal-box">
@@ -603,6 +687,7 @@ function vrds_view($baseURL)
                     <button>close</button>
                 </form>
             </dialog>
+            <?php endif; ?>
             
             <!-- Leaflet.js & OSM/Nominatim Autocomplete JS & CSS -->
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />

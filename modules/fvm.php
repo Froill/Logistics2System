@@ -153,61 +153,6 @@ function fvm_view($baseURL)
             </form>
         </dialog>
 
-        <!-- Add Vehicle Modal -->
-        <dialog id="fvm_modal" class="modal">
-            <div class="modal-box">
-                <form method="dialog">
-                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                </form>
-                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="mb-6 flex flex-col" enctype="multipart/form-data">
-                    <div class="form-control mb-2">
-                        <label class="label">Vehicle Name</label>
-                        <input type="text" name="vehicle_name" class="input input-bordered" required>
-                    </div>
-                    <div class="form-control mb-2">
-                        <label class="label">Plate Number</label>
-                        <input type="text" name="plate_number" class="input input-bordered" required>
-                    </div>
-                    <div class="form-control mb-2">
-                        <label class="label">Vehicle Type</label>
-                        <select name="vehicle_type" class="select select-bordered" required>
-                            <option value="">Select type</option>
-                            <option value="Car">Car</option>
-                            <option value="Van">Van</option>
-                            <option value="Truck">Truck</option>
-                            <option value="Pickup">Pickup</option>
-                        </select>
-                    </div>
-                    <div class="form-control mb-2">
-                        <label class="label">Payload (kg)</label>
-                        <input type="number" name="weight_capacity" class="input input-bordered" min="0" step="any" required>
-                    </div>
-                    <div class="form-control mb-2">
-                        <label class="label">Fuel Capacity (L)</label>
-                        <input type="number" name="fuel_capacity" class="input input-bordered" min="0" step="any" required>
-                    </div>
-                    <div class="form-control mb-2">
-                        <label class="label">Upload Image</label>
-                        <input type="file" name="vehicle_image" accept="image/*" class="file-input file-input-bordered">
-                    </div>
-                    <button class="btn btn-primary mt-2 btn-outline w-full">Add Vehicle</button>
-                </form>
-            </div>
-            <form method="dialog" class="modal-backdrop">
-                <button>close</button>
-            </form>
-        </dialog>
-
-        <div class="grid grid-cols-3 grid-rows-1 mb-5">
-            <!-- Vehicle Status Pie Chart -->
-            <div class="card col-start-2 shadow-lg p-4">
-                <h3 class="text-lg font-bold mb-2">Vehicle Status Distribution</h3>
-                <div class="w-full max-w-sm mx-auto">
-                    <canvas id="vehicleStatusChart" class="w-full h-64"></canvas>
-                </div>
-            </div>
-        </div>
-
         <section class="card bg-base-100 shadow-xl p-4 lg:p-6 mb-8">
     <h3 class="text-lg font-bold mb-6 text-center lg:text-left">Key Metrics</h3>
     
@@ -284,12 +229,6 @@ function fvm_view($baseURL)
             <?php unset($_SESSION['fvm_error']); ?>
         <?php endif; ?>
         <div class="flex flex-col md:flex-row gap-2 mb-3">
-            <!-- Add Vehicle Button
-            <button class="btn btn-soft btn-primary" onclick="fvm_modal.showModal()">
-                <i data-lucide="plus" class="w-4 h-4 mr-1"></i> Add Vehicle
-            </button>
-
-            -->
             <!-- Documents Button -->
             <button class="btn btn-outline btn-info" onclick="documentsModal.showModal()">
                 <i data-lucide="file-text" class="w-4 h-4 mr-1"></i> Documents
@@ -847,10 +786,10 @@ function fvm_view($baseURL)
 
 
         <!-- Vehicle Table -->
-        <div class="overflow-x-auto">
-            <h3 class="text-lg font-bold mb-2">Fleet Vehicles</h3>
-            <table class="table table-zebra w-full" id="vehicleTable">
-                <thead>
+        <div class="overflow-x-auto bg-base-100 rounded-xl border border-base-300 shadow-lg">
+            <h3 class="text-lg font-bold mb-2 px-4 pt-4 tracking-tight">Fleet Vehicles</h3>
+            <table class="table table-zebra table-sm md:table-md w-full" id="vehicleTable">
+                <thead class="bg-base-200 text-xs uppercase text-base-content/70 sticky top-0 z-10">
                     <tr>
                         <th>ID</th>
                         <th>Vehicle Name & Type</th>
@@ -866,14 +805,14 @@ function fvm_view($baseURL)
                 <tbody id="vehicleBody">
                     <?php foreach ($vehicles as $v): ?>
                         <tr>
-                            <td><div><?= htmlspecialchars($v['id']) ?></div></td>
+                            <td><div class="font-mono text-xs"><?= htmlspecialchars($v['id']) ?></div></td>
                             <td>
-                                <div><?= htmlspecialchars($v['vehicle_name']) ?></div>
-                                <div><?= htmlspecialchars('(' . $v['vehicle_type'] . ')' ?? '-') ?></div>
+                                <div class="font-medium"><?= htmlspecialchars($v['vehicle_name']) ?></div>
+                                <div class="text-xs opacity-70"><?= htmlspecialchars('(' . $v['vehicle_type'] . ')' ?? '-') ?></div>
                             </td>
                             <td><?= htmlspecialchars($v['plate_number']) ?></td>
-                            <td><?= htmlspecialchars($v['weight_capacity'] ?? '-') ?>kg</td>
-                            <td><?= htmlspecialchars($v['fuel_capacity'] ?? '-') ?>L</td>
+                            <td class="whitespace-nowrap"><?= htmlspecialchars($v['weight_capacity'] ?? '-') ?>kg</td>
+                            <td class="whitespace-nowrap"><?= htmlspecialchars($v['fuel_capacity'] ?? '-') ?>L</td>
                             <?php
                                 $ins = fetchOneQuery("SELECT coverage_end FROM vehicle_insurance WHERE vehicle_id = ? ORDER BY coverage_end DESC LIMIT 1", [$v['id']]);
                                 $reg = fetchOneQuery("SELECT expiry_date FROM vehicle_documents WHERE vehicle_id = ? AND doc_type = 'Registration' ORDER BY expiry_date DESC LIMIT 1", [$v['id']]);
@@ -927,8 +866,8 @@ function fvm_view($baseURL)
                             </td>
                             <td>
                                 <div class="flex flex-col gap-3 ">
-                                    <button class="btn btn-sm btn-info" onclick="document.getElementById('view_modal_<?= $v['id'] ?>').showModal()" title="View">
-                                        <i data-lucide="eye"></i>
+                                    <button class="btn btn-sm btn-info btn-circle" onclick="document.getElementById('view_modal_<?= $v['id'] ?>').showModal()" title="View">
+                                        <i data-lucide="eye" class="w-4 h-4"></i>
                                     </button>
                                 </div>
 
@@ -1224,113 +1163,6 @@ function fvm_view($baseURL)
                                     </script>
                                 </dialog>
 
-                                <!-- Manage Vehicle Modal -->
-                                <dialog id="manage_modal_<?= $v['id'] ?>" class="modal">
-                                    <div class="modal-box">
-                                        <form method="dialog">
-                                            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                                        </form>
-                                        <h3 class="font-bold text-lg mb-4">Vehicle Details</h3>
-                                        <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="flex flex-col gap-4" enctype="multipart/form-data">
-                                            <input type="hidden" name="edit_vehicle_id" value="<?= $v['id'] ?>">
-                                            <div class="form-control">
-                                                <label class="label">Vehicle Name</label>
-                                                <input type="text" name="vehicle_name" class="input input-bordered"
-                                                    value="<?= htmlspecialchars($v['vehicle_name']) ?>" required>
-                                            </div>
-                                            <div class="form-control">
-                                                <label class="label">Plate Number</label>
-                                                <input type="text" name="plate_number" class="input input-bordered"
-                                                    value="<?= htmlspecialchars($v['plate_number']) ?>" required>
-                                            </div>
-                                            <div class="form-control">
-                                                <label class="label">Car Type</label>
-                                                <select name="vehicle_type" class="select select-bordered" required>
-                                                    <option value="Car" <?= ($v['vehicle_type'] === 'Car') ? 'selected' : '' ?>>Car</option>
-                                                    <option value="Van" <?= ($v['vehicle_type'] === 'Van') ? 'selected' : '' ?>>Van</option>
-                                                    <option value="Truck" <?= ($v['vehicle_type'] === 'Truck') ? 'selected' : '' ?>>Truck</option>
-                                                    <option value="Pickup" <?= ($v['vehicle_type'] === 'Pickup') ? 'selected' : '' ?>>Pickup</option>
-                                                </select>
-                                            </div>
-                                            <div class="form-control">
-                                                <label class="label">Weight Capacity (kg)</label>
-                                                <input type="number" name="weight_capacity" class="input input-bordered"
-                                                    value="<?= htmlspecialchars($v['weight_capacity']) ?>" min="0" step="any" required>
-                                            </div>
-                                            <div class="form-control">
-                                                <label class="label">Fuel Capacity (L)</label>
-                                                <input type="number" name="fuel_capacity" class="input input-bordered"
-                                                    value="<?= htmlspecialchars($v['fuel_capacity']) ?>" min="0" step="any" required>
-                                            </div>
-                                            <div class="form-control">
-                                                <label class="label">Update Image</label>
-                                                <input type="file" name="vehicle_image" accept="image/*" class="file-input file-input-bordered w-full" />
-                                                <?php if (!empty($v['vehicle_image'])): ?>
-                                                    <div class="mt-2">
-                                                        <img src="<?= htmlspecialchars($v['vehicle_image']) ?>" alt="Vehicle Image" style="max-width: 120px; max-height: 80px; border-radius: 6px; border: 1px solid #ccc;" />
-                                                    </div>
-                                                <?php endif; ?>
-                                            </div>
-                                            <div class="form-control">
-                                                <label class="label">Status</label>
-                                                <select name="status" class="select select-bordered" required>
-                                                    <option value="Active" <?= $v['status'] === 'Active' ? 'selected' : '' ?>>Active</option>
-                                                    <option value="Inactive" <?= $v['status'] === 'Inactive' ? 'selected' : '' ?>>Inactive</option>
-                                                    <option value="Under Maintenance" <?= $v['status'] === 'Under Maintenance' ? 'selected' : '' ?>>Under Maintenance</option>
-                                                </select>
-                                            </div>
-
-                                            <h4 class="font-semibold mt-2">Registration & Insurance</h4>
-                                            <div class="form-control">
-                                                <label class="label">Registration Expiry</label>
-                                                <input type="date" name="registration_expiry" class="input input-bordered" value="<?= htmlspecialchars($v['registration_expiry'] ?? '') ?>">
-                                            </div>
-                                            <div class="form-control">
-                                                <label class="label">Upload Registration Document</label>
-                                                <input type="file" name="registration_doc" accept="application/pdf,image/*" class="file-input file-input-bordered w-full" />
-                                            </div>
-                                            <div class="form-control">
-                                                <label class="label">Insurance Provider</label>
-                                                <input type="text" name="insurer" class="input input-bordered" value="<?= htmlspecialchars($v['insurer'] ?? '') ?>">
-                                            </div>
-                                            <div class="form-control">
-                                                <label class="label">Policy Number</label>
-                                                <input type="text" name="policy_number" class="input input-bordered" value="<?= htmlspecialchars($v['policy_number'] ?? '') ?>">
-                                            </div>
-                                            <div class="form-control">
-                                                <label class="label">Coverage Start / End</label>
-                                                <div class="flex gap-2">
-                                                    <input type="date" name="coverage_start" class="input input-bordered" value="">
-                                                    <input type="date" name="coverage_end" class="input input-bordered" value="">
-                                                </div>
-                                            </div>
-                                            <div class="form-control">
-                                                <label class="label">Premium</label>
-                                                <input type="number" step="0.01" name="premium" class="input input-bordered" value="">
-                                            </div>
-                                            <div class="form-control">
-                                                <label class="label">Upload Insurance Document</label>
-                                                <input type="file" name="insurance_doc" accept="application/pdf,image/*" class="file-input file-input-bordered w-full" />
-                                            </div>
-
-
-                                            <div class="flex gap-2 mt-4">
-                                                <button type="submit" class="btn btn-primary flex-1">Update Vehicle</button>
-                                                <a href="<?= htmlspecialchars($baseURL . '&delete=' . $v['id']) ?>"
-                                                    class="btn btn-error"
-                                                    onclick="return confirm('Are you sure you want to delete this vehicle? This action cannot be undone.')">Delete</a>
-                                            </div>
-                                            <?php // Show debug message outside modals, at the top of the main content
-                                            if (!empty($_SESSION['fvm_debug'])): ?>
-                                                <div class="alert alert-info mb-2"><?php echo $_SESSION['fvm_debug'];
-                                                                                    unset($_SESSION['fvm_debug']); ?></div>
-                                            <?php endif; ?>
-                                        </form>
-                                    </div>
-                                    <form method="dialog" class="modal-backdrop">
-                                        <button>close</button>
-                                    </form>
-                                </dialog>
                             </td>
 
                         </tr>
@@ -1379,10 +1211,10 @@ function fvm_view($baseURL)
         </div>
 
         <!-- Drivers Table -->
-        <div class="overflow-x-auto mt-8">
-            <h3 class="text-lg font-bold mb-2">Drivers</h3>
-            <table class="table table-zebra w-full">
-                <thead>
+        <div class="overflow-x-auto mt-8 bg-base-100 rounded-xl border border-base-300 shadow-lg">
+            <h3 class="text-lg font-bold mb-2 px-4 pt-4 tracking-tight">Drivers</h3>
+            <table class="table table-zebra table-sm md:table-md w-full">
+                <thead class="bg-base-200 text-xs uppercase text-base-content/70 sticky top-0 z-10">
                     <tr>
                         <th>Name</th>
                         <th>Status</th>
@@ -1393,12 +1225,13 @@ function fvm_view($baseURL)
                 <tbody>
                     <?php foreach ($drivers as $d): ?>
                         <tr>
-                            <td><?= htmlspecialchars($d['driver_name']) ?></td>
+                            <td class="font-medium"><?= htmlspecialchars($d['driver_name']) ?></td>
                             <td>
                                 <?php
                                 $status = $d['status'] ?? 'Unknown';
                                 $badgeClass = 'badge p-2 font-bold text-nowrap';
                                 if ($status === 'Available') {
+
                                     $badgeClass .= ' badge-success';
                                 } elseif ($status === 'Dispatched') {
                                     $badgeClass .= ' badge-info';
@@ -1426,11 +1259,13 @@ function fvm_view($baseURL)
                             <td>
                                 <div>Mobile No. : <?= htmlspecialchars($d['phone'] ?? 'N/A') ?></div>
                                 <div>Email : <?= htmlspecialchars($d['email'] ?? 'N/A') ?></div>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
+
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>

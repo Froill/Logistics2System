@@ -1,11 +1,40 @@
 <?php
 // --- AJAX endpoints must be handled BEFORE any output ---
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/functions.php';
 if (isset($_GET['ajax_ongoing_dispatches']) && $_GET['ajax_ongoing_dispatches'] == 1) {
+    $role = $_SESSION['role'] ?? '';
+    $driverRecordId = null;
+    if ($role === 'driver') {
+        $currentUserEid = $_SESSION['eid'] ?? null;
+        if ($currentUserEid && isset($GLOBALS['conn']) && ($stmt = $GLOBALS['conn']->prepare('SELECT id FROM drivers WHERE eid = ? LIMIT 1'))) {
+            $stmt->bind_param('s', $currentUserEid);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($r = $res->fetch_assoc()) {
+                $driverRecordId = (int)$r['id'];
+            }
+            $stmt->close();
+        }
+    }
+
     $dispatches = fetchAll('dispatches');
     $ongoing = array_filter($dispatches, function ($d) {
         return $d['status'] === 'Ongoing' && isset($d['origin_lat'], $d['origin_lon'], $d['destination_lat'], $d['destination_lon']);
     });
+
+    if ($role === 'driver') {
+        if (!$driverRecordId) {
+            $ongoing = [];
+        } else {
+            $ongoing = array_filter($ongoing, function ($d) use ($driverRecordId) {
+                return (int)($d['driver_id'] ?? 0) === (int)$driverRecordId;
+            });
+        }
+    }
+
     header('Content-Type: application/json');
     echo json_encode(array_values($ongoing));
     exit;

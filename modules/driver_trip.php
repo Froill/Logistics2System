@@ -4,11 +4,44 @@ require_once __DIR__ . '/../includes/functions.php';
 require_once __DIR__ . '/../includes/driver_trip_logic.php';
 require_once __DIR__ . '/../includes/db.php';
 
+// Handle export POST request with RBAC check
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_trip_data'])) {
+    $userRole = $_SESSION['role'] ?? '';
+    if (!in_array($userRole, ['manager'])) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Access denied. Managers only.']);
+        exit;
+    }
+    // Continue with export logic in driver_trip_logic.php
+}
+
+// Handle trip submission POST request with RBAC check
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_trip'])) {
+    $userRole = $_SESSION['role'] ?? '';
+    if (!in_array($userRole, ['driver'])) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Access denied. Drivers only.']);
+        exit;
+    }
+    // Continue with trip submission logic in driver_trip_logic.php
+}
+
+// Handle trip review POST request with RBAC check
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_trip'])) {
+    $userRole = $_SESSION['role'] ?? '';
+    if (!in_array($userRole, ['manager', 'supervisor'])) {
+        http_response_code(403);
+        echo json_encode(['error' => 'Access denied. Managers and supervisors only.']);
+        exit;
+    }
+    // Continue with trip review logic in driver_trip_logic.php
+}
+
 function driver_trip_view($baseURL)
 {
     global $conn; // use the mysqli connection
 
-    // Add log to the current module that is being accessed by the user
+    // Add log to current module that is being accessed by the user
     $moduleName = 'driver_trip';
 
     if ($_SESSION['current_module'] !== $moduleName) {
@@ -22,9 +55,53 @@ function driver_trip_view($baseURL)
         $_SESSION['current_module'] = $moduleName;
     }
 
+    // Get user role for RBAC
+    $userRole = $_SESSION['role'] ?? '';
+
+    // Define role permissions
+    $canSubmitTrip = in_array($userRole, ['driver']);
+    $canReviewTrips = in_array($userRole, ['manager', 'supervisor']);
+    $canExportData = in_array($userRole, ['manager']);
+
+    $currentDriverId = null;
+    if ($userRole === 'driver') {
+        $currentUserEid = $_SESSION['eid'] ?? null;
+        if ($currentUserEid && ($stmt = $conn->prepare('SELECT id FROM drivers WHERE eid = ? LIMIT 1'))) {
+            $stmt->bind_param('s', $currentUserEid);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($r = $res->fetch_assoc()) {
+                $currentDriverId = (int)$r['id'];
+            }
+            $stmt->close();
+        }
+    }
+
+    $driverScopeTripSql = '';
+    $driverScopeAggSql = '';
+    $driverScopeDispatchSql = '';
+    $driverCountWhere = '';
+    if ($userRole === 'driver') {
+        if ($currentDriverId) {
+            $driverScopeTripSql = ' AND t.driver_id = ' . (int)$currentDriverId;
+            $driverScopeAggSql = ' AND t.driver_id = ' . (int)$currentDriverId;
+            $driverScopeDispatchSql = ' AND d.driver_id = ' . (int)$currentDriverId;
+            $driverCountWhere = ' AND driver_id = ' . (int)$currentDriverId;
+        } else {
+            $driverScopeTripSql = ' AND 1=0';
+            $driverScopeAggSql = ' AND 1=0';
+            $driverScopeDispatchSql = ' AND 1=0';
+            $driverCountWhere = ' AND 1=0';
+        }
+    }
+
     // Collect filters from GET request
     $filterDriver = isset($_GET['filter_driver']) ? trim($_GET['filter_driver']) : '';
     $filterVehicle = isset($_GET['filter_vehicle']) ? trim($_GET['filter_vehicle']) : '';
+
+    if ($userRole === 'driver') {
+        $filterDriver = $currentDriverId ? (string)$currentDriverId : '';
+    }
 
     // Base query
     $query = "
@@ -37,6 +114,8 @@ function driver_trip_view($baseURL)
         JOIN fleet_vehicles v ON t.vehicle_id = v.id
         WHERE 1=1
     ";
+
+    $query .= $driverScopeTripSql;
 
     // Add filters if valid
     if ($filterDriver !== '' && ctype_digit($filterDriver)) {
@@ -62,7 +141,12 @@ function driver_trip_view($baseURL)
 
     // Fetch drivers for filter dropdown
     $drivers = [];
-    if ($result = $conn->query("SELECT * FROM drivers ORDER BY driver_name ASC")) {
+    $driversQuery = "SELECT * FROM drivers";
+    if ($userRole === 'driver' && $currentDriverId) {
+        $driversQuery .= " WHERE id = " . (int)$currentDriverId;
+    }
+    $driversQuery .= " ORDER BY driver_name ASC";
+    if ($result = $conn->query($driversQuery)) {
         while ($row = $result->fetch_assoc()) {
             $drivers[] = $row;
         }
@@ -85,7 +169,7 @@ function driver_trip_view($baseURL)
         FROM dispatches d 
         JOIN fleet_vehicles v ON d.vehicle_id = v.id 
         JOIN drivers dr ON d.driver_id = dr.id 
-        WHERE d.status = 'Completed' 
+        WHERE d.status = 'Completed'{$driverScopeDispatchSql}
         ORDER BY d.dispatch_date DESC
     ";
     if ($result = $conn->query($dispatchQuery)) {
@@ -128,6 +212,7 @@ function driver_trip_view($baseURL)
         FROM driver_trips t
         JOIN drivers d ON t.driver_id = d.id
         WHERE 1=1
+        {$driverScopeAggSql}
         {$periodCondition}
         GROUP BY d.id, d.driver_name
         ORDER BY avg_score DESC, trip_count DESC
@@ -149,10 +234,10 @@ function driver_trip_view($baseURL)
     ];
 
     $countQueries = [
-        'today' => "SELECT COUNT(*) AS c FROM driver_trips WHERE DATE(trip_date) = CURDATE()",
-        'weekly' => "SELECT COUNT(*) AS c FROM driver_trips WHERE YEARWEEK(trip_date,1) = YEARWEEK(CURDATE(),1)",
-        'monthly' => "SELECT COUNT(*) AS c FROM driver_trips WHERE YEAR(trip_date) = YEAR(CURDATE()) AND MONTH(trip_date) = MONTH(CURDATE())",
-        'yearly' => "SELECT COUNT(*) AS c FROM driver_trips WHERE YEAR(trip_date) = YEAR(CURDATE())",
+        'today' => "SELECT COUNT(*) AS c FROM driver_trips WHERE DATE(trip_date) = CURDATE(){$driverCountWhere}",
+        'weekly' => "SELECT COUNT(*) AS c FROM driver_trips WHERE YEARWEEK(trip_date,1) = YEARWEEK(CURDATE(),1){$driverCountWhere}",
+        'monthly' => "SELECT COUNT(*) AS c FROM driver_trips WHERE YEAR(trip_date) = YEAR(CURDATE()) AND MONTH(trip_date) = MONTH(CURDATE()){$driverCountWhere}",
+        'yearly' => "SELECT COUNT(*) AS c FROM driver_trips WHERE YEAR(trip_date) = YEAR(CURDATE()){$driverCountWhere}",
     ];
 
     foreach ($countQueries as $k => $q) {
@@ -167,15 +252,23 @@ function driver_trip_view($baseURL)
         <div class="flex flex-col gap-4">
             <h2 class="text-2xl font-bold">Driver & Trip Performance</h2>
             <div class='flex flex-col md:flex-row gap-3'>
+                <?php if ($canSubmitTrip): ?>
                 <button class="btn btn-primary" onclick="submit_trip_modal.showModal()">
                     <i data-lucide="plus-circle" class="w-4 h-4 mr-1"></i> Submit Trip Data
                 </button>
+                <?php endif; ?>
+                
+                <?php if ($canReviewTrips): ?>
                 <button class="btn btn-info" onclick="trip_log_modal.showModal()">
                     <i data-lucide="clipboard-list" class="w-4 h-4 mr-1"></i> Review Trip Submissions
                 </button>
+                <?php endif; ?>
+                
+                <?php if ($canExportData): ?>
                 <button class="btn btn-success" onclick="export_trip_modal.showModal()">
                     <i data-lucide="download" class="w-4 h-4 mr-1"></i> Export Trip Data
                 </button>
+                <?php endif; ?>
                 <!-- Export Trip Data Modal -->
                 <dialog id="export_trip_modal" class="modal">
                     <div class="modal-box max-w-xl">
@@ -273,58 +366,61 @@ function driver_trip_view($baseURL)
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 <div class="stats shadow bg-base-200">
                     <div class="stat">
-                        <div class="stat-title">Trips Today</div>
+                        <div class="stat-title"><?= ($userRole === 'driver' ? 'My Trips Today' : 'Trips Today') ?></div>
                         <div class="stat-value text-primary"><?= $tripCounts['today'] ?></div>
                     </div>
                 </div>
                 <div class="stats shadow bg-base-200">
                     <div class="stat">
-                        <div class="stat-title">Trips This Week</div>
+                        <div class="stat-title"><?= ($userRole === 'driver' ? 'My Trips This Week' : 'Trips This Week') ?></div>
                         <div class="stat-value text-secondary"><?= $tripCounts['weekly'] ?></div>
                     </div>
                 </div>
                 <div class="stats shadow bg-base-200">
                     <div class="stat">
-                        <div class="stat-title">Trips This Month</div>
+                        <div class="stat-title"><?= ($userRole === 'driver' ? 'My Trips This Month' : 'Trips This Month') ?></div>
                         <div class="stat-value text-accent"><?= $tripCounts['monthly'] ?></div>
                     </div>
                 </div>
                 <div class="stats shadow bg-base-200">
                     <div class="stat">
-                        <div class="stat-title">Trips This Year</div>
+                        <div class="stat-title"><?= ($userRole === 'driver' ? 'My Trips This Year' : 'Trips This Year') ?></div>
                         <div class="stat-value text-warning"><?= $tripCounts['yearly'] ?></div>
                     </div>
                 </div>
             </div>
 
-            <div class="card bg-base-200 shadow mb-6">
-                <div class="card-body">
-                    <h3 class="card-title">Top Drivers (<?= htmlspecialchars(ucfirst($period)) ?>)</h3>
-                    <?php if (empty($performanceList)): ?>
-                        <div class="text-sm">No performance data for selected period.</div>
-                    <?php else: ?>
-                        <table class="table table-compact w-full">
-                            <thead>
-                                <tr>
-                                    <th>Driver</th>
-                                    <th>Avg Score</th>
-                                    <th>Trips</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($performanceList as $p): ?>
+            <?php if ($userRole !== 'driver'): ?>
+                <div class="card bg-base-200 shadow mb-6">
+                    <div class="card-body">
+                        <h3 class="card-title">Top Drivers (<?= htmlspecialchars(ucfirst($period)) ?>)</h3>
+                        <?php if (empty($performanceList)): ?>
+                            <div class="text-sm">No performance data for selected period.</div>
+                        <?php else: ?>
+                            <table class="table table-compact w-full">
+                                <thead>
                                     <tr>
-                                        <td><?= htmlspecialchars($p['driver_name']) ?></td>
-                                        <td><?= number_format($p['avg_score'],1) ?>%</td>
-                                        <td><?= (int)$p['trip_count'] ?></td>
+                                        <th>Driver</th>
+                                        <th>Avg Score</th>
+                                        <th>Trips</th>
                                     </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    <?php endif; ?>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($performanceList as $p): ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($p['driver_name']) ?></td>
+                                            <td><?= number_format($p['avg_score'],1) ?>%</td>
+                                            <td><?= (int)$p['trip_count'] ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        <?php endif; ?>
+                    </div>
                 </div>
-            </div>
+            <?php endif; ?>
         </div>
+        <?php if ($userRole !== 'driver'): ?>
          <h2 class = "font-bold text-lg mb 4"> Driver/Vehicle Search </h2>
         <div class="flex flex-wrap gap-4 mb-6 items-end">
             <form method="GET" class="flex flex-wrap gap-4 mb-6 items-end">
@@ -359,6 +455,7 @@ function driver_trip_view($baseURL)
                 <button type="submit" class="btn btn-primary">Apply</button>
             </form>
         </div>
+        <?php endif; ?>
 
 
         <!-- Trips Table / No Results -->

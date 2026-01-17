@@ -40,6 +40,8 @@ $moduleFile = __DIR__ . "/modules/{$module}.php";
 if ($module === 'dashboard') {
   if (in_array($role, ['admin', 'manager', 'supervisor', 'manager'])) {
     $dashboard_include = __DIR__ . '/includes/dashboard_admin.php';
+  } elseif ($role === 'driver') {
+    $dashboard_include = __DIR__ . '/includes/dashboard_driver.php';
   } else {
     $dashboard_include = __DIR__ . '/includes/dashboard_user.php';
   }

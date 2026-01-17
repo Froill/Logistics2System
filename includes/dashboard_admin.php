@@ -177,25 +177,47 @@ $audit_count = get_count('audit_log');
             }
           }
           echo "
-          <li class='card bg-base-100 shadow-md hover:shadow-lg transition rounded-lg p-4'>
-            <div class='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2'>
+          <li class='bg-gradient-to-r from-blue-950/80 to-blue-900/70 backdrop-blur-sm border border-yellow-600/40 rounded-xl p-5 hover:border-yellow-500/60 hover:shadow-2xl hover:shadow-yellow-600/20 transition-all duration-300 group'>
+            <div class='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4'>
               
-              <!-- Left section: Link + requester -->
-              <a href='$vrdsLink' class='text-info font-semibold hover:underline text-sm sm:text-base'>
-                Vehicle Request #{$row['id']} by <b>{$requesterName}</b>
-              </a>
+              <!-- Left section: Icon + content -->
+              <div class='flex items-start gap-4'>
+                <div class='bg-yellow-500/20 p-2.5 rounded-lg group-hover:bg-yellow-500/30 transition-colors'>
+                  <i data-lucide='car' class='w-5 h-5 text-yellow-400'></i>
+                </div>
+                <div class='flex-1'>
+                  <a href='$vrdsLink' class='text-yellow-400 font-bold hover:text-yellow-200 transition-colors text-base lg:text-lg block mb-1'>
+                    Vehicle Request - {$row['id']}
+                  </a>
+                  <p class='text-blue-200 text-sm mb-2'>Requested by <span class='text-yellow-300 font-semibold'>{$requesterName}</span></p>
+                  <p class='text-blue-300 text-xs mb-2'>Ref ID: <span class='text-yellow-400 font-mono'>REQ" . str_pad($row['id'], 5, '0', STR_PAD_LEFT) . "</span></p>
+                  <div class='flex flex-wrap items-center gap-3 text-xs'>
+                    <span class='bg-yellow-500/20 text-yellow-300 px-2.5 py-1 rounded-full font-medium border border-yellow-500/30'>
+                      <i data-lucide='clock' class='w-3 h-3 inline mr-1'></i>{$row['status']}
+                    </span>
+                    <span class='text-blue-300 flex items-center'>
+                      <i data-lucide='calendar' class='w-3 h-3 inline mr-1'></i>{$ago}
+                    </span>
+                  </div>
+                </div>
+              </div>
               
-              <!-- Right section: status + time -->
-              <div class='text-sm opacity-75 flex flex-col md:flex-row items-center gap-2 font-medium'>
-                <span>Status: <span class='badge badge-outline badge-secondary badge-sm p-2'>{$row['status']}</span></span>
-                <span>($ago)</span>
+              <!-- Action button -->
+              <div class='flex lg:flex-col items-center gap-2'>
+                <a href='$vrdsLink' class='bg-yellow-500 hover:bg-yellow-400 text-blue-900 px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-200 hover:scale-105 hover:shadow-lg'>
+                  Review
+                </a>
               </div>
             </div>
           </li>
           ";
         }
       } else {
-        echo "<li class='text-gray-400'>No pending vehicle requests.</li>";
+        echo "<li class='text-blue-200/60 text-center py-8 bg-blue-950/40 rounded-lg border border-blue-800/40'>
+          <i data-lucide='check-circle' class='w-8 h-8 mx-auto mb-2 text-green-400/60'></i>
+          <p class='font-medium'>No pending vehicle requests</p>
+          <p class='text-sm mt-1'>All requests have been processed</p>
+        </li>";
       }
 
       $pendingTripLogs = [];
@@ -229,22 +251,46 @@ $audit_count = get_count('audit_log');
             $ago = date('M d, Y H:i', $ts);
           }
           echo "
-          <li class='card bg-base-100 shadow-md hover:shadow-lg transition rounded-lg p-4'>
-            <div class='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2'>
+          <li class='bg-gradient-to-r from-blue-950/80 to-blue-900/70 backdrop-blur-sm border border-yellow-600/40 rounded-xl p-5 hover:border-yellow-500/60 hover:shadow-2xl hover:shadow-yellow-600/20 transition-all duration-300 group'>
+            <div class='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4'>
               
-              <!-- Left section: link + driver -->
-              <a href='$tripLink' class='text-info font-semibold hover:underline text-sm sm:text-base'>
-              Trip Log #{$row['id']} by <b>{$row['driver_name']}</b>
-              </a>
+              <!-- Left section: Icon + content -->
+              <div class='flex items-start gap-4'>
+                <div class='bg-yellow-500/20 p-2.5 rounded-lg group-hover:bg-yellow-500/30 transition-colors'>
+                  <i data-lucide='map-pin' class='w-5 h-5 text-yellow-400'></i>
+                </div>
+                <div class='flex-1'>
+                  <a href='$tripLink' class='text-yellow-300 font-bold hover:text-yellow-200 transition-colors text-base lg:text-lg block mb-1'>
+                    Trip Log #{$row['id']}
+                  </a>
+                  <p class='text-blue-200 text-sm mb-2'>Driver: <span class='text-yellow-300 font-semibold'>{$row['driver_name']}</span></p>
+                  <div class='flex flex-wrap items-center gap-3 text-xs'>
+                    <span class='bg-orange-500/20 text-orange-300 px-2.5 py-1 rounded-full font-medium border border-orange-500/30'>
+                      <i data-lucide='eye' class='w-3 h-3 inline mr-1'></i>Review Needed
+                    </span>
+                    <span class='text-blue-300 flex items-center'>
+                      <i data-lucide='calendar' class='w-3 h-3 inline mr-1'></i>{$ago}
+                    </span>
+                  </div>
+                </div>
+              </div>
               
-              <!-- Right section: timestamp -->
-              <span class='text-sm opacity-75'>($ago)</span>
+              <!-- Action button -->
+              <div class='flex lg:flex-col items-center gap-2'>
+                <a href='$tripLink' class='bg-yellow-500 hover:bg-yellow-400 text-blue-900 px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-200 hover:scale-105 hover:shadow-lg'>
+                  Review
+                </a>
+              </div>
             </div>
           </li>
           ";
         }
       } else {
-        echo "<li class='text-gray-400'>No pending trip log reviews.</li>";
+        echo "<li class='text-blue-200/60 text-center py-8 bg-blue-950/40 rounded-lg border border-blue-800/40'>
+          <i data-lucide='check-circle' class='w-8 h-8 mx-auto mb-2 text-green-400/60'></i>
+          <p class='font-medium'>No pending trip log reviews</p>
+          <p class='text-sm mt-1'>All trip logs have been reviewed</p>
+        </li>";
       }
       ?>
     </ul>

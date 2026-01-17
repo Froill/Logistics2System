@@ -2,8 +2,28 @@
 /////////////////////////////////////////START OF VRDS LOGIC
 function vrds_logic($baseURL) {
 
+    $role = $_SESSION['role'] ?? '';
+    $driverRecordId = null;
+    if ($role === 'driver') {
+        $currentUserEid = $_SESSION['eid'] ?? null;
+        if ($currentUserEid && isset($GLOBALS['conn']) && ($stmt = $GLOBALS['conn']->prepare('SELECT id FROM drivers WHERE eid = ? LIMIT 1'))) {
+            $stmt->bind_param('s', $currentUserEid);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($r = $res->fetch_assoc()) {
+                $driverRecordId = (int)$r['id'];
+            }
+            $stmt->close();
+        }
+    }
+
     // Clear all dispatch logs
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_dispatch_logs'])) {
+        if ($role === 'driver') {
+            $_SESSION['error_message'] = 'Access denied.';
+            header("Location: {$baseURL}");
+            exit;
+        }
         global $conn;
         // Set all vehicles and drivers that are currently dispatched back to Active/Available
         $result = $conn->query("SELECT vehicle_id, driver_id FROM dispatches");
@@ -23,6 +43,12 @@ function vrds_logic($baseURL) {
     // 1. Requester submits trip request
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_vehicle'])) {
+
+    if ($role === 'driver') {
+            $_SESSION['error_message'] = 'Access denied. Drivers cannot request vehicles.';
+            header("Location: {$baseURL}");
+            exit;
+        }
 
     $requester_id = $_SESSION['user_id'] ?? 0;
 
@@ -245,6 +271,12 @@ function vrds_logic($baseURL) {
 
     if (isset($_GET['delete'])) {
 
+        if ($role === 'driver') {
+            $_SESSION['error_message'] = 'Access denied.';
+            header("Location: {$baseURL}");
+            exit;
+        }
+
         $dispatch_id = (int) $_GET['delete'];
 
         $dispatch = fetchById('dispatches', $dispatch_id);
@@ -281,6 +313,14 @@ function vrds_logic($baseURL) {
 
         $dispatch = fetchById('dispatches', $dispatch_id);
 
+        if ($role === 'driver') {
+            if (!$dispatch || !$driverRecordId || (int)$dispatch['driver_id'] !== (int)$driverRecordId) {
+                $_SESSION['error_message'] = 'Access denied.';
+                header("Location: {$baseURL}");
+                exit;
+            }
+        }
+
         if ($dispatch && $dispatch['status'] !== 'Completed') {
 
             updateData('dispatches', $dispatch_id, ['status' => 'Completed']);
@@ -310,6 +350,11 @@ function vrds_logic($baseURL) {
 
 // 9. Officer can clear all dispatch logs
   if (isset($_GET['remove_request'])) {
+        if ($role === 'driver') {
+            $_SESSION['error_message'] = 'Access denied.';
+            header("Location: {$baseURL}");
+            exit;
+        }
         $remove_id = (int)$_GET['remove_request'];
         $req = fetchById('vehicle_requests', $remove_id);
         // Only allow delete if status is Pending or Approved
@@ -332,6 +377,11 @@ function vrds_logic($baseURL) {
 
     // VRDS Batch delete dispatch logs
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_selected_dispatches']) && !empty($_POST['dispatch_ids'])) {
+    if (($_SESSION['role'] ?? '') === 'driver') {
+        $_SESSION['error_message'] = 'Access denied.';
+        header("Location: {$baseURL}");
+        exit;
+    }
     $ids = array_map('intval', $_POST['dispatch_ids']);
     global $conn;
     foreach ($ids as $dispatch_id) {
