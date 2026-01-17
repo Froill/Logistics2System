@@ -101,6 +101,67 @@ function driver_trip_view($baseURL)
     $avgScore = $totalTrips ? array_reduce($trips, function ($carry, $trip) {
         return $carry + (float)$trip['performance_score'];
     }, 0) / $totalTrips : 0;
+
+    // Determine aggregation period for performance sorting
+    $period = isset($_GET['period']) ? $_GET['period'] : 'monthly'; // default to monthly
+    $periodCondition = '';
+    switch ($period) {
+        case 'daily':
+            $periodCondition = "AND DATE(t.trip_date) = CURDATE()";
+            break;
+        case 'weekly':
+            $periodCondition = "AND YEARWEEK(t.trip_date, 1) = YEARWEEK(CURDATE(), 1)";
+            break;
+        case 'yearly':
+            $periodCondition = "AND YEAR(t.trip_date) = YEAR(CURDATE())";
+            break;
+        case 'monthly':
+        default:
+            $periodCondition = "AND YEAR(t.trip_date) = YEAR(CURDATE()) AND MONTH(t.trip_date) = MONTH(CURDATE())";
+            break;
+    }
+
+    // Aggregate performance per driver for the selected period
+    $performanceList = [];
+    $aggQuery = "
+        SELECT d.id AS driver_id, d.driver_name, IFNULL(AVG(t.performance_score),0) AS avg_score, COUNT(t.id) AS trip_count
+        FROM driver_trips t
+        JOIN drivers d ON t.driver_id = d.id
+        WHERE 1=1
+        {$periodCondition}
+        GROUP BY d.id, d.driver_name
+        ORDER BY avg_score DESC, trip_count DESC
+    ";
+
+    if ($result = $conn->query($aggQuery)) {
+        while ($row = $result->fetch_assoc()) {
+            $performanceList[] = $row;
+        }
+        $result->free();
+    }
+
+    // Compute trip counts for commonly requested ranges
+    $tripCounts = [
+        'today' => 0,
+        'weekly' => 0,
+        'monthly' => 0,
+        'yearly' => 0,
+    ];
+
+    $countQueries = [
+        'today' => "SELECT COUNT(*) AS c FROM driver_trips WHERE DATE(trip_date) = CURDATE()",
+        'weekly' => "SELECT COUNT(*) AS c FROM driver_trips WHERE YEARWEEK(trip_date,1) = YEARWEEK(CURDATE(),1)",
+        'monthly' => "SELECT COUNT(*) AS c FROM driver_trips WHERE YEAR(trip_date) = YEAR(CURDATE()) AND MONTH(trip_date) = MONTH(CURDATE())",
+        'yearly' => "SELECT COUNT(*) AS c FROM driver_trips WHERE YEAR(trip_date) = YEAR(CURDATE())",
+    ];
+
+    foreach ($countQueries as $k => $q) {
+        if ($r = $conn->query($q)) {
+            $row = $r->fetch_assoc();
+            $tripCounts[$k] = (int)$row['c'];
+            $r->free();
+        }
+    }
 ?>
     <div class="space-y-6">
         <div class="flex flex-col gap-4">
@@ -196,6 +257,75 @@ function driver_trip_view($baseURL)
         </div>
 
         <!-- Driver and Vehicle Search Filter Form -->
+        <!-- Period selector and aggregated performance -->
+        <div class="mt-6 mb-6">
+            <form method="GET" class="flex items-center gap-4 mb-4">
+                <input type="hidden" name="module" value="driver_trip">
+                <label class="label">Show Performance For</label>
+                <select name="period" class="select select-bordered" onchange="this.form.submit()">
+                    <option value="daily" <?= ($period === 'daily' ? 'selected' : '') ?>>Today</option>
+                    <option value="weekly" <?= ($period === 'weekly' ? 'selected' : '') ?>>This Week</option>
+                    <option value="monthly" <?= ($period === 'monthly' ? 'selected' : '') ?>>This Month</option>
+                    <option value="yearly" <?= ($period === 'yearly' ? 'selected' : '') ?>>This Year</option>
+                </select>
+            </form>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <div class="stats shadow bg-base-200">
+                    <div class="stat">
+                        <div class="stat-title">Trips Today</div>
+                        <div class="stat-value text-primary"><?= $tripCounts['today'] ?></div>
+                    </div>
+                </div>
+                <div class="stats shadow bg-base-200">
+                    <div class="stat">
+                        <div class="stat-title">Trips This Week</div>
+                        <div class="stat-value text-secondary"><?= $tripCounts['weekly'] ?></div>
+                    </div>
+                </div>
+                <div class="stats shadow bg-base-200">
+                    <div class="stat">
+                        <div class="stat-title">Trips This Month</div>
+                        <div class="stat-value text-accent"><?= $tripCounts['monthly'] ?></div>
+                    </div>
+                </div>
+                <div class="stats shadow bg-base-200">
+                    <div class="stat">
+                        <div class="stat-title">Trips This Year</div>
+                        <div class="stat-value text-warning"><?= $tripCounts['yearly'] ?></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card bg-base-200 shadow mb-6">
+                <div class="card-body">
+                    <h3 class="card-title">Top Drivers (<?= htmlspecialchars(ucfirst($period)) ?>)</h3>
+                    <?php if (empty($performanceList)): ?>
+                        <div class="text-sm">No performance data for selected period.</div>
+                    <?php else: ?>
+                        <table class="table table-compact w-full">
+                            <thead>
+                                <tr>
+                                    <th>Driver</th>
+                                    <th>Avg Score</th>
+                                    <th>Trips</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($performanceList as $p): ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars($p['driver_name']) ?></td>
+                                        <td><?= number_format($p['avg_score'],1) ?>%</td>
+                                        <td><?= (int)$p['trip_count'] ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+         <h2 class = "font-bold text-lg mb 4"> Driver/Vehicle Search </h2>
         <div class="flex flex-wrap gap-4 mb-6 items-end">
             <form method="GET" class="flex flex-wrap gap-4 mb-6 items-end">
                 <input type="hidden" name="module" value="driver_trip">
