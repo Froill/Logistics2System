@@ -1,17 +1,17 @@
-<header class="bg-white shadow-sm z-10 border-b dark:border-gray-700 w-full">
+<header class="bg-base-100 shadow-sm z-10 border-b dark:border-gray-700 w-full">
 
   <!--<header class="shadow-sm z-10 border-b border-base-300 dark:border-gray-700 w-full">-->
   <div class="px-4 sm:px-6 lg:px-8">
-    <div class="flex items-center justify-between h-16">
-      <div class="flex items-center">
-        <button onclick="toggleSidebar()" class="text-black btn btn-ghost btn-sm  transition-all hover:scale-105">
-          <i data-lucide="menu" class="w-5 h-5 text-black"></i>
+    <div class="navbar h-16">
+      <div class="navbar-start flex items-center">
+        <button onclick="toggleSidebar()" class="btn btn-ghost btn-sm  transition-all hover:scale-105">
+          <i data-lucide="menu" class="w-5 h-5"></i>
         </button>
       </div>
-      <div class="flex items-center gap-4">
+      <div class="navbar-end flex items-center gap-4">
         <!-- Time Display -->
         <div class="animate-fadeIn">
-          <span id="philippineTime" class="font-medium text-black max-sm:text-xs"></span>
+          <span id="philippineTime" class="font-medium max-sm:text-xs"></span>
         </div>
 
         <!-- Notification Dropdown -->
@@ -19,8 +19,8 @@
 
 
           <!-- Button -->
-          <button id="notification-button" tabindex="0" class="btn btn-ghost text-black btn-circle btn-sm relative">
-            <i data-lucide="bell" class="w-5 h-5 text-black"></i>
+          <button id="notification-button" tabindex="0" class="btn btn-ghost btn-circle btn-sm relative">
+            <i data-lucide="bell" class="w-5 h-5 "></i>
             <!-- <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span> -->
           </button>
 
@@ -217,19 +217,19 @@
   }
 
   /* Ensure navbar background stays white and icons render black */
-  header {
+  /* header {
     background-color: #ffffff !important;
-  }
+  } */
 
-  header i,
+  /* header i,
   header svg {
     color: #000000 !important;
     stroke: #000000 !important;
     fill: #000000 !important;
-  }
+  } */
 
   /* Fix any utility class forcing white text inside the header */
-  header .text-white {
+  /* header .text-white {
     color: #000000 !important;
-  }
+  } */
 </style>

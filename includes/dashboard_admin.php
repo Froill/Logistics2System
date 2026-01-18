@@ -37,7 +37,7 @@ $audit_count = get_count('audit_log');
 <div class="text-2xl font-bold mb-4">Overview</div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-  <div class="card bg-white shadow p-4">
+  <div class="card bg-base-100 backdrop-blur-sm border border-gray-600/40 p-4">
     <div class="flex items-start justify-between gap-4">
       <div>
         <div class="text-xs font-semibold uppercase opacity-70">Total Vehicles</div>
@@ -48,7 +48,7 @@ $audit_count = get_count('audit_log');
       </span>
     </div>
   </div>
-  <div class="card bg-white shadow p-4">
+  <div class="card bg-base-100 backdrop-blur-sm border border-gray-600/40 p-4">
     <div class="flex items-start justify-between gap-4">
       <div>
         <div class="text-xs font-semibold uppercase opacity-70">Total Users</div>
@@ -59,7 +59,7 @@ $audit_count = get_count('audit_log');
       </span>
     </div>
   </div>
-  <div class="card bg-white shadow p-4">
+  <div class="card bg-base-100 backdrop-blur-sm border border-gray-600/40 p-4">
     <div class="flex items-start justify-between gap-4">
       <div>
         <div class="text-xs font-semibold uppercase opacity-70">Driver Trips</div>
@@ -70,7 +70,7 @@ $audit_count = get_count('audit_log');
       </span>
     </div>
   </div>
-  <div class="card bg-white shadow p-4">
+  <div class="card bg-base-100 backdrop-blur-sm border border-gray-600/40 p-4">
     <div class="flex items-start justify-between gap-4">
       <div>
         <div class="text-xs font-semibold uppercase opacity-70">Vehicle Requests</div>
@@ -81,7 +81,7 @@ $audit_count = get_count('audit_log');
       </span>
     </div>
   </div>
-  <div class="card bg-white shadow p-4">
+  <div class="card bg-base-100 backdrop-blur-sm border border-gray-600/40 p-4">
     <div class="flex items-start justify-between gap-4">
       <div>
         <div class="text-xs font-semibold uppercase opacity-70">Audit Log Entries</div>
@@ -122,13 +122,13 @@ $audit_count = get_count('audit_log');
             }
           }
           echo "
-          <li class='card bg-base-100 shadow-md hover:shadow-lg transition rounded-lg p-4'>
+          <li class='card bg-gradient-to-r from-blue-950/80 to-blue-900/70 backdrop-blur-sm border border-yellow-600/40 rounded-xl p-5 hover:border-yellow-500/60 hover:shadow-2xl hover:shadow-yellow-600/20 transition-all duration-300 group'>
             <div class='flex flex-col gap-2 md:flex-row md:gap-0  items-center justify-between'>
-              <h2 class='card-title text-lg font-bold badge badge-outline'># {$row['id']}</h2>
-              <span class='text-xs text-center md:text-left opacity-75'>($ago)</span>
+              <h2 class='card-title text-yellow-400 font-bold hover:text-yellow-200 transition-colors text-base lg:text-lg block mb-1'># {$row['id']}</h2>
+              <span class='text-blue-200 text-sm mb-2 md:text=left'>($ago)</span>
             </div>
-            <p class='text-md mt-2 text-center font-bold md:text-left'>{$row['action']}</p>
-            <p class='text-sm mt-1 text-gray-600 text-center md:text-left'>{$row['details']}</p>
+            <p class='text-yellow-400 font-bold hover:text-yellow-200 transition-colors text-base text-center md:text-left'>{$row['action']}</p>
+            <p class='text-blue-200 text-sm mb-2 md:text-left'>{$row['details']}</p>
           </li>
           ";
         }
