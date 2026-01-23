@@ -20,23 +20,45 @@ if (isset($_GET['ajax_ongoing_dispatches']) && $_GET['ajax_ongoing_dispatches'] 
         }
     }
 
-    $dispatches = fetchAll('dispatches');
-    $ongoing = array_filter($dispatches, function ($d) {
-        return $d['status'] === 'Ongoing' && isset($d['origin_lat'], $d['origin_lon'], $d['destination_lat'], $d['destination_lon']);
-    });
-
-    if ($role === 'driver') {
-        if (!$driverRecordId) {
-            $ongoing = [];
-        } else {
-            $ongoing = array_filter($ongoing, function ($d) use ($driverRecordId) {
-                return (int)($d['driver_id'] ?? 0) === (int)$driverRecordId;
-            });
-        }
+    if (empty($GLOBALS['conn']) || !($GLOBALS['conn'] instanceof mysqli)) {
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode([]);
+        exit;
     }
 
+    if ($role === 'driver' && !$driverRecordId) {
+        header('Content-Type: application/json');
+        echo json_encode([]);
+        exit;
+    }
+
+    $conn = $GLOBALS['conn'];
+    $sql = "SELECT id, request_id, vehicle_id, driver_id, officer_id, dispatch_date, status, origin, destination, purpose, origin_lat, origin_lon, destination_lat, destination_lon\n            FROM dispatches\n            WHERE status = 'Ongoing'\n              AND origin_lat IS NOT NULL AND origin_lon IS NOT NULL\n              AND destination_lat IS NOT NULL AND destination_lon IS NOT NULL";
+    if ($role === 'driver') {
+        $sql .= " AND driver_id = ?";
+    }
+    $sql .= " ORDER BY dispatch_date DESC";
+
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode([]);
+        exit;
+    }
+
+    if ($role === 'driver') {
+        $stmt->bind_param('i', $driverRecordId);
+    }
+
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $rows = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
+    $stmt->close();
+
     header('Content-Type: application/json');
-    echo json_encode(array_values($ongoing));
+    echo json_encode($rows);
     exit;
 }
 // Add custom POI (admin only)
@@ -153,17 +175,38 @@ if (isset($_GET['download_vehicle_file']) && $_GET['download_vehicle_file'] == 1
         exit;
     }
     $docId = isset($_GET['doc_id']) ? intval($_GET['doc_id']) : 0;
-    $table = isset($_GET['table']) && $_GET['table'] === 'insurance' ? 'vehicle_insurance' : 'vehicle_documents';
+    $isInsurance = isset($_GET['table']) && $_GET['table'] === 'insurance';
+    $table = $isInsurance ? 'vehicle_insurance' : 'vehicle_documents';
     if (!$docId) {
         http_response_code(400);
         echo 'Invalid request';
         exit;
     }
     require_once __DIR__ . '/functions.php';
-    $db = getDb();
-    $stmt = $db->prepare("SELECT * FROM {$table} WHERE id = ? LIMIT 1");
-    $stmt->execute([$docId]);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (empty($GLOBALS['conn']) || !($GLOBALS['conn'] instanceof mysqli)) {
+        http_response_code(500);
+        echo 'Server error';
+        exit;
+    }
+    $conn = $GLOBALS['conn'];
+
+    $sql = $isInsurance
+        ? "SELECT document_path AS file_path FROM vehicle_insurance WHERE id = ? LIMIT 1"
+        : "SELECT file_path FROM vehicle_documents WHERE id = ? LIMIT 1";
+
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        http_response_code(500);
+        echo 'Server error';
+        exit;
+    }
+    $stmt->bind_param('i', $docId);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+
     if (!$row || empty($row['file_path'])) {
         http_response_code(404);
         echo 'File not found';
@@ -175,6 +218,7 @@ if (isset($_GET['download_vehicle_file']) && $_GET['download_vehicle_file'] == 1
         echo 'File not found';
         exit;
     }
+
     // Serve file securely (allow inline display for images/PDFs)
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
     $mime = finfo_file($finfo, $path) ?: 'application/octet-stream';

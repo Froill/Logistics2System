@@ -155,7 +155,12 @@ function driver_trip_view($baseURL)
 
     // Fetch vehicles for filter dropdown
     $vehicles = [];
-    if ($result = $conn->query("SELECT * FROM fleet_vehicles ORDER BY vehicle_name ASC")) {
+    $vehiclesSql = "SELECT * FROM fleet_vehicles";
+    if (function_exists('db_column_exists') && db_column_exists('fleet_vehicles', 'is_archived')) {
+        $vehiclesSql .= " WHERE is_archived = 0";
+    }
+    $vehiclesSql .= " ORDER BY vehicle_name ASC";
+    if ($result = $conn->query($vehiclesSql)) {
         while ($row = $result->fetch_assoc()) {
             $vehicles[] = $row;
         }
@@ -169,9 +174,17 @@ function driver_trip_view($baseURL)
         FROM dispatches d 
         JOIN fleet_vehicles v ON d.vehicle_id = v.id 
         JOIN drivers dr ON d.driver_id = dr.id 
-        WHERE d.status = 'Completed'{$driverScopeDispatchSql}
-        ORDER BY d.dispatch_date DESC
     ";
+
+    if (function_exists('driver_trip_has_dispatch_id_column') && driver_trip_has_dispatch_id_column()) {
+        $dispatchQuery .= " LEFT JOIN driver_trips t ON t.dispatch_id = d.id ";
+    }
+
+    $dispatchQuery .= " WHERE d.status = 'Completed'{$driverScopeDispatchSql} ";
+    if (function_exists('driver_trip_has_dispatch_id_column') && driver_trip_has_dispatch_id_column()) {
+        $dispatchQuery .= " AND t.id IS NULL ";
+    }
+    $dispatchQuery .= " ORDER BY d.dispatch_date DESC ";
     if ($result = $conn->query($dispatchQuery)) {
         while ($row = $result->fetch_assoc()) {
             $completedDispatches[] = $row;
@@ -608,7 +621,7 @@ function driver_trip_view($baseURL)
                                     data-driver_id="<?= $cd['driver_id'] ?>"
                                     data-vehicle_id="<?= $cd['vehicle_id'] ?>"
                                     data-trip_date="<?= substr($cd['dispatch_date'], 0, 10) ?>"
-                                    data-vehicle_payload="<?= htmlspecialchars($cd['vehicle_payload']) ?>"> <?= htmlspecialchars($cd['dispatch_date']) ?> | <?= htmlspecialchars($cd['vehicle_name']) ?> | <?= htmlspecialchars($cd['driver_name']) ?> | <?= htmlspecialchars($cd['purpose']) ?>
+                                    data-vehicle_payload="<?= htmlspecialchars($cd['vehicle_payload']) ?>">Dispatch #<?= (int)$cd['id'] ?> | <?= htmlspecialchars($cd['dispatch_date']) ?> | <?= htmlspecialchars($cd['origin'] ?? '') ?> → <?= htmlspecialchars($cd['destination'] ?? '') ?> | <?= htmlspecialchars($cd['vehicle_name']) ?> | <?= htmlspecialchars($cd['driver_name']) ?> | <?= htmlspecialchars($cd['purpose']) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

@@ -58,5 +58,11 @@
         "lat": 14.733507,
         "lon": 121.056591,
         "description": "Vehicle Maintenance Shop"
+    },
+    {
+        "name": "laundry for bed sheet and linen",
+        "lat": 14.370834,
+        "lon": 120.977325,
+        "description": "taga laba yung kapitbahay ko dum"
     }
 ]

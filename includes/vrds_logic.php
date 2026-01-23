@@ -17,6 +17,47 @@ function vrds_logic($baseURL) {
         }
     }
 
+    $hasDispatchConflict = function (int $vehicleId, int $driverId, string $startDate, string $endDate, int $requestId = 0): bool {
+        $startDate = trim($startDate);
+        $endDate = trim($endDate);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) {
+            return true;
+        }
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
+            $endDate = $startDate;
+        }
+
+        $statusWhere = "d.status NOT IN ('Completed','Cancelled')";
+        $rangeWhere = "r.reservation_date <= ? AND COALESCE(r.expected_return, r.reservation_date) >= ?";
+        $excludeWhere = $requestId > 0 ? " AND r.id <> ?" : '';
+
+        if ($vehicleId > 0) {
+            $row = fetchOneQuery(
+                "SELECT COUNT(*) AS cnt\n                 FROM dispatches d\n                 JOIN vehicle_requests r ON r.id = d.request_id\n                 WHERE {$statusWhere}\n                   AND d.vehicle_id = ?\n                   AND {$rangeWhere}{$excludeWhere}",
+                $requestId > 0
+                    ? [(string)$vehicleId, $endDate, $startDate, (string)$requestId]
+                    : [(string)$vehicleId, $endDate, $startDate]
+            );
+            if ((int)($row['cnt'] ?? 0) > 0) {
+                return true;
+            }
+        }
+
+        if ($driverId > 0) {
+            $row = fetchOneQuery(
+                "SELECT COUNT(*) AS cnt\n                 FROM dispatches d\n                 JOIN vehicle_requests r ON r.id = d.request_id\n                 WHERE {$statusWhere}\n                   AND d.driver_id = ?\n                   AND {$rangeWhere}{$excludeWhere}",
+                $requestId > 0
+                    ? [(string)$driverId, $endDate, $startDate, (string)$requestId]
+                    : [(string)$driverId, $endDate, $startDate]
+            );
+            if ((int)($row['cnt'] ?? 0) > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    };
+
     // Clear all dispatch logs
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_dispatch_logs'])) {
         if ($role === 'driver') {
@@ -33,9 +74,9 @@ function vrds_logic($baseURL) {
                 updateData('drivers', $row['driver_id'], ['status' => 'Available']);
             }
         }
-        $conn->query("DELETE FROM dispatches");
-        log_audit_event('VRDS', 'clear_dispatch_logs', null, $_SESSION['full_name'] ?? 'unknown');
-        $_SESSION['success_message'] = 'All dispatch logs cleared.';
+        $conn->query("UPDATE dispatches SET status = 'Cancelled' WHERE status <> 'Completed'");
+        log_audit_event('VRDS', 'cancel_all_dispatches', null, $_SESSION['full_name'] ?? 'unknown');
+        $_SESSION['success_message'] = 'All ongoing dispatches were cancelled.';
         header("Location: {$baseURL}");
         exit;
     }
@@ -162,6 +203,12 @@ function vrds_logic($baseURL) {
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approve_request'])) {
 
+        if ($role === 'driver') {
+            $_SESSION['error_message'] = 'Access denied.';
+            header("Location: {$baseURL}");
+            exit;
+        }
+
         $request_id = intval($_POST['request_id'] ?? 0);
 
         $vehicle_id = intval($_POST['vehicle_id'] ?? 0);
@@ -180,6 +227,46 @@ function vrds_logic($baseURL) {
 
             exit;
 
+        }
+
+        if ($vehicle_id <= 0 || $driver_id <= 0) {
+            $_SESSION['error_message'] = 'Vehicle and driver are required.';
+            header("Location: {$baseURL}");
+            exit;
+        }
+
+        $vehicle = fetchById('fleet_vehicles', $vehicle_id);
+        $driver = fetchById('drivers', $driver_id);
+        if (!$vehicle || !$driver) {
+            $_SESSION['error_message'] = 'Invalid vehicle or driver.';
+            header("Location: {$baseURL}");
+            exit;
+        }
+        if (function_exists('db_column_exists') && db_column_exists('fleet_vehicles', 'is_archived') && !empty($vehicle['is_archived'])) {
+            $_SESSION['error_message'] = 'Selected vehicle is archived.';
+            header("Location: {$baseURL}");
+            exit;
+        }
+        if (($vehicle['status'] ?? '') !== 'Active') {
+            $_SESSION['error_message'] = 'Selected vehicle is not available.';
+            header("Location: {$baseURL}");
+            exit;
+        }
+        if (($driver['status'] ?? '') !== 'Available') {
+            $_SESSION['error_message'] = 'Selected driver is not available.';
+            header("Location: {$baseURL}");
+            exit;
+        }
+
+        $startDate = (string)($request['reservation_date'] ?? '');
+        $endDate = (string)($request['expected_return'] ?? '');
+        if ($endDate === '') {
+            $endDate = $startDate;
+        }
+        if ($hasDispatchConflict($vehicle_id, $driver_id, $startDate, $endDate, $request_id)) {
+            $_SESSION['error_message'] = 'Conflict detected: selected vehicle or driver is already assigned for the requested date range.';
+            header("Location: {$baseURL}");
+            exit;
         }
 
         // Approve and assign
@@ -219,8 +306,6 @@ function vrds_logic($baseURL) {
 
         // 5. Notify driver
 
-        $driver = fetchById('drivers', $driver_id);
-
         if ($driver && !empty($driver['email'])) {
 
             $msg = "You have been assigned a new trip. Purpose: {$request['purpose']}, Origin: {$request['origin']}, Destination: {$request['destination']}.";
@@ -233,11 +318,6 @@ function vrds_logic($baseURL) {
 
         $user = fetchById('users', $request['requester_id']);
 
-
-        $vehicle = fetchById('fleet_vehicles', $vehicle_id);
-
-
-        $driver = fetchById('drivers', $driver_id);
 
         if ($user && !empty($user['email'])) {
 
@@ -291,9 +371,11 @@ function vrds_logic($baseURL) {
 
         }
 
-        deleteData('dispatches', $dispatch_id);
+        if ($dispatch && ($dispatch['status'] ?? '') !== 'Completed') {
+            updateData('dispatches', $dispatch_id, ['status' => 'Cancelled']);
+        }
 
-        log_audit_event('VRDS', 'delete_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown');
+        log_audit_event('VRDS', 'cancel_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown');
 
         $_SESSION['success_message'] = "Dispatch cancelled.";
 
@@ -321,7 +403,7 @@ function vrds_logic($baseURL) {
             }
         }
 
-        if ($dispatch && $dispatch['status'] !== 'Completed') {
+        if ($dispatch && ($dispatch['status'] ?? '') === 'Ongoing') {
 
             updateData('dispatches', $dispatch_id, ['status' => 'Completed']);
 
@@ -335,7 +417,7 @@ function vrds_logic($baseURL) {
 
         } else {
 
-            $_SESSION['error_message'] = "Dispatch not found or already completed.";
+            $_SESSION['error_message'] = "Dispatch not found or not ongoing.";
 
         }
 
@@ -391,22 +473,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_selected_dispa
             updateData('drivers', $dispatch['driver_id'], ['status' => 'Available']);
             updateData('vehicle_requests', $dispatch['request_id'], ['status' => 'Pending']);
         }
-        deleteData('dispatches', $dispatch_id);
-        log_audit_event('VRDS', 'delete_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown');
+        if ($dispatch && ($dispatch['status'] ?? '') !== 'Completed') {
+            updateData('dispatches', $dispatch_id, ['status' => 'Cancelled']);
+        }
+        log_audit_event('VRDS', 'cancel_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown');
     }
-    $_SESSION['success_message'] = count($ids) . " dispatch log(s) deleted.";
+    $_SESSION['success_message'] = count($ids) . " dispatch(es) cancelled.";
     header("Location: {$baseURL}");
     exit;
 }
 // VRDS Logic
-function recommend_assignment($vehicle_type = null)
+function recommend_assignment($vehicle_type = null, $vehicles = null, $drivers = null)
 {
     // Simple recommender: first available vehicle/driver, optionally by type
-    $vehicles = fetchAll('fleet_vehicles');
-    $drivers = fetchAll('drivers');
+    if ($vehicles === null) {
+        $vehicles = fetchAll('fleet_vehicles');
+    }
+    if ($drivers === null) {
+        $drivers = fetchAll('drivers');
+    }
     $vehicle = null;
 
+    $hasArchivedCol = function_exists('db_column_exists') && db_column_exists('fleet_vehicles', 'is_archived');
     foreach ($vehicles as $v) {
+        if ($hasArchivedCol && !empty($v['is_archived'])) {
+            continue;
+        }
         if ($v['status'] === 'Active' && (!$vehicle_type || stripos($v['vehicle_type'], $vehicle_type) !== false)) {
             $vehicle = $v;
             break;

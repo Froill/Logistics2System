@@ -34,11 +34,18 @@ function insertData($table, $data)
 {
     global $conn;
     $columns = implode(",", array_keys($data));
-    $values  = implode("','", array_map([$conn, 'real_escape_string'], array_values($data)));
-    $sql = "INSERT INTO $table ($columns) VALUES ('$values')";
+    $escapedValues = [];
+    foreach (array_values($data) as $val) {
+        if ($val === null) {
+            $escapedValues[] = "NULL";
+            continue;
+        }
+        $escapedValues[] = "'" . $conn->real_escape_string((string)$val) . "'";
+    }
+    $values = implode(",", $escapedValues);
+    $sql = "INSERT INTO $table ($columns) VALUES ($values)";
     return $conn->query($sql);
 }
-
 
 // Fetch a single row by ID
 function fetchById($table, $id)
@@ -62,7 +69,11 @@ function updateData($table, $id, $data)
     $id = (int)$id;
     $set = [];
     foreach ($data as $col => $val) {
-        $set[] = "$col='" . $conn->real_escape_string($val) . "'";
+        if ($val === null) {
+            $set[] = "$col=NULL";
+            continue;
+        }
+        $set[] = "$col='" . $conn->real_escape_string((string)$val) . "'";
     }
     $setStr = implode(", ", $set);
     $sql = "UPDATE $table SET $setStr WHERE id = $id";
@@ -93,8 +104,14 @@ function validateTripData($tripData) {
     if (empty($tripData['trip_date']) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $tripData['trip_date'])) {
         $errors[] = 'Invalid or missing trip date.';
     }
-    if (empty($tripData['start_time']) || !preg_match('/^\d{2}:\d{2}/', $tripData['start_time'])) {
+    if (empty($tripData['start_time'])) {
         $errors[] = 'Invalid or missing start time.';
+    } else {
+        $isTimeOnly = preg_match('/^\d{2}:\d{2}(?::\d{2})?$/', (string)$tripData['start_time']);
+        $isDateTime = (strtotime((string)$tripData['start_time']) !== false);
+        if (!$isTimeOnly && !$isDateTime) {
+            $errors[] = 'Invalid or missing start time.';
+        }
     }
     // Add more rules as needed
     return $errors;
@@ -111,4 +128,21 @@ function fetchOneQuery($sql, $params = []) {
     $stmt->execute();
     $result = $stmt->get_result();
     return $result ? $result->fetch_assoc() : null;
+}
+
+function db_column_exists(string $table, string $column): bool {
+    global $conn;
+    if (empty($conn) || !($conn instanceof mysqli)) {
+        return false;
+    }
+    $table = $conn->real_escape_string($table);
+    $column = $conn->real_escape_string($column);
+    $sql = "SHOW COLUMNS FROM `{$table}` LIKE '{$column}'";
+    $res = $conn->query($sql);
+    if (!$res) {
+        return false;
+    }
+    $exists = $res->num_rows > 0;
+    $res->free();
+    return $exists;
 }

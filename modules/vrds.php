@@ -37,10 +37,40 @@ function vrds_view($baseURL)
     $role = $_SESSION['role'];
 
     vrds_logic($baseURL);
-    $requests = fetchAll('vehicle_requests');
-    $dispatches = fetchAll('dispatches');
-    $vehicles = fetchAll('fleet_vehicles');
-    $drivers = fetchAll('drivers');
+
+    $buildUrl = function (array $overrides = []) {
+        $params = $_GET;
+        $params['module'] = 'vrds';
+        foreach ($overrides as $k => $v) {
+            if ($v === null) {
+                unset($params[$k]);
+            } else {
+                $params[$k] = $v;
+            }
+        }
+        return 'dashboard.php?' . http_build_query($params);
+    };
+
+    $vehicleSql = "SELECT id, vehicle_name, vehicle_type, status FROM fleet_vehicles";
+    if (function_exists('db_column_exists') && db_column_exists('fleet_vehicles', 'is_archived')) {
+        $vehicleSql .= " WHERE is_archived = 0";
+    }
+    $vehicleSql .= " ORDER BY vehicle_name ASC";
+    $vehicles = fetchAllQuery($vehicleSql);
+    $drivers = fetchAllQuery("SELECT id, driver_name, status FROM drivers ORDER BY driver_name ASC");
+
+    $vehicleById = [];
+    $vehicleNameById = [];
+    foreach ($vehicles as $v) {
+        $vehicleById[(int)$v['id']] = $v;
+        $vehicleNameById[(int)$v['id']] = $v['vehicle_name'] ?? '';
+    }
+    $driverById = [];
+    $driverNameById = [];
+    foreach ($drivers as $d) {
+        $driverById[(int)$d['id']] = $d;
+        $driverNameById[(int)$d['id']] = $d['driver_name'] ?? '';
+    }
 
     // Driver linkage: find driver record by session eid (drivers.eid)
     $currentUserEid = $_SESSION['eid'] ?? null;
@@ -68,12 +98,158 @@ function vrds_view($baseURL)
 
 
     // Prepare ongoing dispatches for map (with real coordinates)
-    $ongoingDispatches = array_filter($dispatches, function ($d) use ($isDriverUser, $driverRecordId) {
-        if ($isDriverUser && (!isset($driverRecordId) || (int)$d['driver_id'] !== (int)$driverRecordId)) {
-            return false;
+    $ongoingWhere = "status = 'Ongoing' AND origin_lat IS NOT NULL AND origin_lon IS NOT NULL AND destination_lat IS NOT NULL AND destination_lon IS NOT NULL";
+    $ongoingParams = [];
+    if ($isDriverUser) {
+        if (!$driverRecordId) {
+            $ongoingDispatches = [];
+        } else {
+            $ongoingWhere .= " AND driver_id = ?";
+            $ongoingParams[] = (string)$driverRecordId;
+            $ongoingDispatches = fetchAllQuery(
+                "SELECT id, request_id, vehicle_id, driver_id, officer_id, dispatch_date, status, origin, destination, purpose, origin_lat, origin_lon, destination_lat, destination_lon FROM dispatches WHERE {$ongoingWhere} ORDER BY dispatch_date DESC",
+                $ongoingParams
+            );
         }
-        return $d['status'] === 'Ongoing' && isset($d['origin_lat'], $d['origin_lon'], $d['destination_lat'], $d['destination_lon']);
-    });
+    } else {
+        $ongoingDispatches = fetchAllQuery(
+            "SELECT id, request_id, vehicle_id, driver_id, officer_id, dispatch_date, status, origin, destination, purpose, origin_lat, origin_lon, destination_lat, destination_lon FROM dispatches WHERE {$ongoingWhere} ORDER BY dispatch_date DESC"
+        );
+    }
+
+    $pendingRecCache = [];
+    $historyRecCache = [];
+
+    $pendingPage = max(1, (int)($_GET['vrds_pending_page'] ?? 1));
+    $pendingPerPage = 10;
+    $pendingOffset = ($pendingPage - 1) * $pendingPerPage;
+    $pendingQ = trim($_GET['vrds_pending_q'] ?? '');
+    $pendingVehicleType = trim($_GET['vrds_pending_vehicle_type'] ?? '');
+    $pendingFrom = trim($_GET['vrds_pending_from'] ?? '');
+    $pendingTo = trim($_GET['vrds_pending_to'] ?? '');
+
+    $pendingWhere = "status = 'Pending'";
+    $pendingParams = [];
+    if ($pendingQ !== '') {
+        $pendingWhere .= " AND (purpose LIKE ? OR origin LIKE ? OR destination LIKE ? OR requested_vehicle_type LIKE ?)";
+        $like = '%' . $pendingQ . '%';
+        $pendingParams[] = $like;
+        $pendingParams[] = $like;
+        $pendingParams[] = $like;
+        $pendingParams[] = $like;
+    }
+    if ($pendingVehicleType !== '' && $pendingVehicleType !== 'All') {
+        $pendingWhere .= " AND requested_vehicle_type LIKE ?";
+        $pendingParams[] = '%' . $pendingVehicleType . '%';
+    }
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $pendingFrom)) {
+        $pendingWhere .= " AND reservation_date >= ?";
+        $pendingParams[] = $pendingFrom;
+    }
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $pendingTo)) {
+        $pendingWhere .= " AND reservation_date <= ?";
+        $pendingParams[] = $pendingTo;
+    }
+
+    $pendingCountRow = fetchOneQuery("SELECT COUNT(*) AS cnt FROM vehicle_requests WHERE {$pendingWhere}", $pendingParams);
+    $pendingTotal = (int)($pendingCountRow['cnt'] ?? 0);
+    $pendingTotalPages = max(1, (int)ceil($pendingTotal / $pendingPerPage));
+    if ($pendingPage > $pendingTotalPages) {
+        $pendingPage = $pendingTotalPages;
+        $pendingOffset = ($pendingPage - 1) * $pendingPerPage;
+    }
+    $pendingRequests = fetchAllQuery(
+        "SELECT id, requester_id, request_date, reservation_date, expected_return, purpose, origin, destination, requested_vehicle_type, status, notes, origin_lat, origin_lon, destination_lat, destination_lon FROM vehicle_requests WHERE {$pendingWhere} ORDER BY request_date DESC LIMIT {$pendingPerPage} OFFSET {$pendingOffset}",
+        $pendingParams
+    );
+
+    $historyPage = max(1, (int)($_GET['vrds_history_page'] ?? 1));
+    $historyPerPage = 10;
+    $historyOffset = ($historyPage - 1) * $historyPerPage;
+    $historyQ = trim($_GET['vrds_history_q'] ?? '');
+    $historyStatus = trim($_GET['vrds_history_status'] ?? 'All');
+    $historyFrom = trim($_GET['vrds_history_from'] ?? '');
+    $historyTo = trim($_GET['vrds_history_to'] ?? '');
+
+    $historyWhere = "status IN ('Denied','Approved')";
+    $historyParams = [];
+    if ($historyStatus !== '' && $historyStatus !== 'All') {
+        $historyWhere = "status = ?";
+        $historyParams[] = $historyStatus;
+    }
+    if ($historyQ !== '') {
+        $historyWhere .= " AND (purpose LIKE ? OR origin LIKE ? OR destination LIKE ? OR requested_vehicle_type LIKE ?)";
+        $like = '%' . $historyQ . '%';
+        $historyParams[] = $like;
+        $historyParams[] = $like;
+        $historyParams[] = $like;
+        $historyParams[] = $like;
+    }
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $historyFrom)) {
+        $historyWhere .= " AND reservation_date >= ?";
+        $historyParams[] = $historyFrom;
+    }
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $historyTo)) {
+        $historyWhere .= " AND reservation_date <= ?";
+        $historyParams[] = $historyTo;
+    }
+
+    $historyCountRow = fetchOneQuery("SELECT COUNT(*) AS cnt FROM vehicle_requests WHERE {$historyWhere}", $historyParams);
+    $historyTotal = (int)($historyCountRow['cnt'] ?? 0);
+    $historyTotalPages = max(1, (int)ceil($historyTotal / $historyPerPage));
+    if ($historyPage > $historyTotalPages) {
+        $historyPage = $historyTotalPages;
+        $historyOffset = ($historyPage - 1) * $historyPerPage;
+    }
+    $historyRequests = fetchAllQuery(
+        "SELECT id, requester_id, request_date, reservation_date, expected_return, purpose, origin, destination, requested_vehicle_type, status, notes, origin_lat, origin_lon, destination_lat, destination_lon FROM vehicle_requests WHERE {$historyWhere} ORDER BY request_date DESC LIMIT {$historyPerPage} OFFSET {$historyOffset}",
+        $historyParams
+    );
+
+    $dispatchOpen = (int)($_GET['vrds_open_dispatch_log'] ?? 0) === 1;
+    $dispatchPage = max(1, (int)($_GET['vrds_dispatch_page'] ?? 1));
+    $dispatchPerPage = 10;
+    $dispatchOffset = ($dispatchPage - 1) * $dispatchPerPage;
+    $dispatchStatus = trim($_GET['vrds_dispatch_status'] ?? 'All');
+    $dispatchVehicleId = (int)($_GET['vrds_dispatch_vehicle_id'] ?? 0);
+    $dispatchDriverId = (int)($_GET['vrds_dispatch_driver_id'] ?? 0);
+    $dispatchFrom = trim($_GET['vrds_dispatch_from'] ?? '');
+    $dispatchTo = trim($_GET['vrds_dispatch_to'] ?? '');
+
+    $dispatchWhere = "1=1";
+    $dispatchParams = [];
+    if ($dispatchStatus !== '' && $dispatchStatus !== 'All') {
+        $dispatchWhere .= " AND status = ?";
+        $dispatchParams[] = $dispatchStatus;
+    }
+    if ($dispatchVehicleId > 0) {
+        $dispatchWhere .= " AND vehicle_id = ?";
+        $dispatchParams[] = (string)$dispatchVehicleId;
+    }
+    if ($dispatchDriverId > 0) {
+        $dispatchWhere .= " AND driver_id = ?";
+        $dispatchParams[] = (string)$dispatchDriverId;
+    }
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $dispatchFrom)) {
+        $dispatchWhere .= " AND DATE(dispatch_date) >= ?";
+        $dispatchParams[] = $dispatchFrom;
+    }
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $dispatchTo)) {
+        $dispatchWhere .= " AND DATE(dispatch_date) <= ?";
+        $dispatchParams[] = $dispatchTo;
+    }
+
+    $dispatchCountRow = fetchOneQuery("SELECT COUNT(*) AS cnt FROM dispatches WHERE {$dispatchWhere}", $dispatchParams);
+    $dispatchTotal = (int)($dispatchCountRow['cnt'] ?? 0);
+    $dispatchTotalPages = max(1, (int)ceil($dispatchTotal / $dispatchPerPage));
+    if ($dispatchPage > $dispatchTotalPages) {
+        $dispatchPage = $dispatchTotalPages;
+        $dispatchOffset = ($dispatchPage - 1) * $dispatchPerPage;
+    }
+    $dispatchLogRows = fetchAllQuery(
+        "SELECT id, request_id, vehicle_id, driver_id, officer_id, dispatch_date, status, origin, destination, purpose, origin_lat, origin_lon, destination_lat, destination_lon FROM dispatches WHERE {$dispatchWhere} ORDER BY dispatch_date DESC LIMIT {$dispatchPerPage} OFFSET {$dispatchOffset}",
+        $dispatchParams
+    );
 ?>
     
     <div>
@@ -237,6 +413,36 @@ function vrds_view($baseURL)
             <?php if (!$isDriverUser): ?>
                 <!-- Pending Requests Table (For Transport Officer Approval) -->
                 <h3 class="text-md md:text-xl font-bold mt-6 mb-2">Pending Vehicle Requests</h3>
+                <form method="GET" action="dashboard.php" class="mb-3 flex flex-wrap gap-2 items-end">
+                    <input type="hidden" name="module" value="vrds">
+                    <div class="form-control">
+                        <label class="label">Search</label>
+                        <input type="text" name="vrds_pending_q" value="<?= htmlspecialchars($pendingQ) ?>" class="input input-bordered input-sm" placeholder="Purpose / Origin / Destination">
+                    </div>
+                    <div class="form-control">
+                        <label class="label">Vehicle Type</label>
+                        <select name="vrds_pending_vehicle_type" class="select select-bordered select-sm">
+                            <option value="All" <?= ($pendingVehicleType === 'All' || $pendingVehicleType === '') ? 'selected' : '' ?>>All</option>
+                            <?php foreach ($vehicle_types as $type): ?>
+                                <option value="<?= htmlspecialchars($type) ?>" <?= ($pendingVehicleType === $type) ? 'selected' : '' ?>><?= htmlspecialchars($type) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-control">
+                        <label class="label">From</label>
+                        <input type="date" name="vrds_pending_from" value="<?= htmlspecialchars($pendingFrom) ?>" class="input input-bordered input-sm">
+                    </div>
+                    <div class="form-control">
+                        <label class="label">To</label>
+                        <input type="date" name="vrds_pending_to" value="<?= htmlspecialchars($pendingTo) ?>" class="input input-bordered input-sm">
+                    </div>
+                    <div class="form-control">
+                        <button class="btn btn-primary btn-sm" type="submit">Apply</button>
+                    </div>
+                    <div class="form-control">
+                        <a class="btn btn-ghost btn-sm" href="<?= htmlspecialchars($buildUrl(['vrds_pending_q' => null, 'vrds_pending_vehicle_type' => null, 'vrds_pending_from' => null, 'vrds_pending_to' => null, 'vrds_pending_page' => 1])) ?>">Reset</a>
+                    </div>
+                </form>
                 <div class="overflow-x-auto mb-6">
                     <table class="table table-zebra">
                         <thead>
@@ -254,16 +460,13 @@ function vrds_view($baseURL)
                             </tr>
                         </thead>
                         <tbody>
-                                <?php foreach ($requests as $req): ?>
-                                <?php if ($req['status'] === 'Pending'): ?>
-                                    <?php $rec = recommend_assignment($req['requested_vehicle_type']);
-                                    // If current user is a driver, only show pending requests where they are recommended
-                                    if ($isDriverUser) {
-                                        $recommendedDriverId = $rec['driver']['id'] ?? null;
-                                        if (!$recommendedDriverId || $recommendedDriverId != $driverRecordId) {
-                                            continue;
+                                <?php foreach ($pendingRequests as $req): ?>
+                                    <?php
+                                        $reqType = (string)($req['requested_vehicle_type'] ?? '');
+                                        if (!array_key_exists($reqType, $pendingRecCache)) {
+                                            $pendingRecCache[$reqType] = recommend_assignment($reqType, $vehicles, $drivers);
                                         }
-                                    }
+                                        $rec = $pendingRecCache[$reqType];
                                     ?>
                                     <tr>
                                         <td><?= 'REQ' . str_pad($req['id'], 5, '0', STR_PAD_LEFT) ?></td>
@@ -400,10 +603,15 @@ function vrds_view($baseURL)
                                             </dialog>
                                         </td>
                                     </tr>
-                                <?php endif; ?>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                </div>
+
+                <div class="flex justify-center mt-2 gap-2">
+                    <?php for ($p = 1; $p <= $pendingTotalPages; $p++): ?>
+                        <a class="btn btn-xs <?= ($p == $pendingPage) ? 'btn-primary' : 'btn-outline' ?>" href="<?= htmlspecialchars($buildUrl(['vrds_pending_page' => $p])) ?>">Page <?= $p ?></a>
+                    <?php endfor; ?>
                 </div>
             <?php else: ?>
                 <h3 class="text-md md:text-xl font-bold mt-6 mb-2">My Dispatched Trips</h3>
@@ -420,33 +628,27 @@ function vrds_view($baseURL)
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($dispatches as $d): ?>
-                                <?php if (!isset($driverRecordId) || $d['driver_id'] != $driverRecordId) { continue; } ?>
+                            <?php
+                                $myPage = max(1, (int)($_GET['vrds_my_dispatch_page'] ?? 1));
+                                $myPerPage = 10;
+                                $myOffset = ($myPage - 1) * $myPerPage;
+                                $myCountRow = $driverRecordId ? fetchOneQuery("SELECT COUNT(*) AS cnt FROM dispatches WHERE driver_id = ?", [(string)$driverRecordId]) : ['cnt' => 0];
+                                $myTotal = (int)($myCountRow['cnt'] ?? 0);
+                                $myTotalPages = max(1, (int)ceil($myTotal / $myPerPage));
+                                if ($myPage > $myTotalPages) { $myPage = $myTotalPages; $myOffset = ($myPage - 1) * $myPerPage; }
+                                $myDispatches = $driverRecordId ? fetchAllQuery(
+                                    "SELECT id, request_id, vehicle_id, driver_id, officer_id, dispatch_date, status, origin, destination, purpose, origin_lat, origin_lon, destination_lat, destination_lon FROM dispatches WHERE driver_id = ? ORDER BY dispatch_date DESC LIMIT {$myPerPage} OFFSET {$myOffset}",
+                                    [(string)$driverRecordId]
+                                ) : [];
+                            ?>
+                            <?php foreach ($myDispatches as $d): ?>
                                 <tr>
                                     <td><?= 'DSP' . str_pad($d['id'], 5, '0', STR_PAD_LEFT) ?></td>
                                     <td>
-                                        <?php
-                                        $vehName = '';
-                                        foreach ($vehicles as $veh) {
-                                            if ($veh['id'] == $d['vehicle_id']) {
-                                                $vehName = $veh['vehicle_name'];
-                                                break;
-                                            }
-                                        }
-                                        echo htmlspecialchars($vehName);
-                                        ?>
+                                        <?= htmlspecialchars($vehicleNameById[(int)$d['vehicle_id']] ?? '') ?>
                                     </td>
                                     <td class="hidden md:table-cell">
-                                        <?php
-                                        $drvName = '';
-                                        foreach ($drivers as $drv) {
-                                            if ($drv['id'] == $d['driver_id']) {
-                                                $drvName = $drv['driver_name'];
-                                                break;
-                                            }
-                                        }
-                                        echo htmlspecialchars($drvName);
-                                        ?>
+                                        <?= htmlspecialchars($driverNameById[(int)$d['driver_id']] ?? '') ?>
                                     </td>
                                     <td><?= htmlspecialchars($d['dispatch_date']) ?></td>
                                     <td>
@@ -480,10 +682,45 @@ function vrds_view($baseURL)
                         </tbody>
                     </table>
                 </div>
+
+                <div class="flex justify-center mt-2 gap-2">
+                    <?php for ($p = 1; $p <= $myTotalPages; $p++): ?>
+                        <a class="btn btn-xs <?= ($p == $myPage) ? 'btn-primary' : 'btn-outline' ?>" href="<?= htmlspecialchars($buildUrl(['vrds_my_dispatch_page' => $p])) ?>">Page <?= $p ?></a>
+                    <?php endfor; ?>
+                </div>
             <?php endif; ?>
 
             <!-- Rejected Requests Table -->
             <h3 class="text-md md:text-xl font-bold mt-6 mb-2">Vehicle Requests History</h3>
+            <form method="GET" action="dashboard.php" class="mb-3 flex flex-wrap gap-2 items-end">
+                <input type="hidden" name="module" value="vrds">
+                <div class="form-control">
+                    <label class="label">Status</label>
+                    <select name="vrds_history_status" class="select select-bordered select-sm">
+                        <option value="All" <?= ($historyStatus === 'All' || $historyStatus === '') ? 'selected' : '' ?>>All</option>
+                        <option value="Approved" <?= ($historyStatus === 'Approved') ? 'selected' : '' ?>>Approved</option>
+                        <option value="Denied" <?= ($historyStatus === 'Denied') ? 'selected' : '' ?>>Denied</option>
+                    </select>
+                </div>
+                <div class="form-control">
+                    <label class="label">Search</label>
+                    <input type="text" name="vrds_history_q" value="<?= htmlspecialchars($historyQ) ?>" class="input input-bordered input-sm" placeholder="Purpose / Origin / Destination">
+                </div>
+                <div class="form-control">
+                    <label class="label">From</label>
+                    <input type="date" name="vrds_history_from" value="<?= htmlspecialchars($historyFrom) ?>" class="input input-bordered input-sm">
+                </div>
+                <div class="form-control">
+                    <label class="label">To</label>
+                    <input type="date" name="vrds_history_to" value="<?= htmlspecialchars($historyTo) ?>" class="input input-bordered input-sm">
+                </div>
+                <div class="form-control">
+                    <button class="btn btn-primary btn-sm" type="submit">Apply</button>
+                </div>
+                <div class="form-control">
+                    <a class="btn btn-ghost btn-sm" href="<?= htmlspecialchars($buildUrl(['vrds_history_status' => null, 'vrds_history_q' => null, 'vrds_history_from' => null, 'vrds_history_to' => null, 'vrds_history_page' => 1])) ?>">Reset</a>
+                </div>
+            </form>
             <div class="overflow-x-auto mb-6">
                 <table class="table table-zebra w-full">
                     <thead>
@@ -500,12 +737,14 @@ function vrds_view($baseURL)
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($requests as $req): ?>
+                        <?php foreach ($historyRequests as $req): ?>
                             <?php
-                                if (!in_array($req['status'], ['Denied','Approved'])) continue;
-                                // If driver user, only show history items relevant to them
                                 if ($isDriverUser) {
-                                    $rec = recommend_assignment($req['requested_vehicle_type']);
+                                    $reqType = (string)($req['requested_vehicle_type'] ?? '');
+                                    if (!array_key_exists($reqType, $historyRecCache)) {
+                                        $historyRecCache[$reqType] = recommend_assignment($reqType, $vehicles, $drivers);
+                                    }
+                                    $rec = $historyRecCache[$reqType];
                                     $recommendedDriverId = $rec['driver']['id'] ?? null;
                                     $assignedDriverId = $req['driver_id'] ?? ($req['assigned_driver_id'] ?? null);
                                     if (!($recommendedDriverId == $driverRecordId || $assignedDriverId == $driverRecordId)) {
@@ -585,6 +824,12 @@ function vrds_view($baseURL)
                 </table>
             </div>
 
+            <div class="flex justify-center mt-2 gap-2">
+                <?php for ($p = 1; $p <= $historyTotalPages; $p++): ?>
+                    <a class="btn btn-xs <?= ($p == $historyPage) ? 'btn-primary' : 'btn-outline' ?>" href="<?= htmlspecialchars($buildUrl(['vrds_history_page' => $p])) ?>">Page <?= $p ?></a>
+                <?php endfor; ?>
+            </div>
+
             <?php if (!in_array($role, ['requester', 'user', 'driver'])): ?>
             <!-- Dispatch Log Modal -->
             <dialog id="dispatch_log_modal" class="modal">
@@ -593,6 +838,52 @@ function vrds_view($baseURL)
                         <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                     </form>
                     <h3 class="font-bold text-lg mb-4">Dispatched Trips</h3>
+
+                    <form method="GET" action="dashboard.php" class="mb-3 flex flex-wrap gap-2 items-end">
+                        <input type="hidden" name="module" value="vrds">
+                        <input type="hidden" name="vrds_open_dispatch_log" value="1">
+                        <div class="form-control">
+                            <label class="label">Status</label>
+                            <select name="vrds_dispatch_status" class="select select-bordered select-sm">
+                                <option value="All" <?= ($dispatchStatus === 'All' || $dispatchStatus === '') ? 'selected' : '' ?>>All</option>
+                                <option value="Ongoing" <?= ($dispatchStatus === 'Ongoing') ? 'selected' : '' ?>>Ongoing</option>
+                                <option value="Completed" <?= ($dispatchStatus === 'Completed') ? 'selected' : '' ?>>Completed</option>
+                                <option value="Cancelled" <?= ($dispatchStatus === 'Cancelled') ? 'selected' : '' ?>>Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label class="label">Vehicle</label>
+                            <select name="vrds_dispatch_vehicle_id" class="select select-bordered select-sm">
+                                <option value="0">All</option>
+                                <?php foreach ($vehicles as $veh): ?>
+                                    <option value="<?= (int)$veh['id'] ?>" <?= ((int)$veh['id'] === $dispatchVehicleId) ? 'selected' : '' ?>><?= htmlspecialchars($veh['vehicle_name']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label class="label">Driver</label>
+                            <select name="vrds_dispatch_driver_id" class="select select-bordered select-sm">
+                                <option value="0">All</option>
+                                <?php foreach ($drivers as $drv): ?>
+                                    <option value="<?= (int)$drv['id'] ?>" <?= ((int)$drv['id'] === $dispatchDriverId) ? 'selected' : '' ?>><?= htmlspecialchars($drv['driver_name']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-control">
+                            <label class="label">From</label>
+                            <input type="date" name="vrds_dispatch_from" value="<?= htmlspecialchars($dispatchFrom) ?>" class="input input-bordered input-sm">
+                        </div>
+                        <div class="form-control">
+                            <label class="label">To</label>
+                            <input type="date" name="vrds_dispatch_to" value="<?= htmlspecialchars($dispatchTo) ?>" class="input input-bordered input-sm">
+                        </div>
+                        <div class="form-control">
+                            <button class="btn btn-primary btn-sm" type="submit">Apply</button>
+                        </div>
+                        <div class="form-control">
+                            <a class="btn btn-ghost btn-sm" href="<?= htmlspecialchars($buildUrl(['vrds_dispatch_status' => null, 'vrds_dispatch_vehicle_id' => null, 'vrds_dispatch_driver_id' => null, 'vrds_dispatch_from' => null, 'vrds_dispatch_to' => null, 'vrds_dispatch_page' => 1, 'vrds_open_dispatch_log' => 1])) ?>">Reset</a>
+                        </div>
+                    </form>
 
                     <?php // Removed pagination: show all dispatches in modal ?>
                     <form method="POST" action="<?= htmlspecialchars($baseURL) ?>">
@@ -615,33 +906,15 @@ function vrds_view($baseURL)
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($dispatches as $d): ?>
+                                    <?php foreach ($dispatchLogRows as $d): ?>
                                         <tr>
                                             <?php if ($isDriverUser && isset($driverRecordId) && $d['driver_id'] != $driverRecordId) { continue; } ?>
                                             <td><?= 'DSP' . str_pad($d['id'], 5, '0', STR_PAD_LEFT) ?></td>
                                             <td>
-                                                <?php
-                                                $vehName = '';
-                                                foreach ($vehicles as $veh) {
-                                                    if ($veh['id'] == $d['vehicle_id']) {
-                                                        $vehName = $veh['vehicle_name'];
-                                                        break;
-                                                    }
-                                                }
-                                                echo htmlspecialchars($vehName);
-                                                ?>
+                                                <?= htmlspecialchars($vehicleNameById[(int)$d['vehicle_id']] ?? '') ?>
                                             </td>
                                             <td>
-                                                <?php
-                                                $drvName = '';
-                                                foreach ($drivers as $drv) {
-                                                    if ($drv['id'] == $d['driver_id']) {
-                                                        $drvName = $drv['driver_name'];
-                                                        break;
-                                                    }
-                                                }
-                                                echo htmlspecialchars($drvName);
-                                                ?>
+                                                <?= htmlspecialchars($driverNameById[(int)$d['driver_id']] ?? '') ?>
                                             </td>
                                             <td><?= htmlspecialchars($d['dispatch_date']) ?></td>
                                             <td>
@@ -682,6 +955,12 @@ function vrds_view($baseURL)
                             </table>
                         </div>
                     </form>
+
+                    <div class="flex justify-center mt-2 gap-2">
+                        <?php for ($p = 1; $p <= $dispatchTotalPages; $p++): ?>
+                            <a class="btn btn-xs <?= ($p == $dispatchPage) ? 'btn-primary' : 'btn-outline' ?>" href="<?= htmlspecialchars($buildUrl(['vrds_dispatch_page' => $p, 'vrds_open_dispatch_log' => 1])) ?>">Page <?= $p ?></a>
+                        <?php endfor; ?>
+                    </div>
                 </div>
                 <form method="dialog" class="modal-backdrop">
                     <button>close</button>
@@ -692,9 +971,6 @@ function vrds_view($baseURL)
             <!-- Leaflet.js & OSM/Nominatim Autocomplete JS & CSS -->
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
             <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-            <link href="https://cdn.jsdelivr.net/npm/daisyui@4.0.0/dist/full.css" rel="stylesheet" type="text/css" />
             <script>
                 // OSM/Nominatim Autocomplete Logic
                 document.addEventListener('DOMContentLoaded', function() {
@@ -745,7 +1021,12 @@ function vrds_view($baseURL)
                             // Only plot markers if coordinates are valid
                             if (!isNaN(oLat) && !isNaN(oLon)) {
                                 const originMarker = L.marker([oLat, oLon], {
-                                    title: 'Origin'
+                                    title: 'Origin',
+                                    icon: L.icon({
+                                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+                                        iconAnchor: [12, 41],
+                                        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+                                    })
                                 }).addTo(map);
                                 originMarker.bindPopup('<b>Vehicle:</b> ' + (vehicle ? vehicle.vehicle_name : d.vehicle_id) + '<br><b>Driver:</b> ' + (driver ? driver.driver_name : d.driver_id) + '<br><b>Origin:</b> ' + (d.origin || '-') + '<br><b>Destination:</b> ' + (d.destination || '-') + '<br><b>Status:</b> ' + d.status);
                                 originMarker._dispatchId = d.id;
@@ -756,7 +1037,7 @@ function vrds_view($baseURL)
                                 const destMarker = L.marker([dLat, dLon], {
                                     title: 'Destination',
                                     icon: L.icon({
-                                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+                                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
                                         iconAnchor: [12, 41],
                                         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
                                     })
@@ -995,6 +1276,12 @@ function vrds_view($baseURL)
                     addDispatchMarkers(<?php echo json_encode(array_values($ongoingDispatches)); ?>);
                     fetchAndShowPOIs();
                     setInterval(fetchAndUpdateDispatches, 10000);
+                    if (<?= $dispatchOpen ? 'true' : 'false' ?>) {
+                        const dlg = document.getElementById('dispatch_log_modal');
+                        if (dlg && typeof dlg.showModal === 'function') {
+                            dlg.showModal();
+                        }
+                    }
 }                });
             </script>
             <style>

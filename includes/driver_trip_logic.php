@@ -4,6 +4,11 @@
 // Fetch driver and vehicle lists for filters
 $drivers = fetchAll('drivers');
 $vehicles = fetchAll('fleet_vehicles');
+if (function_exists('db_column_exists') && db_column_exists('fleet_vehicles', 'is_archived')) {
+    $vehicles = array_values(array_filter($vehicles, function ($v) {
+        return empty($v['is_archived']);
+    }));
+}
 $filterDriver = isset($_GET['filter_driver']) ? $_GET['filter_driver'] : '';
 $filterVehicle = isset($_GET['filter_vehicle']) ? $_GET['filter_vehicle'] : '';
 $where = [];
@@ -220,61 +225,65 @@ if (isset($_GET['ajax_trip_log']) && isset($_GET['trip_page']) && isset($_SERVER
                                         </dialog>
                                     </div>
                                 </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
-            </td>
-            </tr>
-        <?php endforeach; ?>
-        </tbody>
-        </table>
-    </div>
-    </form>
-    <!-- Pagination Controls -->
-    <div class="flex justify-center mt-4 gap-2">
-        <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-            <button type="button" class="btn btn-xs <?= $p == $page ? 'btn-primary' : 'btn-outline' ?>" onclick="openTripLogPage(<?= $p ?>)">Page <?= $p ?></button>
-        <?php endfor; ?>
-    </div>
+        </form>
+        <!-- Pagination Controls -->
+        <div class="flex justify-center mt-4 gap-2">
+            <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+                <button type="button" class="btn btn-xs <?= $p == $page ? 'btn-primary' : 'btn-outline' ?>" onclick="openTripLogPage(<?= $p ?>)">Page <?= $p ?></button>
+            <?php endfor; ?>
+        </div>
     </div>
 <?php
     exit;
-} {
-    $errors = [];
+}
 
-    // Check for required fields
-    $required_fields = ['driver_id', 'vehicle_id', 'trip_date', 'start_time', 'distance_traveled', 'fuel_consumed'];
-    foreach ($required_fields as $field) {
-        if (empty($data[$field])) {
-            $errors[] = "The {$field} field is required.";
-        }
-    }
+function driver_trip_has_dispatch_id_column()
+{
+    global $conn;
+    $res = $conn->query("SHOW COLUMNS FROM driver_trips LIKE 'dispatch_id'");
+    return ($res && $res->num_rows > 0);
+}
 
-    // Validate numeric values
-    if (isset($data['distance_traveled']) && $data['distance_traveled'] <= 0) {
-        $errors[] = "Distance traveled must be greater than 0.";
-    }
-    if (isset($data['fuel_consumed']) && $data['fuel_consumed'] <= 0) {
-        $errors[] = "Fuel consumed must be greater than 0.";
-    }
-    if (isset($data['idle_time']) && $data['idle_time'] < 0) {
-        $errors[] = "Idle time cannot be negative.";
+function driver_trip_get_current_driver_id()
+{
+    global $conn;
+    $currentUserEid = $_SESSION['eid'] ?? null;
+    if (!$currentUserEid) {
+        return null;
     }
 
-    // Validate dates
-    if (isset($data['trip_date']) && strtotime($data['trip_date']) > time()) {
-        $errors[] = "Trip date cannot be in the future.";
+    $stmt = $conn->prepare('SELECT id FROM drivers WHERE eid = ? LIMIT 1');
+    if (!$stmt) {
+        return null;
     }
-    if (isset($data['start_time']) && strtotime($data['start_time']) > time()) {
-        $errors[] = "Start time cannot be in the future.";
+    $stmt->bind_param('s', $currentUserEid);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+
+    return $row ? (int)$row['id'] : null;
+}
+
+function driver_trip_get_completed_dispatch($dispatchId)
+{
+    global $conn;
+    $dispatchId = (int)$dispatchId;
+    $stmt = $conn->prepare("SELECT * FROM dispatches WHERE id = ? AND status = 'Completed' LIMIT 1");
+    if (!$stmt) {
+        return null;
     }
-    if (isset($data['end_time'])) {
-        if (strtotime($data['end_time']) > time()) {
-            $errors[] = "End time cannot be in the future.";
-        }
-        if (strtotime($data['end_time']) < strtotime($data['start_time'])) {
-            $errors[] = "End time cannot be before start time.";
-        }
-    }
-    return $errors;
+    $stmt->bind_param('i', $dispatchId);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $row = $res ? $res->fetch_assoc() : null;
+    $stmt->close();
+    return $row ?: null;
 }
 
 function calculatePerformanceScore($tripData)
@@ -301,103 +310,157 @@ function calculatePerformanceScore($tripData)
 }
 
 function driver_trip_logic($baseURL)
-{ {
-        if (isset($_GET['delete'])) {
-            deleteData('driver_trips', $_GET['delete']);
-            log_audit_event('DTP', 'delete_trip', $_GET['delete'], $_SESSION['full_name'] ?? 'unknown');
-            header("Location: {$baseURL}");
-            exit;
-        }
+{
+    global $conn;
 
-        // Clear all trip logs
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_trip_logs'])) {
-            global $conn;
-            $conn->query("DELETE FROM driver_trips");
-            log_audit_event('DTP', 'clear_trip_logs', null, $_SESSION['full_name'] ?? 'unknown');
-            $_SESSION['success_message'] = 'All trip logs cleared.';
-            header("Location: {$baseURL}");
-            exit;
-        }
-        // Step 1 & 2: Driver Submits Data & System Validation
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_trip'])) {
-            try {
-                // Debug information
-                error_log('Received POST data: ' . print_r($_POST, true));
+    if (isset($_GET['delete'])) {
+        deleteData('driver_trips', $_GET['delete']);
+        log_audit_event('DTP', 'delete_trip', $_GET['delete'], $_SESSION['full_name'] ?? 'unknown');
+        header("Location: {$baseURL}");
+        exit;
+    }
 
-                $tripData = [
-                    'driver_id' => intval($_POST['driver_id']),
-                    'vehicle_id' => intval($_POST['vehicle_id']),
-                    'trip_date' => $_POST['trip_date'],
-                    'start_time' => $_POST['start_time'],
-                    'end_time' => !empty($_POST['end_time']) ? $_POST['end_time'] : null,
-                    'distance_traveled' => floatval($_POST['distance_traveled']),
-                    'fuel_consumed' => floatval($_POST['fuel_consumed']),
-                    'idle_time' => !empty($_POST['idle_time']) ? intval($_POST['idle_time']) : 0,
-                    'cargo_weight' => isset($_POST['cargo_weight']) ? floatval($_POST['cargo_weight']) : 0,
-                    'vehicle_capacity' => isset($_POST['vehicle_capacity']) ? floatval($_POST['vehicle_capacity']) : 0
-                ];
+    // Clear all trip logs
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_trip_logs'])) {
+        global $conn;
+        $conn->query("DELETE FROM driver_trips");
+        log_audit_event('DTP', 'clear_trip_logs', null, $_SESSION['full_name'] ?? 'unknown');
+        $_SESSION['success_message'] = 'All trip logs cleared.';
+        header("Location: {$baseURL}");
+        exit;
+    }
 
-                // Calculate average speed only if we have both times
-                if (!empty($_POST['end_time'])) {
-                    $duration = abs(strtotime($_POST['end_time']) - strtotime($_POST['start_time']));
-                    if ($duration > 0) {
-                        $tripData['average_speed'] = ($tripData['distance_traveled'] / $duration) * 3600;
-                    }
-                }
+    // Step 1 & 2: Driver Submits Data & System Validation
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_trip'])) {
+        try {
+            // Debug information
+            error_log('Received POST data: ' . print_r($_POST, true));
 
-                // Debug information
-                error_log('Processed trip data: ' . print_r($tripData, true));
-
-                // Validate the data
-                $validationErrors = validateTripData($tripData);
-
-                if (empty($validationErrors)) {
-                    // Step 4: Data Storage and Processing
-                    $tripData['validation_status'] = 'valid';
-                    $tripData['performance_score'] = calculatePerformanceScore($tripData);
-
-                    $result = insertData('driver_trips', $tripData);
-                    if ($result) {
-                        global $conn;
-                        $id = $conn->insert_id;
-                        log_audit_event('DTP', 'add_trip', $id, $_SESSION['full_name'] ?? 'unknown');
-                        $_SESSION['success_message'] = "Trip data submitted successfully.";
-                        error_log('Trip data inserted successfully');
-                    } else {
-                        $_SESSION['error_message'] = "Failed to save trip data. Please try again.";
-                        error_log('Failed to insert trip data');
-                    }
-                } else {
-                    // Step 3: Invalid Data Handling
-                    $tripData['validation_status'] = 'invalid';
-                    $tripData['validation_message'] = implode(", ", $validationErrors);
-                    $_SESSION['error_message'] = "Please correct the following errors: " . implode(", ", $validationErrors);
-                    error_log('Validation errors: ' . implode(", ", $validationErrors));
-                }
-            } catch (Exception $e) {
-                error_log('Error processing trip data: ' . $e->getMessage());
-                $_SESSION['error_message'] = "An error occurred while processing your request. Please try again.";
+            if (!driver_trip_has_dispatch_id_column()) {
+                $_SESSION['error_message'] = "Database update required: add dispatch_id to driver_trips to enforce one-trip-per-dispatch.";
+                header("Location: {$baseURL}");
+                exit;
             }
 
-            header("Location: {$baseURL}");
-            exit;
+            $dispatchId = isset($_POST['dispatch_id']) ? (int)$_POST['dispatch_id'] : 0;
+            if ($dispatchId <= 0) {
+                $_SESSION['error_message'] = 'Completed Dispatch is required.';
+                header("Location: {$baseURL}");
+                exit;
+            }
+
+            $dispatch = driver_trip_get_completed_dispatch($dispatchId);
+            if (!$dispatch) {
+                $_SESSION['error_message'] = 'Dispatch not found or not completed.';
+                header("Location: {$baseURL}");
+                exit;
+            }
+
+            $currentDriverId = driver_trip_get_current_driver_id();
+            if (!empty($_SESSION['role']) && $_SESSION['role'] === 'driver') {
+                if (!$currentDriverId || (int)$dispatch['driver_id'] !== (int)$currentDriverId) {
+                    $_SESSION['error_message'] = 'Access denied: dispatch does not belong to the current driver.';
+                    header("Location: {$baseURL}");
+                    exit;
+                }
+            }
+
+            // Prevent duplicate trip per dispatch
+            $dupStmt = $conn->prepare('SELECT id FROM driver_trips WHERE dispatch_id = ? LIMIT 1');
+            if ($dupStmt) {
+                $dupStmt->bind_param('i', $dispatchId);
+                $dupStmt->execute();
+                $dupRes = $dupStmt->get_result();
+                $dupRow = $dupRes ? $dupRes->fetch_assoc() : null;
+                $dupStmt->close();
+                if ($dupRow) {
+                    $_SESSION['error_message'] = 'Trip data for this dispatch has already been submitted.';
+                    header("Location: {$baseURL}");
+                    exit;
+                }
+            }
+
+            $tripDate = substr((string)$dispatch['dispatch_date'], 0, 10);
+            $startTimeInput = trim((string)($_POST['start_time'] ?? ''));
+            $endTimeInput = trim((string)($_POST['end_time'] ?? ''));
+
+            $startDateTime = $startTimeInput !== '' ? ($tripDate . ' ' . $startTimeInput . ':00') : null;
+            $endDateTime = $endTimeInput !== '' ? ($tripDate . ' ' . $endTimeInput . ':00') : null;
+
+            $tripData = [
+                'dispatch_id' => $dispatchId,
+                'driver_id' => (int)$dispatch['driver_id'],
+                'vehicle_id' => (int)$dispatch['vehicle_id'],
+                'trip_date' => $tripDate,
+                'start_time' => $startDateTime,
+                'end_time' => $endDateTime,
+                'distance_traveled' => floatval($_POST['distance_traveled']),
+                'fuel_consumed' => floatval($_POST['fuel_consumed']),
+                'idle_time' => !empty($_POST['idle_time']) ? intval($_POST['idle_time']) : 0,
+                'cargo_weight' => isset($_POST['cargo_weight']) ? floatval($_POST['cargo_weight']) : 0,
+                'vehicle_capacity' => isset($_POST['vehicle_capacity']) ? floatval($_POST['vehicle_capacity']) : 0
+            ];
+
+            // Calculate average speed only if we have both times
+            if ($tripData['start_time'] && $tripData['end_time']) {
+                $duration = abs(strtotime($tripData['end_time']) - strtotime($tripData['start_time']));
+                if ($duration > 0) {
+                    $tripData['average_speed'] = ($tripData['distance_traveled'] / $duration) * 3600;
+                }
+            }
+
+            // Debug information
+            error_log('Processed trip data: ' . print_r($tripData, true));
+
+            // Validate the data
+            $validationErrors = validateTripData($tripData);
+
+            if (empty($validationErrors)) {
+                // Step 4: Data Storage and Processing
+                $tripData['validation_status'] = 'valid';
+                $tripData['performance_score'] = calculatePerformanceScore($tripData);
+
+                $result = insertData('driver_trips', $tripData);
+                if ($result) {
+                    global $conn;
+                    $id = $conn->insert_id;
+                    log_audit_event('DTP', 'add_trip', $id, $_SESSION['full_name'] ?? 'unknown');
+                    $_SESSION['success_message'] = "Trip data submitted successfully.";
+                    error_log('Trip data inserted successfully');
+                } else {
+                    $_SESSION['error_message'] = "Failed to save trip data. Please try again.";
+                    error_log('Failed to insert trip data');
+                }
+            } else {
+                // Step 3: Invalid Data Handling
+                $tripData['validation_status'] = 'invalid';
+                $tripData['validation_message'] = implode(", ", $validationErrors);
+                $_SESSION['error_message'] = "Please correct the following errors: " . implode(", ", $validationErrors);
+                error_log('Validation errors: ' . implode(", ", $validationErrors));
+            }
+        } catch (Exception $e) {
+            error_log('Error processing trip data: ' . $e->getMessage());
+            $_SESSION['error_message'] = "An error occurred while processing your request. Please try again.";
         }
 
-        // Step 5 & 6: Management Review
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_trip'])) {
-            $tripId = $_POST['trip_id'];
-            $reviewStatus = $_POST['review_status'];
-            $remarks = $_POST['supervisor_remarks'];
+        header("Location: {$baseURL}");
+        exit;
+    }
 
-            updateData('driver_trips', $tripId, [
-                'supervisor_review_status' => $reviewStatus,
-                'supervisor_remarks' => $remarks
-            ]);
+    // Step 5 & 6: Management Review
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['review_trip'])) {
+        $tripId = $_POST['trip_id'];
+        $reviewStatus = $_POST['review_status'];
+        $remarks = $_POST['supervisor_remarks'];
 
-            $_SESSION['success_message'] = "Trip review updated successfully.";
-            header("Location: {$baseURL}");
-            exit;
-        }
+        updateData('driver_trips', $tripId, [
+            'supervisor_review_status' => $reviewStatus,
+            'supervisor_remarks' => $remarks
+        ]);
+
+        $_SESSION['success_message'] = "Trip review updated successfully.";
+        header("Location: {$baseURL}");
+        exit;
     }
 }
 
@@ -410,7 +473,11 @@ if (isset($_POST['export_trip_data'])) {
     header('Content-Disposition: attachment; filename="trip_data_export.csv"');
     $output = fopen('php://output', 'w');
     // CSV header
-    fputcsv($output, ['Driver', 'Vehicle', 'Trip Date', 'Performance Score', 'Distance (km)', 'Fuel Consumed (L)', 'Idle Time (min)', 'Validation', 'Review Status']);
+    if (driver_trip_has_dispatch_id_column()) {
+        fputcsv($output, ['Dispatch ID', 'Driver', 'Vehicle', 'Trip Date', 'Performance Score', 'Distance (km)', 'Fuel Consumed (L)', 'Idle Time (min)', 'Validation', 'Review Status']);
+    } else {
+        fputcsv($output, ['Driver', 'Vehicle', 'Trip Date', 'Performance Score', 'Distance (km)', 'Fuel Consumed (L)', 'Idle Time (min)', 'Validation', 'Review Status']);
+    }
     $where = '';
     if ($exportType === 'driver' && $driverId) {
         $where = ' WHERE t.driver_id = ' . $driverId;
@@ -418,17 +485,32 @@ if (isset($_POST['export_trip_data'])) {
     $sql = "SELECT t.*, d.driver_name, v.vehicle_name FROM driver_trips t JOIN drivers d ON t.driver_id = d.id JOIN fleet_vehicles v ON t.vehicle_id = v.id" . $where . " ORDER BY t.created_at DESC";
     $result = $conn->query($sql);
     while ($row = $result->fetch_assoc()) {
-        fputcsv($output, [
-            $row['driver_name'],
-            $row['vehicle_name'],
-            $row['trip_date'],
-            $row['performance_score'],
-            $row['distance_traveled'],
-            $row['fuel_consumed'],
-            $row['idle_time'],
-            $row['validation_status'],
-            $row['supervisor_review_status']
-        ]);
+        if (driver_trip_has_dispatch_id_column()) {
+            fputcsv($output, [
+                $row['dispatch_id'] ?? '',
+                $row['driver_name'],
+                $row['vehicle_name'],
+                $row['trip_date'],
+                $row['performance_score'],
+                $row['distance_traveled'],
+                $row['fuel_consumed'],
+                $row['idle_time'],
+                $row['validation_status'],
+                $row['supervisor_review_status']
+            ]);
+        } else {
+            fputcsv($output, [
+                $row['driver_name'],
+                $row['vehicle_name'],
+                $row['trip_date'],
+                $row['performance_score'],
+                $row['distance_traveled'],
+                $row['fuel_consumed'],
+                $row['idle_time'],
+                $row['validation_status'],
+                $row['supervisor_review_status']
+            ]);
+        }
     }
     fclose($output);
     exit;

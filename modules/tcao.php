@@ -24,6 +24,27 @@ function tcao_view($baseURL)
 
     // Detect AJAX request
     $isAjax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
+    
+    // Handle AJAX OCR data request
+    if ($isAjax && isset($_GET['ajax']) && $_GET['ajax'] === 'ocr_data' && isset($_GET['id'])) {
+        $costId = intval($_GET['id']);
+        $cost = fetchById('transport_costs', $costId);
+        
+        if ($cost && !empty($cost['ocr_data'])) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'ocr_data' => json_decode($cost['ocr_data'], true)
+            ]);
+        } else {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'message' => 'OCR data not found'
+            ]);
+        }
+        exit;
+    }
 
     $currency = '₱'; // Could be extended to allow multiple currencies
     $user = $_SESSION['full_name'] ?? 'unknown';
@@ -81,8 +102,32 @@ function tcao_view($baseURL)
 
 
         <?php if (!empty($_SESSION['tcao_error'])): ?>
-            <div class="alert alert-error mb-2"><?= $_SESSION['tcao_error'];
-                                                unset($_SESSION['tcao_error']); ?></div>
+            <div class="alert alert-error mb-2">
+                <?= $_SESSION['tcao_error'] ?>
+                <?php 
+                unset($_SESSION['tcao_error']); 
+                
+                // Show duplicate details if available
+                if (!empty($_SESSION['duplicate_details'])):
+                    $duplicate = $_SESSION['duplicate_details'];
+                    unset($_SESSION['duplicate_details']);
+                ?>
+                <div class="mt-2 p-2 bg-red-100 rounded">
+                    <strong>Duplicate Detection Details:</strong><br>
+                    <small>
+                    <?php if (!empty($duplicate['text_duplicates'])): ?>
+                        <br>• Similar text content found (<?= round($duplicate['max_similarity']) ?>% match)
+                    <?php endif; ?>
+                    <?php if (!empty($duplicate['amount_duplicates'])): ?>
+                        <br>• Same amount detected in recent receipts
+                    <?php endif; ?>
+                    <?php if (!empty($duplicate['pattern_duplicates'])): ?>
+                        <br>• Similar merchant and amount pattern
+                    <?php endif; ?>
+                    </small>
+                </div>
+                <?php endif; ?>
+            </div>
         <?php endif; ?>
         <?php if (!empty($_SESSION['tcao_success'])): ?>
             <div class="alert alert-success mb-2"><?= $_SESSION['tcao_success'];
@@ -172,6 +217,7 @@ function tcao_view($baseURL)
                                     <th>Other</th>
                                     <th>Total</th>
                                     <th>Receipt</th>
+                                    <th>OCR</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
@@ -186,9 +232,21 @@ function tcao_view($baseURL)
                                         <td><?= $currency, number_format($c['fuel_cost'] + $c['toll_fees'] + $c['other_expenses'], 2) ?></td>
                                         <td>
                                             <?php if (!empty($c['receipt'])): ?>
-                                                <a href="./uploads/<?= htmlspecialchars($c['receipt']) ?>" target="_blank">View</a>
+                                                <a href="./uploads/<?= htmlspecialchars($c['receipt']) ?>" target="_blank" class="btn btn-xs btn-primary">View</a>
+                                                <?php if (!empty($c['ocr_data'])): ?>
+                                                    <button class="btn btn-xs btn-info ml-1" onclick="showOCRData(<?= $c['id'] ?>)">OCR</button>
+                                                <?php endif; ?>
                                             <?php else: ?>
                                                 <span class="text-gray-400">None</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if (!empty($c['ocr_confidence'])): ?>
+                                                <span class="badge badge-<?= $c['ocr_confidence'] === 'high' ? 'success' : ($c['ocr_confidence'] === 'medium' ? 'warning' : 'error') ?>">
+                                                    <?= ucfirst($c['ocr_confidence']) ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="text-gray-400">-</span>
                                             <?php endif; ?>
                                         </td>
                                         <td>
@@ -580,6 +638,83 @@ function tcao_view($baseURL)
                 }
             }
         });
+    </script>
+
+    <!-- OCR Data Modal -->
+    <dialog id="ocrDataModal" class="modal">
+        <div class="modal-box">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            </form>
+            <h3 class="font-bold text-lg mb-4">OCR Receipt Data</h3>
+            <div id="ocrDataContent">
+                <!-- OCR data will be loaded here -->
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
+
+    <script>
+        // OCR Data Modal
+        function showOCRData(costId) {
+            fetch('<?= htmlspecialchars($baseURL) ?>&ajax=ocr_data&id=' + costId)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const ocrData = data.ocr_data;
+                        let html = '<div class="space-y-4">';
+                        
+                        if (ocrData.merchant) {
+                            html += '<div><strong>Merchant:</strong> ' + ocrData.merchant + '</div>';
+                        }
+                        if (ocrData.date) {
+                            html += '<div><strong>Date:</strong> ' + ocrData.date + '</div>';
+                        }
+                        if (ocrData.total_amount > 0) {
+                            html += '<div><strong>Total Amount:</strong> ₱' + ocrData.total_amount.toFixed(2) + '</div>';
+                        }
+                        if (ocrData.fuel_amount > 0) {
+                            html += '<div><strong>Fuel Amount:</strong> ₱' + ocrData.fuel_amount.toFixed(2) + '</div>';
+                        }
+                        if (ocrData.toll_amount > 0) {
+                            html += '<div><strong>Toll Amount:</strong> ₱' + ocrData.toll_amount.toFixed(2) + '</div>';
+                        }
+                        if (ocrData.other_amount > 0) {
+                            html += '<div><strong>Other Amount:</strong> ₱' + ocrData.other_amount.toFixed(2) + '</div>';
+                        }
+                        
+                        html += '<div><strong>Confidence:</strong> <span class="badge badge-' + 
+                            (ocrData.confidence === 'high' ? 'success' : (ocrData.confidence === 'medium' ? 'warning' : 'error')) + '">' + 
+                            ocrData.confidence + '</span></div>';
+                        
+                        if (ocrData.extracted_items && ocrData.extracted_items.length > 0) {
+                            html += '<div><strong>Extracted Amounts:</strong><br>';
+                            ocrData.extracted_items.forEach(function(amount) {
+                                html += '₱' + amount.toFixed(2) + '<br>';
+                            });
+                            html += '</div>';
+                        }
+                        
+                        if (ocrData.raw_text) {
+                            html += '<div><strong>Raw OCR Text:</strong><br><textarea class="textarea textarea-bordered w-full h-32" readonly>' + 
+                                ocrData.raw_text.substring(0, 500) + 
+                                (ocrData.raw_text.length > 500 ? '...' : '') + '</textarea></div>';
+                        }
+                        
+                        html += '</div>';
+                        document.getElementById('ocrDataContent').innerHTML = html;
+                        document.getElementById('ocrDataModal').showModal();
+                    } else {
+                        alert('Failed to load OCR data: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading OCR data');
+                });
+        }
     </script>
 
 

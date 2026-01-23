@@ -7,8 +7,33 @@ function fvm_view($baseURL)
 {
     $vehicles = fetchAll('fleet_vehicles');
     $drivers = fetchAll('drivers');
+    $showArchived = isset($_GET['show_archived']) && $_GET['show_archived'] == '1';
+    $hasArchivedCol = function_exists('db_column_exists') && db_column_exists('fleet_vehicles', 'is_archived');
+    $canManageVehicles = in_array(strtolower($_SESSION['role'] ?? $_SESSION['user_role'] ?? $_SESSION['user_type'] ?? ''), ['admin', 'manager']);
+    if ($hasArchivedCol && !$showArchived) {
+        $vehicles = array_values(array_filter($vehicles, function ($v) {
+            return empty($v['is_archived']);
+        }));
+    }
     // Fetch all logs for each vehicle
     $vehicle_logs = fetchAllQuery("SELECT l.*, v.vehicle_name FROM fleet_vehicle_logs l JOIN fleet_vehicles v ON l.vehicle_id = v.id ORDER BY l.created_at DESC");
+
+    $insuranceExpiryByVehicle = [];
+    foreach (fetchAllQuery("SELECT vehicle_id, MAX(coverage_end) AS coverage_end FROM vehicle_insurance GROUP BY vehicle_id") as $row) {
+        $insuranceExpiryByVehicle[(int)$row['vehicle_id']] = $row['coverage_end'];
+    }
+
+    $registrationExpiryByVehicle = [];
+    foreach (fetchAllQuery("SELECT vehicle_id, MAX(expiry_date) AS expiry_date FROM vehicle_documents WHERE doc_type = 'Registration' GROUP BY vehicle_id") as $row) {
+        $registrationExpiryByVehicle[(int)$row['vehicle_id']] = $row['expiry_date'];
+    }
+
+    $ongoingDispatchVehicleByDriver = [];
+    foreach (fetchAllQuery(
+        "SELECT ds.driver_id, v.vehicle_name\n         FROM dispatches ds\n         JOIN fleet_vehicles v ON ds.vehicle_id = v.id\n         JOIN (\n           SELECT driver_id, MAX(dispatch_date) AS max_date\n           FROM dispatches\n           WHERE status = 'Ongoing'\n           GROUP BY driver_id\n         ) latest ON ds.driver_id = latest.driver_id AND ds.dispatch_date = latest.max_date\n         WHERE ds.status = 'Ongoing'"
+    ) as $row) {
+        $ongoingDispatchVehicleByDriver[(int)$row['driver_id']] = $row['vehicle_name'];
+    }
 
     $totalVehicles = count($vehicles);
     $activeCount = count(array_filter($vehicles, fn($v) => $v['status'] === 'Active'));
@@ -154,68 +179,56 @@ function fvm_view($baseURL)
         </dialog>
 
         <section class="card bg-base-100 shadow-xl p-4 lg:p-6 mb-8">
-    <h3 class="text-lg font-bold mb-6 text-center lg:text-left">Key Metrics</h3>
-    
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
-        <div class="stat bg-base-200 p-6 rounded-box text-primary">
-            <div class="stat-figure">
-                <i data-lucide="car" class="inline-block w-10 h-10 stroke-current"></i>
-            </div>
-            <div class="stat-title">Total Vehicles</div>
-            <div class="stat-value"><?= $totalVehicles ?></div>
-            <div class="stat-desc">Fleet size across all operations</div>
-        </div>
+            <h3 class="text-lg font-bold mb-6 text-center lg:text-left">Key Metrics</h3>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
+                <div class="stat bg-base-200 p-6 rounded-box text-primary">
+                    <div class="stat-figure">
+                        <i data-lucide="car" class="inline-block w-10 h-10 stroke-current"></i>
+                    </div>
+                    <div class="stat-title">Total Vehicles</div>
+                    <div class="stat-value"><?= $totalVehicles ?></div>
+                    <div class="stat-desc">Fleet size across all operations</div>
+                </div>
 
-        <div class="stat bg-base-200 p-6 rounded-box text-success">
-            <div class="stat-figure">
-                <i data-lucide="circle-check" class="inline-block w-10 h-10 stroke-current"></i>
-            </div>
-            <div class="stat-title">Active</div>
-            <div class="stat-value"><?= $activeCount ?></div>
-            <div class="stat-desc">Currently available for dispatch</div>
-        </div>
+                <div class="stat bg-base-200 p-6 rounded-box text-success">
+                    <div class="stat-figure">
+                        <i data-lucide="circle-check" class="inline-block w-10 h-10 stroke-current"></i>
+                    </div>
+                    <div class="stat-title">Active</div>
+                    <div class="stat-value"><?= $activeCount ?></div>
+                    <div class="stat-desc">Currently available for dispatch</div>
+                </div>
 
-        <div class="stat bg-base-200 p-6 rounded-box text-error">
-            <div class="stat-figure">
-                <i data-lucide="pause-circle" class="inline-block w-10 h-10 stroke-current"></i>
-            </div>
-            <div class="stat-title">Inactive</div>
-            <div class="stat-value"><?= $inactiveCount ?></div>
-            <div class="stat-desc">Idle or temporarily unused</div>
-        </div>
-        
-        <div class="stat bg-base-200 p-6 rounded-box text-info">
-            <div class="stat-figure">
-                <i data-lucide="navigation" class="inline-block w-10 h-10 stroke-current"></i>
-            </div>
-            <div class="stat-title">Dispatched</div>
-            <div class="stat-value"><?= $dispatchedCount ?></div>
-            <div class="stat-desc">On an active trip or delivery</div>
-        </div>
+                <div class="stat bg-base-200 p-6 rounded-box text-error">
+                    <div class="stat-figure">
+                        <i data-lucide="pause-circle" class="inline-block w-10 h-10 stroke-current"></i>
+                    </div>
+                    <div class="stat-title">Inactive</div>
+                    <div class="stat-value"><?= $inactiveCount ?></div>
+                    <div class="stat-desc">Idle or temporarily unused</div>
+                </div>
+                
+                <div class="stat bg-base-200 p-6 rounded-box text-info">
+                    <div class="stat-figure">
+                        <i data-lucide="navigation" class="inline-block w-10 h-10 stroke-current"></i>
+                    </div>
+                    <div class="stat-title">Dispatched</div>
+                    <div class="stat-value"><?= $dispatchedCount ?></div>
+                    <div class="stat-desc">On an active trip or delivery</div>
+                </div>
 
-        <div class="stat bg-base-200 p-6 rounded-box text-secondary">
-            <div class="stat-figure">
-                <i data-lucide="wrench" class="inline-block w-10 h-10 stroke-current"></i>
+                <div class="stat bg-base-200 p-6 rounded-box text-secondary">
+                    <div class="stat-figure">
+                        <i data-lucide="wrench" class="inline-block w-10 h-10 stroke-current"></i>
+                    </div>
+                    <div class="stat-title">Under Maintenance</div>
+                    <div class="stat-value"><?= $maintenanceCount ?></div>
+                    <div class="stat-desc">Scheduled or ongoing repairs</div>
+                </div>
             </div>
-            <div class="stat-title">Under Maintenance</div>
-            <div class="stat-value"><?= $maintenanceCount ?></div>
-            <div class="stat-desc">Scheduled or ongoing repairs</div>
-        </div>
-    </div>
-</section>
+        </section>
 
-        <?php if (!empty($_SESSION['fvm_success'])): ?>
-            <div class="alert alert-success mb-3">
-                <?= htmlspecialchars($_SESSION['fvm_success']) ?>
-            </div>
-            <?php unset($_SESSION['fvm_success']); ?>
-        <?php endif; ?>
-        <?php if (!empty($_SESSION['fvm_error'])): ?>
-            <div class="alert alert-error mb-3">
-                <?= htmlspecialchars($_SESSION['fvm_error']) ?>
-            </div>
-            <?php unset($_SESSION['fvm_error']); ?>
-        <?php endif; ?>
         <?php if (!empty($_SESSION['fvm_success'])): ?>
             <div class="alert alert-success mb-3">
                 <?= htmlspecialchars($_SESSION['fvm_success']) ?>
@@ -737,40 +750,6 @@ function fvm_view($baseURL)
                                                     } catch (e) {}
                                                 })();
                                             </script>
-                                            <?php
-                                            // Handle set maintenance form submission (server-side validation)
-                                            if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['adjust_maintenance_vehicle_id'], $_POST['next_maintenance_date'], $_POST['maintenance_part'])) {
-                                                $vehicleId = intval($_POST['adjust_maintenance_vehicle_id']);
-                                                $date = $_POST['next_maintenance_date'];
-                                                $part = trim($_POST['maintenance_part']);
-                                                // Basic validation
-                                                if (!($vehicleId && $date && $part)) {
-                                                    $_SESSION['fvm_error'] = 'Please fill out all maintenance details.';
-                                                } else {
-                                                    $today = new DateTime('now', new DateTimeZone('Asia/Manila'));
-                                                    $inputDate = DateTime::createFromFormat('Y-m-d', $date);
-                                                    if (!$inputDate) {
-                                                        $_SESSION['fvm_error'] = 'Invalid maintenance date.';
-                                                    } else {
-                                                        // compare dates only (ignore time)
-                                                        $today->setTime(0,0,0);
-                                                        $inputDate->setTime(0,0,0);
-                                                        if ($inputDate < $today) {
-                                                            $_SESSION['fvm_error'] = 'Maintenance date cannot be in the past.';
-                                                        } else {
-                                                            // Save to fleet_vehicle_logs as a maintenance log
-                                                            $db = getDb();
-                                                            $stmt = $db->prepare("INSERT INTO fleet_vehicle_logs (vehicle_id, log_type, details, created_at) VALUES (?, 'maintenance', ?, ?)");
-                                                            $desc = $part . ' scheduled for maintenance';
-                                                            $stmt->execute([$vehicleId, $desc, $date]);
-                                                            $_SESSION['fvm_success'] = 'Maintenance scheduled for ' . htmlspecialchars($part) . '.';
-                                                            header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
-                                                            exit;
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            ?>
                                         </dialog>
                                     </td>
                                 </tr>
@@ -787,7 +766,19 @@ function fvm_view($baseURL)
 
         <!-- Vehicle Table -->
         <div class="overflow-x-auto bg-base-100 rounded-xl border border-base-300 shadow-lg">
-            <h3 class="text-lg font-bold mb-2 px-4 pt-4 tracking-tight">Fleet Vehicles</h3>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-4 pt-4">
+                <h3 class="text-lg font-bold tracking-tight">Fleet Vehicles</h3>
+                <div class="flex flex-col sm:flex-row gap-2 sm:items-center w-full sm:w-auto">
+                    <input id="vehicleSearch" type="text" class="input input-bordered input-sm w-full sm:w-64 mb-3" placeholder="Search vehicles...">
+                    <?php if ($canManageVehicles && $hasArchivedCol): ?>
+                        <?php if ($showArchived): ?>
+                            <a class="btn btn-outline btn-sm" href="<?= htmlspecialchars($baseURL) ?>">Hide Archived</a>
+                        <?php else: ?>
+                            <a class="btn btn-outline btn-sm" href="<?= htmlspecialchars($baseURL . '&show_archived=1') ?>">Show Archived</a>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
             <table class="table table-zebra table-sm md:table-md w-full" id="vehicleTable">
                 <thead class="bg-base-200 text-xs uppercase text-base-content/70 sticky top-0 z-10">
                     <tr>
@@ -814,8 +805,8 @@ function fvm_view($baseURL)
                             <td class="whitespace-nowrap"><?= htmlspecialchars($v['weight_capacity'] ?? '-') ?>kg</td>
                             <td class="whitespace-nowrap"><?= htmlspecialchars($v['fuel_capacity'] ?? '-') ?>L</td>
                             <?php
-                                $ins = fetchOneQuery("SELECT coverage_end FROM vehicle_insurance WHERE vehicle_id = ? ORDER BY coverage_end DESC LIMIT 1", [$v['id']]);
-                                $reg = fetchOneQuery("SELECT expiry_date FROM vehicle_documents WHERE vehicle_id = ? AND doc_type = 'Registration' ORDER BY expiry_date DESC LIMIT 1", [$v['id']]);
+                                $ins = !empty($insuranceExpiryByVehicle[(int)$v['id']]) ? ['coverage_end' => $insuranceExpiryByVehicle[(int)$v['id']]] : null;
+                                $reg = !empty($registrationExpiryByVehicle[(int)$v['id']]) ? ['expiry_date' => $registrationExpiryByVehicle[(int)$v['id']]] : null;
                             ?>
                             <?php
                                 $today = new DateTime('now', new DateTimeZone('Asia/Manila'));
@@ -848,7 +839,8 @@ function fvm_view($baseURL)
 
                             <td>
                                 <?php
-                                $status = $v['status'];
+                                $isArchived = $hasArchivedCol && !empty($v['is_archived']);
+                                $status = $isArchived ? 'Archived' : ($v['status'] ?? '');
                                 $badgeClass = 'badge p-3 font-bold text-nowrap';
                                 if ($status === 'Active') {
                                     $badgeClass .= ' badge-success';
@@ -856,6 +848,8 @@ function fvm_view($baseURL)
                                     $badgeClass .= ' badge-error ';
                                 } elseif ($status === 'Under Maintenance') {
                                     $badgeClass .= ' badge-warning';
+                                } elseif ($status === 'Archived') {
+                                    $badgeClass .= ' badge-neutral';
                                 } else {
                                     $badgeClass .= ' badge-info';
                                 }
@@ -869,6 +863,17 @@ function fvm_view($baseURL)
                                     <button class="btn btn-sm btn-info btn-circle" onclick="document.getElementById('view_modal_<?= $v['id'] ?>').showModal()" title="View">
                                         <i data-lucide="eye" class="w-4 h-4"></i>
                                     </button>
+                                    <?php if ($canManageVehicles && $hasArchivedCol): ?>
+                                        <?php if (!empty($v['is_archived'])): ?>
+                                            <a class="btn btn-sm btn-outline" href="<?= htmlspecialchars($baseURL . '&unarchive=' . $v['id']) ?>" onclick="return confirm('Unarchive this vehicle?')" title="Unarchive">
+                                                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                                            </a>
+                                        <?php else: ?>
+                                            <a class="btn btn-sm btn-outline" href="<?= htmlspecialchars($baseURL . '&archive=' . $v['id']) ?>" onclick="return confirm('Archive this vehicle?')" title="Archive">
+                                                <i data-lucide="archive" class="w-4 h-4"></i>
+                                            </a>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
                                 </div>
 
 
@@ -881,7 +886,7 @@ function fvm_view($baseURL)
                                         <h3 class="font-bold text-lg mb-4">Vehicle Information</h3>
                                         <div class="mb-2"><strong>Name:</strong> <?= htmlspecialchars($v['vehicle_name']) ?></div>
                                         <div class="mb-2"><strong>Plate Number:</strong> <?= htmlspecialchars($v['plate_number']) ?></div>
-                                        <div class="mb-2"><strong>Status:</strong> <?= htmlspecialchars($v['status']) ?></div>
+                                        <div class="mb-2"><strong>Status:</strong> <?= htmlspecialchars(($hasArchivedCol && !empty($v['is_archived'])) ? 'Archived' : ($v['status'] ?? '')) ?></div>
                                         <?php if (!empty($v['vehicle_image'])): ?>
                                             <div class="mb-2"><strong>Image:</strong><br>
                                                 <img src="<?= htmlspecialchars($v['vehicle_image']) ?>" alt="Vehicle Image" style="max-width: 220px; max-height: 160px; border-radius: 8px; border: 1px solid #ccc;" />
@@ -1170,7 +1175,7 @@ function fvm_view($baseURL)
                 </tbody>
             </table>
             <!-- Pagination Controls -->
-            <div class="flex justify-center mt-4 gap-2" id="paginationControls"></div>
+            <div class="flex justify-center mt-4 gap-2 mb-5" id="paginationControls"></div>
 
             <script>
                 document.addEventListener("DOMContentLoaded", function() {
@@ -1178,23 +1183,43 @@ function fvm_view($baseURL)
                     const tableBody = document.getElementById("vehicleBody");
                     const rows = tableBody.querySelectorAll("tr");
                     const paginationControls = document.getElementById("paginationControls");
-                    const totalPages = Math.ceil(rows.length / rowsPerPage);
                     let currentPage = 1;
 
-                    function showPage(page) {
-                        currentPage = page;
-                        let start = (page - 1) * rowsPerPage;
-                        let end = start + rowsPerPage;
+                    const searchInput = document.getElementById('vehicleSearch');
 
-                        rows.forEach((row, i) => {
-                            row.style.display = (i >= start && i < end) ? "" : "none";
-                        });
-
-                        renderPagination();
+                    function getFilteredRows() {
+                        const q = (searchInput && searchInput.value ? searchInput.value : '').trim().toLowerCase();
+                        if (!q) return Array.from(rows);
+                        return Array.from(rows).filter(r => (r.textContent || '').toLowerCase().includes(q));
                     }
 
-                    function renderPagination() {
+                    function showPage(page) {
+                        const filtered = getFilteredRows();
+                        const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
+                        currentPage = Math.min(Math.max(1, page), totalPages);
+
+                        const start = (currentPage - 1) * rowsPerPage;
+                        const end = start + rowsPerPage;
+
+                        rows.forEach((row) => {
+                            row.style.display = "none";
+                        });
+                        filtered.forEach((row, idx) => {
+                            row.style.display = (idx >= start && idx < end) ? "" : "none";
+                        });
+
+                        renderPagination(totalPages);
+                    }
+
+                    function renderPagination(totalPages) {
                         paginationControls.innerHTML = "";
+
+                        const prev = document.createElement('button');
+                        prev.textContent = 'Prev';
+                        prev.className = 'btn btn-sm btn-outline';
+                        prev.disabled = currentPage <= 1;
+                        prev.onclick = () => showPage(currentPage - 1);
+                        paginationControls.appendChild(prev);
 
                         for (let i = 1; i <= totalPages; i++) {
                             const btn = document.createElement("button");
@@ -1203,6 +1228,19 @@ function fvm_view($baseURL)
                             btn.onclick = () => showPage(i);
                             paginationControls.appendChild(btn);
                         }
+
+                        const next = document.createElement('button');
+                        next.textContent = 'Next';
+                        next.className = 'btn btn-sm btn-outline';
+                        next.disabled = currentPage >= totalPages;
+                        next.onclick = () => showPage(currentPage + 1);
+                        paginationControls.appendChild(next);
+                    }
+
+                    if (searchInput) {
+                        searchInput.addEventListener('input', function() {
+                            showPage(1);
+                        });
                     }
 
                     showPage(1);
@@ -1241,17 +1279,16 @@ function fvm_view($baseURL)
                                     $badgeClass .= ' badge-secondary';
                                 }
                                 ?>
-                                <span class="<?= $badgeClass ?>"><?= htmlspecialchars($status) ?></span>
+                                <span class="<?= $badgeClass ?>">
+                                    <?= htmlspecialchars($status) ?>
+                                </span>
                             </td>
                             <td>
                                 <?php
                                 // Find assigned vehicle if dispatched
                                 $assigned = '';
                                 if ($d['status'] === 'Dispatched') {
-                                    $dispatch = fetchOneQuery("SELECT v.vehicle_name FROM dispatches ds JOIN fleet_vehicles v ON ds.vehicle_id = v.id WHERE ds.driver_id = ? AND ds.status = 'Ongoing' ORDER BY ds.dispatch_date DESC LIMIT 1", [$d['id']]);
-                                    if ($dispatch && isset($dispatch['vehicle_name'])) {
-                                        $assigned = $dispatch['vehicle_name'];
-                                    }
+                                    $assigned = $ongoingDispatchVehicleByDriver[(int)$d['id']] ?? '';
                                 }
                                 echo $assigned ? htmlspecialchars($assigned) : '<span class="opacity-50">None</span>';
                                 ?>
