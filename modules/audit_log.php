@@ -241,10 +241,39 @@ function audit_log_view()
     if ($page > 1) {
         echo '<a href="dashboard.php?module=audit_log&page=' . ($page - 1) . '&' . $sort_params . $filter_string . '" class="join-item btn btn-sm">Prev</a>';
     }
-    for ($i = 1; $i <= $total_pages; $i++) {
-        $active = ($i == $page) ? 'btn-primary' : '';
-        echo '<a href="dashboard.php?module=audit_log&page=' . $i . '&' . $sort_params . $filter_string . '" class="join-item btn btn-sm ' . $active . '">' . $i . '</a>';
+
+    // Smart pagination - show first, last, current page +/- 2
+    $pages_to_show = [];
+    $range = 2;
+
+    // Always add first page
+    $pages_to_show[] = 1;
+
+    // Add pages around current page
+    for ($i = max(2, $page - $range); $i <= min($total_pages - 1, $page + $range); $i++) {
+        if (!in_array($i, $pages_to_show)) {
+            $pages_to_show[] = $i;
+        }
     }
+
+    // Always add last page
+    if ($total_pages > 1 && !in_array($total_pages, $pages_to_show)) {
+        $pages_to_show[] = $total_pages;
+    }
+
+    sort($pages_to_show);
+
+    // Display pages with ellipsis
+    $prev_page = 0;
+    foreach ($pages_to_show as $p) {
+        if ($p - $prev_page > 1) {
+            echo '<button class="join-item btn btn-sm btn-disabled">...</button>';
+        }
+        $active = ($p == $page) ? 'btn-primary' : '';
+        echo '<a href="dashboard.php?module=audit_log&page=' . $p . '&' . $sort_params . $filter_string . '" class="join-item btn btn-sm ' . $active . '">' . $p . '</a>';
+        $prev_page = $p;
+    }
+
     if ($page < $total_pages) {
         echo '<a href="dashboard.php?module=audit_log&page=' . ($page + 1) . '&' . $sort_params . $filter_string . '" class="join-item btn btn-sm">Next</a>';
     }
