@@ -2,6 +2,7 @@
 session_start();
 require_once 'db.php'; // DB connection
 require_once 'mailer.php'; // Mailer functions
+require_once 'security_lockout.php'; // Account lockout & rate limiting
 require_once dirname(__DIR__) . '/modules/audit_log.php'; // Audit log functions
 
 // Helper: sanitize input
@@ -16,6 +17,19 @@ function ua_hash(): string
     return hash('sha256', $_SERVER['HTTP_USER_AGENT'] ?? '');
 }
 
+// Get client IP address
+$clientIP = getClientIP();
+
+// ============================================
+// 1. CHECK IP RATE LIMITING
+// ============================================
+$ipLimitCheck = isIPRateLimited($clientIP);
+if ($ipLimitCheck['is_limited']) {
+    $_SESSION['error'] = $ipLimitCheck['message'];
+    $_SESSION['eid'] = sanitize($_POST['eid'] ?? '');
+    header("Location: ../login.php");
+    exit();
+}
 
 $eid = sanitize($_POST['eid'] ?? '');
 $password = $_POST['password'] ?? '';
@@ -79,7 +93,27 @@ try {
     $result = $stmt->get_result();
     $user = $result->fetch_assoc();
 
+    // ============================================
+    // 2. CHECK ACCOUNT LOCKOUT STATUS
+    // ============================================
+    if ($user) {
+        $lockoutCheck = isAccountLocked($user['id'], $user['email']);
+        if ($lockoutCheck['is_locked']) {
+            $_SESSION['error'] = $lockoutCheck['message'];
+            $_SESSION['eid'] = $eid;
+            // Still count this as a failed attempt for rate limiting
+            recordFailedLoginAttempt($user['email'], $clientIP, 'Account locked');
+            header("Location: ../login.php");
+            exit();
+        }
+    }
+
+    // ============================================
+    // 3. VERIFY CREDENTIALS
+    // ============================================
     if ($user && password_verify($password, $user['password'])) {
+        // Clear failed login attempts on successful authentication
+        clearFailedLoginAttempts($user['email']);
 
         /*** Hybrid trust check: cookie + fingerprint ***/
         if (!empty($_COOKIE['device_token'])) {
@@ -106,7 +140,6 @@ try {
                 $_SESSION['role']     = $user['role'];
                 $_SESSION['full_name'] = $user['full_name'];
                 $_SESSION['current_module'] = 'dashboard';
-
 
                 log_audit_event('Authentication', 'Login', $user['id'], $eid, 'User logged in via trusted device');
                 header("Location: ../dashboard.php");
@@ -141,8 +174,19 @@ try {
             exit();
         }
     } else {
-        $_SESSION['error'] = "Invalid email or password.";
-        log_audit_event('User Management', 'Failed Attempt', $user['id'], $eid, 'Invalid EID or password');
+        // ============================================
+        // 4. RECORD FAILED LOGIN ATTEMPT
+        // ============================================
+        if ($user) {
+            recordFailedLoginAttempt($user['email'], $clientIP, 'Invalid password');
+            $_SESSION['error'] = "Invalid email or password.";
+            log_audit_event('User Management', 'Failed Attempt', $user['id'], $eid, 'Invalid password entered');
+        } else {
+            // User not found - still record attempt and check IP rate limit
+            recordFailedLoginAttempt($eid, $clientIP, 'User not found');
+            $_SESSION['error'] = "Invalid email or password.";
+            // Don't log which email doesn't exist (security best practice)
+        }
         $_SESSION['eid'] = $eid;
         header("Location: ../login.php");
         exit();

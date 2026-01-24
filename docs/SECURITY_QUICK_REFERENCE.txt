@@ -1,0 +1,207 @@
+# Account Lockout Security - Quick Reference
+
+## Installation (5 minutes)
+
+```bash
+# 1. Import database schema
+mysql -u root -p logistics2_db < database/account_lockout.sql
+
+# 2. Create logs directory (optional)
+mkdir logs && chmod 755 logs
+
+# 3. Test: Try wrong password 5 times → Account should lock
+```
+
+## Configuration
+
+Edit `includes/security_config.php` to customize:
+
+```php
+// Lock after 5 failed attempts
+MAX_FAILED_ATTEMPTS = 5
+
+// Lock for 15 minutes
+LOCKOUT_DURATION_MINUTES = 15
+
+// Block IP after 20 attempts/hour
+IP_RATE_LIMIT_ATTEMPTS = 20
+IP_RATE_LIMIT_WINDOW_MINUTES = 60
+```
+
+## Admin Tasks
+
+### Unlock Account
+```php
+require_once 'modules/lock_management.php';
+adminUnlockAccount($userId, 'User verified', $adminId);
+```
+
+### View Locked Accounts
+```php
+$locked = getAllLockedAccounts();
+foreach ($locked as $a) {
+    echo "{$a['email']} - {$a['locked_until']}\n";
+}
+```
+
+### Get Security Stats
+```php
+$stats = getSecurityStats();
+echo "Locked: " . $stats['currently_locked'];
+echo "Failed (24h): " . $stats['failed_attempts_24h'];
+echo "Lockouts (7d): " . $stats['lockouts_7days'];
+```
+
+### View Login History
+```php
+$history = getUserLoginHistory('user@example.com', 30);
+```
+
+## Database Tables
+
+| Table | Purpose |
+|-------|---------|
+| `failed_login_attempts` | Tracks all failed login attempts |
+| `account_lockouts` | Records account lockout events |
+| `ip_rate_limits` | Tracks attempts per IP |
+| `users` (modified) | Added lockout columns |
+
+## Security Flow
+
+```
+User Login
+  ↓
+1. Check IP Rate Limit → Blocked? Show error
+  ↓
+2. Get user from DB
+  ↓
+3. Check account lockout → Locked? Show error
+  ↓
+4. Verify password
+  ↓
+  ├─ Wrong? Record attempt → Hit max? Lock account
+  └─ Correct? Clear attempts → Send OTP
+```
+
+## Key Functions
+
+### In `security_lockout.php`
+
+| Function | Purpose |
+|----------|---------|
+| `getClientIP()` | Get user's IP address |
+| `isAccountLocked()` | Check if account is locked |
+| `isIPRateLimited()` | Check if IP is rate limited |
+| `recordFailedLoginAttempt()` | Log failed attempt and check lockout |
+| `lockAccount()` | Lock account |
+| `unlockAccount()` | Unlock account |
+| `getLoginAttemptStats()` | Get attempt statistics |
+
+### In `lock_management.php`
+
+| Function | Purpose |
+|----------|---------|
+| `getAllLockedAccounts()` | Get all locked accounts |
+| `adminUnlockAccount()` | Admin unlock account |
+| `getUserLoginHistory()` | View attempt history |
+| `getSecurityStats()` | Get dashboard statistics |
+| `getMostTargetedAccounts()` | Get most attacked accounts |
+
+## Error Messages
+
+### User Sees:
+```
+"Account is temporarily locked due to too many failed login attempts. 
+Please try again in 15 minutes."
+
+"Too many login attempts from your IP address. 
+Please try again in 15 minutes."
+```
+
+### Admin Panel Shows:
+- All locked accounts with reasons
+- When they locked and unlock times
+- How many failed attempts
+- Who unlocked them and why
+
+## Testing Checklist
+
+- [ ] Import SQL schema
+- [ ] Try wrong password 5 times → Account locks
+- [ ] Wait 15 minutes or admin unlock
+- [ ] Make 20 attempts from same IP → IP blocks
+- [ ] Admin can unlock accounts
+- [ ] Check failed_login_attempts table
+- [ ] Check account_lockouts table
+
+## Files
+
+**Core Files:**
+- `includes/security_lockout.php` - Main implementation
+- `includes/security_config.php` - Configuration
+- `modules/lock_management.php` - Admin tools
+- `database/account_lockout.sql` - Database schema
+
+**Modified:**
+- `includes/validate_login.php` - Integration
+
+**Documentation:**
+- `docs/ACCOUNT_LOCKOUT.md` - Full guide
+- `docs/ACCOUNT_LOCKOUT_INSTALLATION.md` - Setup guide
+
+## Common Issues
+
+**"Column doesn't exist"**
+→ Re-run: `mysql -u root -p logistics2_db < database/account_lockout.sql`
+
+**Users locked out too often**
+→ Increase `MAX_FAILED_ATTEMPTS` from 5 to 7-10
+
+**IP rate limit too strict**
+→ Increase `IP_RATE_LIMIT_ATTEMPTS` from 20 to 30-50
+
+**Can't unlock account**
+→ Check `users` table - `account_locked` should be 1
+→ Check `locked_until` timestamp
+
+## Monitoring
+
+**Daily:**
+- Check locked accounts count
+- Review suspicious IPs
+- Check email notifications
+
+**Weekly:**
+- Review most targeted accounts
+- Check failed attempt patterns
+- Update IP whitelist if needed
+
+**Monthly:**
+- Generate security report
+- Archive logs
+- Review and adjust settings
+
+## Emergency Reset
+
+Only if absolutely necessary:
+```php
+require_once 'modules/lock_management.php';
+resetAllLocks($adminId);
+```
+
+This unlocks ALL accounts and resets ALL IP limits.
+
+## Security Levels
+
+**High (Banks)**: 3 attempts, 60 min lockout
+**Balanced**: 5 attempts, 15 min lockout
+**Friendly**: 10 attempts, 10 min lockout
+
+Change in `security_config.php`
+
+## Support
+
+1. Check logs: `logs/failed_login_attempts.log`
+2. Review failed_login_attempts table
+3. Check security_config.php settings
+4. Read ACCOUNT_LOCKOUT.md documentation
