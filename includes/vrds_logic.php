@@ -1,6 +1,7 @@
 <?php
 /////////////////////////////////////////START OF VRDS LOGIC
-function vrds_logic($baseURL) {
+function vrds_logic($baseURL)
+{
 
     $role = $_SESSION['role'] ?? '';
     $driverRecordId = null;
@@ -75,7 +76,7 @@ function vrds_logic($baseURL) {
             }
         }
         $conn->query("UPDATE dispatches SET status = 'Cancelled' WHERE status <> 'Completed'");
-        log_audit_event('VRDS', 'cancel_all_dispatches', null, $_SESSION['full_name'] ?? 'unknown');
+        log_audit_event('VRDS', 'cancel_all_dispatches', null, $_SESSION['full_name'] ?? 'unknown', 'All ongoing dispatches were cancelled');
         $_SESSION['success_message'] = 'All ongoing dispatches were cancelled.';
         header("Location: {$baseURL}");
         exit;
@@ -85,13 +86,13 @@ function vrds_logic($baseURL) {
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_vehicle'])) {
 
-    if ($role === 'driver') {
+        if ($role === 'driver') {
             $_SESSION['error_message'] = 'Access denied. Drivers cannot request vehicles.';
             header("Location: {$baseURL}");
             exit;
         }
 
-    $requester_id = $_SESSION['user_id'] ?? 0;
+        $requester_id = $_SESSION['user_id'] ?? 0;
 
         if (!$requester_id || !is_numeric($requester_id)) {
 
@@ -100,7 +101,6 @@ function vrds_logic($baseURL) {
             header("Location: {$baseURL}");
 
             exit;
-
         }
 
         $purpose = trim($_POST['purpose'] ?? '');
@@ -140,16 +140,15 @@ function vrds_logic($baseURL) {
             header("Location: {$baseURL}");
 
             exit;
-
         }
 
-    $stmt->bind_param("isssssddddss", $requester_id, $reservation_date, $expected_return, $purpose, $origin, $destination, $origin_lat, $origin_lon, $destination_lat, $destination_lon, $requested_vehicle_type, $notes);
+        $stmt->bind_param("isssssddddss", $requester_id, $reservation_date, $expected_return, $purpose, $origin, $destination, $origin_lat, $origin_lon, $destination_lat, $destination_lon, $requested_vehicle_type, $notes);
 
         $ok = $stmt->execute();
 
         if ($ok) {
 
-            log_audit_event('VRDS', 'request_vehicle', $conn->insert_id, $_SESSION['full_name'] ?? 'unknown');
+            log_audit_event('VRDS', 'request_vehicle', $conn->insert_id, $_SESSION['full_name'] ?? 'unknown', 'New vehicle request submitted');
 
             // 2. System checks availability and recommends
 
@@ -172,7 +171,6 @@ function vrds_logic($baseURL) {
                 if ($user && !empty($user['email'])) sendEmail($user['email'], 'Vehicle Request Received', $msg);
 
                 $_SESSION['success_message'] = $msg;
-
             } else {
 
                 $msg = "Your vehicle request cannot be fulfilled at this time. No available vehicle/driver.";
@@ -180,13 +178,10 @@ function vrds_logic($baseURL) {
                 if ($user && !empty($user['email'])) sendEmail($user['email'], 'Vehicle Request Denied', $msg);
 
                 $_SESSION['error_message'] = $msg;
-
             }
-
         } else {
 
             $_SESSION['error_message'] = 'Failed to submit request: ' . $stmt->error;
-
         }
 
         $stmt->close();
@@ -194,7 +189,6 @@ function vrds_logic($baseURL) {
         header("Location: {$baseURL}");
 
         exit;
-
     }
 
 
@@ -215,7 +209,7 @@ function vrds_logic($baseURL) {
 
         $driver_id = intval($_POST['driver_id'] ?? 0);
 
-    $officer_id = $_SESSION['user_id'] ?? 1;
+        $officer_id = $_SESSION['user_id'] ?? 1;
 
         $request = fetchById('vehicle_requests', $request_id);
 
@@ -226,7 +220,6 @@ function vrds_logic($baseURL) {
             header("Location: {$baseURL}");
 
             exit;
-
         }
 
         if ($vehicle_id <= 0 || $driver_id <= 0) {
@@ -300,8 +293,7 @@ function vrds_logic($baseURL) {
 
             $dispatch_id = $conn->insert_id;
 
-            log_audit_event('VRDS', 'approve_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown');
-
+            log_audit_event('VRDS', 'approve_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown', 'Vehicle request approved and dispatch created');
         }
 
         // 5. Notify driver
@@ -311,7 +303,6 @@ function vrds_logic($baseURL) {
             $msg = "You have been assigned a new trip. Purpose: {$request['purpose']}, Origin: {$request['origin']}, Destination: {$request['destination']}.";
 
             sendEmail($driver['email'], 'New Trip Assignment', $msg);
-
         }
 
         // 6. Notify requester
@@ -334,7 +325,6 @@ function vrds_logic($baseURL) {
             $msg = "Your vehicle request has been approved and assigned. Vehicle: $vehicleName, Driver: $driverName.";
 
             sendEmail($user['email'], 'Vehicle Request Approved', $msg);
-
         }
 
         $_SESSION['success_message'] = "Request approved and dispatch created.";
@@ -342,7 +332,6 @@ function vrds_logic($baseURL) {
         header("Location: {$baseURL}");
 
         exit;
-
     }
 
 
@@ -368,21 +357,19 @@ function vrds_logic($baseURL) {
             updateData('drivers', $dispatch['driver_id'], ['status' => 'Available']);
 
             updateData('vehicle_requests', $dispatch['request_id'], ['status' => 'Pending']);
-
         }
 
         if ($dispatch && ($dispatch['status'] ?? '') !== 'Completed') {
             updateData('dispatches', $dispatch_id, ['status' => 'Cancelled']);
         }
 
-        log_audit_event('VRDS', 'cancel_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown');
+        log_audit_event('VRDS', 'cancel_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown', 'Dispatch cancelled');
 
         $_SESSION['success_message'] = "Dispatch cancelled.";
 
         header("Location: {$baseURL}");
 
         exit;
-
     }
 
 
@@ -411,53 +398,49 @@ function vrds_logic($baseURL) {
 
             updateData('drivers', $dispatch['driver_id'], ['status' => 'Available']);
 
-            log_audit_event('VRDS', 'complete_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown');
+            log_audit_event('VRDS', 'complete_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown', 'Dispatch completed');
 
             $_SESSION['success_message'] = "Dispatch marked as completed.";
-
         } else {
 
             $_SESSION['error_message'] = "Dispatch not found or not ongoing.";
-
         }
 
         header("Location: {$baseURL}");
 
         exit;
-
     }
-
 }
 
 
 // 9. Officer can clear all dispatch logs
-  if (isset($_GET['remove_request'])) {
-        if ($role === 'driver') {
-            $_SESSION['error_message'] = 'Access denied.';
-            header("Location: {$baseURL}");
-            exit;
-        }
-        $remove_id = (int)$_GET['remove_request'];
-        $req = fetchById('vehicle_requests', $remove_id);
-        // Only allow delete if status is Pending or Approved
-        if ($req && ($req['status'] === 'Pending' || $req['status'] === 'Approved')) {
-            // If approved, also delete any associated dispatches
-            if ($req['status'] === 'Approved') {
-                $dispatches = fetchAll('dispatches');
-                foreach ($dispatches as $dispatch) {
-                    if ($dispatch['request_id'] == $remove_id) {
-                        deleteData('dispatches', $dispatch['id']);
-                    }
-                }
-            }
-            deleteData('vehicle_requests', $remove_id);
-            $_SESSION['success_message'] = "Vehicle request removed.";
-        }
+if (isset($_GET['remove_request'])) {
+    if ($role === 'driver') {
+        $_SESSION['error_message'] = 'Access denied.';
         header("Location: {$baseURL}");
         exit;
     }
+    $remove_id = (int)$_GET['remove_request'];
+    $req = fetchById('vehicle_requests', $remove_id);
+    // Only allow delete if status is Pending or Approved
+    if ($req && ($req['status'] === 'Pending' || $req['status'] === 'Approved')) {
+        // If approved, also delete any associated dispatches
+        if ($req['status'] === 'Approved') {
+            $dispatches = fetchAll('dispatches');
+            foreach ($dispatches as $dispatch) {
+                if ($dispatch['request_id'] == $remove_id) {
+                    deleteData('dispatches', $dispatch['id']);
+                }
+            }
+        }
+        deleteData('vehicle_requests', $remove_id);
+        $_SESSION['success_message'] = "Vehicle request removed.";
+    }
+    header("Location: {$baseURL}");
+    exit;
+}
 
-    // VRDS Batch delete dispatch logs
+// VRDS Batch delete dispatch logs
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_selected_dispatches']) && !empty($_POST['dispatch_ids'])) {
     if (($_SESSION['role'] ?? '') === 'driver') {
         $_SESSION['error_message'] = 'Access denied.';
@@ -476,7 +459,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_selected_dispa
         if ($dispatch && ($dispatch['status'] ?? '') !== 'Completed') {
             updateData('dispatches', $dispatch_id, ['status' => 'Cancelled']);
         }
-        log_audit_event('VRDS', 'cancel_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown');
+        log_audit_event('VRDS', 'cancel_dispatch', $dispatch_id, $_SESSION['full_name'] ?? 'unknown', 'Dispatch cancelled');
     }
     $_SESSION['success_message'] = count($ids) . " dispatch(es) cancelled.";
     header("Location: {$baseURL}");
@@ -515,5 +498,3 @@ function recommend_assignment($vehicle_type = null, $vehicles = null, $drivers =
     return ['vehicle' => $vehicle, 'driver' => $driver];
 }
 //////////////////////////////////////////END OF VRDS LOGIC
-
-

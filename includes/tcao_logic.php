@@ -15,7 +15,7 @@ function tcao_logic($baseURL)
     // Handle delete (admin only)
     if (isset($_GET['delete'])) {
         deleteData('transport_costs', $_GET['delete']);
-        log_audit_event('TCAO', 'deleted', $_GET['delete'], $user);
+        log_audit_event('TCAO', 'deleted', $_GET['delete'], $user, 'Cost entry deleted');
         header("Location: {$baseURL}");
         exit;
     }
@@ -37,10 +37,10 @@ function tcao_logic($baseURL)
         $role = $_GET['role'];
         if ($role === 'supervisor') {
             $conn->query("UPDATE transport_costs SET status='supervisor_approved' WHERE id=$id");
-            log_audit_event('TCAO', 'supervisor_approved', $id, $user);
+            log_audit_event('TCAO', 'supervisor_approved', $id, $user, 'Approved by supervisor');
         } elseif ($role === 'accountant') {
             $conn->query("UPDATE transport_costs SET status='finalized' WHERE id=$id");
-            log_audit_event('TCAO', 'finalized', $id, $user);
+            log_audit_event('TCAO', 'finalized', $id, $user, 'Finalized by accountant');
         }
         header("Location: {$baseURL}");
         exit;
@@ -49,7 +49,7 @@ function tcao_logic($baseURL)
         $id = intval($_GET['return']);
         $role = $_GET['role'];
         $conn->query("UPDATE transport_costs SET status='returned' WHERE id=$id");
-        log_audit_event('TCAO', 'returned_by_' . $role, $id, $user);
+        log_audit_event('TCAO', 'returned_by_' . $role, $id, $user, 'Returned by ' . $role);
         header("Location: {$baseURL}");
         exit;
     }
@@ -65,22 +65,22 @@ function tcao_logic($baseURL)
         $receipt_path = null;
         $ocr_data = null;
         $duplicate_result = null;
-        
+
         if (isset($_FILES['receipt']) && $_FILES['receipt']['error'] === UPLOAD_ERR_OK) {
             $ext = pathinfo($_FILES['receipt']['name'], PATHINFO_EXTENSION);
             $target = __DIR__ . '/../uploads/receipts_' . uniqid() . '.' . $ext;
             if (!is_dir(__DIR__ . '/../uploads')) mkdir(__DIR__ . '/../uploads');
             move_uploaded_file($_FILES['receipt']['tmp_name'], $target);
             $receipt_path = basename($target);
-            
+
             // Check for duplicates before processing
             try {
                 $detector = new ReceiptDuplicateDetector($conn);
                 $duplicate_result = $detector->checkDuplicate($target, $_POST, $user);
-                
+
                 // Log the duplicate check for audit
                 $detector->logDuplicateCheck($user, $target, $duplicate_result);
-                
+
                 // If duplicate detected, block submission and show warning
                 if ($duplicate_result['is_duplicate']) {
                     $_SESSION['tcao_error'] = 'Potential duplicate receipt detected! This receipt appears to be similar to a previously submitted receipt.';
@@ -89,17 +89,17 @@ function tcao_logic($baseURL)
                     header("Location: {$baseURL}");
                     exit;
                 }
-                
+
                 // Process receipt with OCR (cloud first, then local fallback)
                 $ocr_data = null;
-                
+
                 // Try cloud OCR services first
                 $cloudProviders = [
                     'tesseract' => 'YOUR_OCR_SPACE_API_KEY', // Free tier: 25,000 requests/month
                     'google' => 'YOUR_GOOGLE_VISION_API_KEY', // Paid: $1.50 per 1000 images
                     'azure' => 'YOUR_AZURE_VISION_KEY', // Paid: varies by region
                 ];
-                
+
                 foreach ($cloudProviders as $provider => $apiKey) {
                     if (!empty($apiKey) && $apiKey !== 'YOUR_' . strtoupper($provider) . '_API_KEY') {
                         try {
@@ -115,7 +115,7 @@ function tcao_logic($baseURL)
                         }
                     }
                 }
-                
+
                 // Fallback to local Tesseract if cloud OCR failed
                 if (!$ocr_data) {
                     try {
@@ -128,7 +128,7 @@ function tcao_logic($baseURL)
                         error_log("Local OCR failed: " . $e->getMessage());
                     }
                 }
-                
+
                 // Auto-fill amounts if OCR provides good data
                 if ($ocr_data && ($ocr_data['confidence'] === 'high' || $ocr_data['confidence'] === 'medium')) {
                     if ($ocr_data['fuel_amount'] > 0 && $fuel == 0) {
@@ -167,7 +167,7 @@ function tcao_logic($baseURL)
         $stmt->bind_param('sdddssssss', $_POST['trip_id'], $fuel, $toll, $other, $total, $receipt_path, $ocr_json, $ocr_confidence, $user);
         $stmt->execute();
         $cost_id = $stmt->insert_id;
-        
+
         // Add OCR success message if data was extracted
         if ($ocr_data && ($ocr_data['confidence'] === 'high' || $ocr_data['confidence'] === 'medium')) {
             $_SESSION['tcao_success'] = 'Cost entry submitted. OCR extracted data from receipt successfully.';
@@ -179,53 +179,53 @@ function tcao_logic($baseURL)
     }
 }
 // Export Cost Analysis Report (by month)
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_cost_report'])) {
-        $costs = fetchAll('transport_costs');
-        $allTrips = fetchAll('driver_trips');
-        header('Content-Type: text/csv');
-        header('Content-Disposition: attachment; filename="transport_cost_analysis_report.csv"');
-        $output = fopen('php://output', 'w');
-        // CSV header
-        fputcsv($output, ['Month', 'Total Fuel Cost', 'Total Toll Fees', 'Total Other Expenses', 'Total Cost', 'Num Trips']);
-        // Group costs by month
-        $monthly = [];
-        foreach ($costs as $c) {
-            $trip = null;
-            foreach ($allTrips as $t) {
-                if ($t['id'] == $c['trip_id']) {
-                    $trip = $t;
-                    break;
-                }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_cost_report'])) {
+    $costs = fetchAll('transport_costs');
+    $allTrips = fetchAll('driver_trips');
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="transport_cost_analysis_report.csv"');
+    $output = fopen('php://output', 'w');
+    // CSV header
+    fputcsv($output, ['Month', 'Total Fuel Cost', 'Total Toll Fees', 'Total Other Expenses', 'Total Cost', 'Num Trips']);
+    // Group costs by month
+    $monthly = [];
+    foreach ($costs as $c) {
+        $trip = null;
+        foreach ($allTrips as $t) {
+            if ($t['id'] == $c['trip_id']) {
+                $trip = $t;
+                break;
             }
-            if (!$trip) continue;
-            $month = date('Y-m', strtotime($trip['trip_date']));
-            if (!isset($monthly[$month])) {
-                $monthly[$month] = [
-                    'fuel' => 0,
-                    'toll' => 0,
-                    'other' => 0,
-                    'total' => 0,
-                    'trips' => 0
-                ];
-            }
-            $monthly[$month]['fuel'] += floatval($c['fuel_cost']);
-            $monthly[$month]['toll'] += floatval($c['toll_fees']);
-            $monthly[$month]['other'] += floatval($c['other_expenses']);
-            $monthly[$month]['total'] += floatval($c['fuel_cost']) + floatval($c['toll_fees']) + floatval($c['other_expenses']);
-            $monthly[$month]['trips']++;
         }
-        // Output rows
-        foreach ($monthly as $month => $row) {
-            fputcsv($output, [
-                $month,
-                number_format($row['fuel'], 2),
-                number_format($row['toll'], 2),
-                number_format($row['other'], 2),
-                number_format($row['total'], 2),
-                $row['trips']
-            ]);
+        if (!$trip) continue;
+        $month = date('Y-m', strtotime($trip['trip_date']));
+        if (!isset($monthly[$month])) {
+            $monthly[$month] = [
+                'fuel' => 0,
+                'toll' => 0,
+                'other' => 0,
+                'total' => 0,
+                'trips' => 0
+            ];
         }
-        fclose($output);
-        exit;
+        $monthly[$month]['fuel'] += floatval($c['fuel_cost']);
+        $monthly[$month]['toll'] += floatval($c['toll_fees']);
+        $monthly[$month]['other'] += floatval($c['other_expenses']);
+        $monthly[$month]['total'] += floatval($c['fuel_cost']) + floatval($c['toll_fees']) + floatval($c['other_expenses']);
+        $monthly[$month]['trips']++;
     }
+    // Output rows
+    foreach ($monthly as $month => $row) {
+        fputcsv($output, [
+            $month,
+            number_format($row['fuel'], 2),
+            number_format($row['toll'], 2),
+            number_format($row['other'], 2),
+            number_format($row['total'], 2),
+            $row['trips']
+        ]);
+    }
+    fclose($output);
+    exit;
+}
 //////////////////////////////////////////END OF TCAO LOGIC

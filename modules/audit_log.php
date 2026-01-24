@@ -221,7 +221,7 @@ function audit_log_view()
             echo '<td><span class="badge badge-secondary">' . htmlspecialchars($log['action']) . '</span></td>';
             echo '<td>' . htmlspecialchars($log['record_id'] ?? '-') . '</td>';
             echo '<td>' . htmlspecialchars($log['user']) . '</td>';
-            echo '<td class="max-w-xs truncate" title="' . htmlspecialchars($log['details'] ?? '') . '">' . htmlspecialchars(substr($log['details'] ?? '', 0, 50)) . '</td>';
+            echo '<td class="max-w-xs text-wrap" title="' . htmlspecialchars($log['details'] ?? '') . '">' . htmlspecialchars(substr($log['details'] ?? '', 0, 50)) . '</td>';
             echo '<td>' . htmlspecialchars($formattedTime) . '</td>';
             echo '</tr>';
         }

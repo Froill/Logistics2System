@@ -247,6 +247,7 @@ function recordFailedLoginAttempt($email, $ipAddress, $reason = null)
             // Lock account if threshold reached
             if ($failedCount >= MAX_FAILED_ATTEMPTS) {
                 lockAccount($userId, $email, 'failed_attempts', $failedCount);
+                // Logging is handled in lockAccount()
                 return false;
             }
         }
@@ -366,13 +367,12 @@ function unlockAccount($userId, $unlockReason = 'Manual unlock', $unlockedBy = n
         // Log audit event
         if (file_exists(__DIR__ . '/audit.php')) {
             require_once 'audit.php';
-            $unlockedByText = $unlockedBy ? "by admin user $unlockedBy" : "automatically";
             log_audit_event(
-                'Authentication',
+                'User Mgmt',
                 'Account Unlocked',
                 $userId,
                 $email,
-                "Account unlocked $unlockedByText. Reason: $unlockReason"
+                'Admin unlocked user account'
             );
         }
 

@@ -28,16 +28,6 @@ if ($action === 'unlock' && $user_id > 0) {
 
     if (isset($result['success']) && $result['success']) {
         $_SESSION['um_success'] = $result['message'] ?? 'Account successfully unlocked.';
-
-        // Log the unlock action
-        require_once __DIR__ . '/functions.php';
-        log_audit_event(
-            'User Mgmt',
-            'ACCOUNT_UNLOCKED',
-            $user_id,
-            $_SESSION['full_name'] ?? 'Admin',
-            'Admin unlocked user account'
-        );
     } else {
         $_SESSION['um_error'] = $result['message'] ?? 'Failed to unlock account. Please try again.';
     }

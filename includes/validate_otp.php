@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($_SESSION['otp_attempts'] >= 3) {
         $_SESSION['otp_locked'] = true; // mark locked
         $_SESSION['otp_error'] = 'Too many incorrect attempts. Please login again.';
-        log_audit_event('Authentication', 'OTP Failure', $user['id'], $user['eid'], 'Exceeded maximum OTP attempts');
+        log_audit_event('Authentication', 'OTP Failure', $user['id'], $user['full_name'], 'Exceeded maximum OTP attempts');
         session_destroy();
         header('Location: ../login.php');
         exit();
@@ -111,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'Authentication',
             'Login',
             $user['id'],
-            $user['eid'],
+            $user['full_name'],
             'User successfully logged in after OTP verification'
         );
         header('Location: ../dashboard.php');

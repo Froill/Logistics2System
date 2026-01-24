@@ -315,7 +315,7 @@ function driver_trip_logic($baseURL)
 
     if (isset($_GET['delete'])) {
         deleteData('driver_trips', $_GET['delete']);
-        log_audit_event('DTP', 'delete_trip', $_GET['delete'], $_SESSION['full_name'] ?? 'unknown');
+        log_audit_event('DTP', 'delete_trip', $_GET['delete'], $_SESSION['full_name'] ?? 'unknown', "Delete trip record");
         header("Location: {$baseURL}");
         exit;
     }
@@ -324,7 +324,7 @@ function driver_trip_logic($baseURL)
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_trip_logs'])) {
         global $conn;
         $conn->query("DELETE FROM driver_trips");
-        log_audit_event('DTP', 'clear_trip_logs', null, $_SESSION['full_name'] ?? 'unknown');
+        log_audit_event('DTP', 'clear_trip_logs', null, $_SESSION['full_name'] ?? 'unknown', "Cleared all trip logs");
         $_SESSION['success_message'] = 'All trip logs cleared.';
         header("Location: {$baseURL}");
         exit;
@@ -424,7 +424,7 @@ function driver_trip_logic($baseURL)
                 if ($result) {
                     global $conn;
                     $id = $conn->insert_id;
-                    log_audit_event('DTP', 'add_trip', $id, $_SESSION['full_name'] ?? 'unknown');
+                    log_audit_event('DTP', 'add_trip', $id, $_SESSION['full_name'] ?? 'unknown', "Added trip record for dispatch ID {$dispatchId}");
                     $_SESSION['success_message'] = "Trip data submitted successfully.";
                     error_log('Trip data inserted successfully');
                 } else {

@@ -12,7 +12,7 @@ if ($userId && $eid) {
         'Authentication',
         'Logout',
         $userId,
-        $eid,
+        $_SESSION['full_name'] ?? 'unknown',
         'User logged out successfully'
     );
 }

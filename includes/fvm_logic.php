@@ -13,106 +13,106 @@ function fvm_logic($baseURL)
         insertData('fleet_vehicle_logs', [
             'vehicle_id' => $vehicleId,
             'log_type'   => 'maintenance',
-            'details'    => $part.' scheduled for maintenance',
+            'details'    => $part . ' scheduled for maintenance',
             'created_at' => $nextDate . $currentTime->format(' H:i:s')
         ]);
         // Optionally update vehicle status
         updateData('fleet_vehicles', $vehicleId, ['status' => 'Under Maintenance']);
-        log_audit_event('FVM', 'set_maintenance', $vehicleId, $_SESSION['full_name'] ?? 'unknown');
+        log_audit_event('FVM', 'set_maintenance', $vehicleId, $_SESSION['full_name'] ?? 'unknown', 'Next maintenance set to ' . $nextDate);
         header("Location: {$baseURL}");
         exit;
     }
 
-// Handle export monthly report
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_fleet_report'], $_POST['export_month'])) {
-    $role = strtolower($_SESSION['role'] ?? $_SESSION['user_role'] ?? '');
-    if (!in_array($role, ['admin', 'manager'])) {
-        http_response_code(403);
+    // Handle export monthly report
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_fleet_report'], $_POST['export_month'])) {
+        $role = strtolower($_SESSION['role'] ?? $_SESSION['user_role'] ?? '');
+        if (!in_array($role, ['admin', 'manager'])) {
+            http_response_code(403);
+            exit;
+        }
+        $month = $_POST['export_month']; // format: YYYY-MM
+        $start = $month . '-01';
+        $end = date('Y-m-t', strtotime($start));
+        global $conn;
+        if (empty($conn) || !($conn instanceof mysqli)) {
+            http_response_code(500);
+            exit;
+        }
+        // Fuel consumption per vehicle
+        $fuelData = [];
+        if ($stmt = $conn->prepare("SELECT vehicle_id, SUM(fuel_consumed) as total_fuel FROM driver_trips WHERE trip_date BETWEEN ? AND ? GROUP BY vehicle_id")) {
+            $stmt->bind_param('ss', $start, $end);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($res) {
+                while ($row = $res->fetch_assoc()) {
+                    $fuelData[(int)$row['vehicle_id']] = (float)($row['total_fuel'] ?? 0);
+                }
+            }
+            $stmt->close();
+        }
+        // Number of trips per vehicle
+        $tripData = [];
+        if ($stmt = $conn->prepare("SELECT vehicle_id, COUNT(*) as trip_count FROM driver_trips WHERE trip_date BETWEEN ? AND ? GROUP BY vehicle_id")) {
+            $stmt->bind_param('ss', $start, $end);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($res) {
+                while ($row = $res->fetch_assoc()) {
+                    $tripData[(int)$row['vehicle_id']] = (int)($row['trip_count'] ?? 0);
+                }
+            }
+            $stmt->close();
+        }
+        // On-time performance and completed trips per driver
+        $driverData = [];
+        if ($stmt = $conn->prepare("SELECT driver_id, COUNT(*) as total_trips, SUM(CASE WHEN status='Completed' THEN 1 ELSE 0 END) as completed, SUM(CASE WHEN on_time=1 THEN 1 ELSE 0 END) as on_time FROM driver_trips WHERE trip_date BETWEEN ? AND ? GROUP BY driver_id")) {
+            $stmt->bind_param('ss', $start, $end);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            if ($res) {
+                while ($row = $res->fetch_assoc()) {
+                    $driverData[(int)$row['driver_id']] = [
+                        'total_trips' => (int)($row['total_trips'] ?? 0),
+                        'completed' => (int)($row['completed'] ?? 0),
+                        'on_time' => (int)($row['on_time'] ?? 0),
+                    ];
+                }
+            }
+            $stmt->close();
+        }
+        // Vehicles
+        $vehicles = fetchAll('fleet_vehicles');
+        // Drivers
+        $drivers = fetchAll('drivers');
+        // Prepare CSV
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="fleet_kpi_report_' . $month . '.csv"');
+        $out = fopen('php://output', 'w');
+        // Vehicle KPIs
+        fputcsv($out, ['Vehicle Name', 'Plate', 'Type', 'Fuel Consumed (L)', 'Trips', 'Maintenance Cost (Est.)']);
+        foreach ($vehicles as $v) {
+            $fuel = $fuelData[$v['id']] ?? 0;
+            $trips = $tripData[$v['id']] ?? 0;
+            $maintCost = $trips * 500; // Placeholder: 500 per trip
+            fputcsv($out, [$v['vehicle_name'], $v['plate_number'], $v['vehicle_type'], $fuel, $trips, $maintCost]);
+        }
+        // Driver KPIs
+        fputcsv($out, []);
+        fputcsv($out, ['Driver Name', 'Total Trips', 'Completed', 'On-Time']);
+        foreach ($drivers as $d) {
+            $row = $driverData[$d['id']] ?? ['total_trips' => 0, 'completed' => 0, 'on_time' => 0];
+            fputcsv($out, [$d['driver_name'], $row['total_trips'], $row['completed'], $row['on_time']]);
+        }
+        fclose($out);
         exit;
     }
-    $month = $_POST['export_month']; // format: YYYY-MM
-    $start = $month . '-01';
-    $end = date('Y-m-t', strtotime($start));
-    global $conn;
-    if (empty($conn) || !($conn instanceof mysqli)) {
-        http_response_code(500);
-        exit;
-    }
-    // Fuel consumption per vehicle
-    $fuelData = [];
-    if ($stmt = $conn->prepare("SELECT vehicle_id, SUM(fuel_consumed) as total_fuel FROM driver_trips WHERE trip_date BETWEEN ? AND ? GROUP BY vehicle_id")) {
-        $stmt->bind_param('ss', $start, $end);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($res) {
-            while ($row = $res->fetch_assoc()) {
-                $fuelData[(int)$row['vehicle_id']] = (float)($row['total_fuel'] ?? 0);
-            }
-        }
-        $stmt->close();
-    }
-    // Number of trips per vehicle
-    $tripData = [];
-    if ($stmt = $conn->prepare("SELECT vehicle_id, COUNT(*) as trip_count FROM driver_trips WHERE trip_date BETWEEN ? AND ? GROUP BY vehicle_id")) {
-        $stmt->bind_param('ss', $start, $end);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($res) {
-            while ($row = $res->fetch_assoc()) {
-                $tripData[(int)$row['vehicle_id']] = (int)($row['trip_count'] ?? 0);
-            }
-        }
-        $stmt->close();
-    }
-    // On-time performance and completed trips per driver
-    $driverData = [];
-    if ($stmt = $conn->prepare("SELECT driver_id, COUNT(*) as total_trips, SUM(CASE WHEN status='Completed' THEN 1 ELSE 0 END) as completed, SUM(CASE WHEN on_time=1 THEN 1 ELSE 0 END) as on_time FROM driver_trips WHERE trip_date BETWEEN ? AND ? GROUP BY driver_id")) {
-        $stmt->bind_param('ss', $start, $end);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($res) {
-            while ($row = $res->fetch_assoc()) {
-                $driverData[(int)$row['driver_id']] = [
-                    'total_trips' => (int)($row['total_trips'] ?? 0),
-                    'completed' => (int)($row['completed'] ?? 0),
-                    'on_time' => (int)($row['on_time'] ?? 0),
-                ];
-            }
-        }
-        $stmt->close();
-    }
-    // Vehicles
-    $vehicles = fetchAll('fleet_vehicles');
-    // Drivers
-    $drivers = fetchAll('drivers');
-    // Prepare CSV
-    header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename="fleet_kpi_report_' . $month . '.csv"');
-    $out = fopen('php://output', 'w');
-    // Vehicle KPIs
-    fputcsv($out, ['Vehicle Name', 'Plate', 'Type', 'Fuel Consumed (L)', 'Trips', 'Maintenance Cost (Est.)']);
-    foreach ($vehicles as $v) {
-        $fuel = $fuelData[$v['id']] ?? 0;
-        $trips = $tripData[$v['id']] ?? 0;
-        $maintCost = $trips * 500; // Placeholder: 500 per trip
-        fputcsv($out, [$v['vehicle_name'], $v['plate_number'], $v['vehicle_type'], $fuel, $trips, $maintCost]);
-    }
-    // Driver KPIs
-    fputcsv($out, []);
-    fputcsv($out, ['Driver Name', 'Total Trips', 'Completed', 'On-Time']);
-    foreach ($drivers as $d) {
-        $row = $driverData[$d['id']] ?? ['total_trips'=>0,'completed'=>0,'on_time'=>0];
-        fputcsv($out, [$d['driver_name'], $row['total_trips'], $row['completed'], $row['on_time']]);
-    }
-    fclose($out);
-    exit;
-}
 
     // Handle clear maintenance logs
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['clear_maintenance_logs'])) {
         global $conn;
         $conn->query("DELETE FROM fleet_vehicle_logs WHERE log_type = 'maintenance'");
-        log_audit_event('FVM', 'clear_maintenance_logs', null, $_SESSION['full_name'] ?? 'unknown');
+        log_audit_event('FVM', 'clear_maintenance_logs', null, $_SESSION['full_name'] ?? 'unknown', 'Cleared all maintenance logs');
         $_SESSION['fvm_success'] = 'All maintenance logs cleared.';
         header("Location: {$baseURL}");
         exit;
@@ -157,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_fleet_report']
                 'archived_by' => $archivedBy,
             ]);
             if ($ok) {
-                log_audit_event('FVM', 'archive_vehicle', $vehicleId, $_SESSION['full_name'] ?? 'unknown');
+                log_audit_event('FVM', 'archive_vehicle', $vehicleId, $_SESSION['full_name'] ?? 'unknown', 'Vehicle archived');
                 $_SESSION['fvm_success'] = 'Vehicle archived successfully.';
             } else {
                 $_SESSION['fvm_error'] = 'Failed to archive vehicle.';
@@ -169,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_fleet_report']
                 'archived_by' => null,
             ]);
             if ($ok) {
-                log_audit_event('FVM', 'unarchive_vehicle', $vehicleId, $_SESSION['full_name'] ?? 'unknown');
+                log_audit_event('FVM', 'unarchive_vehicle', $vehicleId, $_SESSION['full_name'] ?? 'unknown', 'Vehicle unarchived');
                 $_SESSION['fvm_success'] = 'Vehicle unarchived successfully.';
             } else {
                 $_SESSION['fvm_error'] = 'Failed to unarchive vehicle.';
@@ -217,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_fleet_report']
         global $conn;
         if ($result) {
             $id = $conn->insert_id;
-            log_audit_event('FVM', 'add_vehicle', $id, $_SESSION['full_name'] ?? 'unknown');
+            log_audit_event('FVM', 'add_vehicle', $id, $_SESSION['full_name'] ?? 'unknown', 'New vehicle added');
             $_SESSION['fvm_success'] = 'Vehicle added successfully!';
         } else {
             $_SESSION['fvm_error'] = 'Vehicle insert failed.';
@@ -301,7 +301,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_fleet_report']
                 $regExpiry = !empty($_POST['registration_expiry']) ? $_POST['registration_expiry'] : null;
                 if (isset($_FILES['registration_doc']) && $_FILES['registration_doc']['error'] === UPLOAD_ERR_OK) {
                     // Validate registration file
-                    $allowedExt = ['pdf','jpg','jpeg','png'];
+                    $allowedExt = ['pdf', 'jpg', 'jpeg', 'png'];
                     $maxSize = 5 * 1024 * 1024; // 5MB
                     $fileTmp = $_FILES['registration_doc']['tmp_name'];
                     $fileName = basename($_FILES['registration_doc']['name']);
@@ -313,12 +313,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_fleet_report']
                     } else {
                         $uploadDir = __DIR__ . '/../uploads/vehicles/' . $vehicleId . '/';
                         if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-                        $newFileName = 'registration_' . time() . '_' . rand(1000,9999) . '.' . $fileExt;
+                        $newFileName = 'registration_' . time() . '_' . rand(1000, 9999) . '.' . $fileExt;
                         $destPath = $uploadDir . $newFileName;
                         if (move_uploaded_file($fileTmp, $destPath)) {
                             $fileRel = 'uploads/vehicles/' . $vehicleId . '/' . $newFileName;
                             $uploadedBy = $_SESSION['user_id'] ?? null;
-                            if ($stmt = $conn->prepare("INSERT INTO vehicle_documents (vehicle_id, doc_type, doc_name, file_path, expiry_date, uploaded_by) VALUES (?, 'Registration', ?, ?, ?, ?)") ) {
+                            if ($stmt = $conn->prepare("INSERT INTO vehicle_documents (vehicle_id, doc_type, doc_name, file_path, expiry_date, uploaded_by) VALUES (?, 'Registration', ?, ?, ?, ?)")) {
                                 $uploadedByInt = $uploadedBy !== null ? intval($uploadedBy) : null;
                                 $stmt->bind_param('isssi', $vehicleId, $fileName, $fileRel, $regExpiry, $uploadedByInt);
                                 $stmt->execute();
@@ -329,7 +329,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_fleet_report']
                 } elseif ($regExpiry) {
                     // If only expiry provided, insert a record without a file
                     $uploadedBy = $_SESSION['user_id'] ?? null;
-                    if ($stmt = $conn->prepare("INSERT INTO vehicle_documents (vehicle_id, doc_type, doc_name, file_path, expiry_date, uploaded_by) VALUES (?, 'Registration', ?, NULL, ?, ?)") ) {
+                    if ($stmt = $conn->prepare("INSERT INTO vehicle_documents (vehicle_id, doc_type, doc_name, file_path, expiry_date, uploaded_by) VALUES (?, 'Registration', ?, NULL, ?, ?)")) {
                         $uploadedByInt = $uploadedBy !== null ? intval($uploadedBy) : null;
                         $docName = 'Registration Record';
                         $stmt->bind_param('issi', $vehicleId, $docName, $regExpiry, $uploadedByInt);
@@ -349,7 +349,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_fleet_report']
                 $documentPath = null;
                 if (isset($_FILES['insurance_doc']) && $_FILES['insurance_doc']['error'] === UPLOAD_ERR_OK) {
                     // Validate insurance file
-                    $allowedExt = ['pdf','jpg','jpeg','png'];
+                    $allowedExt = ['pdf', 'jpg', 'jpeg', 'png'];
                     $maxSize = 5 * 1024 * 1024; // 5MB
                     $fileTmp = $_FILES['insurance_doc']['tmp_name'];
                     $fileName = basename($_FILES['insurance_doc']['name']);
@@ -361,7 +361,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_fleet_report']
                     } else {
                         $uploadDir = __DIR__ . '/../uploads/vehicles/' . $vehicleId . '/';
                         if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
-                        $newFileName = 'insurance_' . time() . '_' . rand(1000,9999) . '.' . $fileExt;
+                        $newFileName = 'insurance_' . time() . '_' . rand(1000, 9999) . '.' . $fileExt;
                         $destPath = $uploadDir . $newFileName;
                         if (move_uploaded_file($fileTmp, $destPath)) {
                             $documentPath = 'uploads/vehicles/' . $vehicleId . '/' . $newFileName;
@@ -369,7 +369,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_fleet_report']
                     }
                 }
                 $coverageType = $_POST['coverage_type'] ?? null;
-                if ($stmt = $conn->prepare("INSERT INTO vehicle_insurance (vehicle_id, insurer, policy_number, coverage_type, coverage_start, coverage_end, premium, document_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?)") ) {
+                if ($stmt = $conn->prepare("INSERT INTO vehicle_insurance (vehicle_id, insurer, policy_number, coverage_type, coverage_start, coverage_end, premium, document_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
                     $stmt->bind_param(
                         'isssssds',
                         $vehicleId,
@@ -398,7 +398,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['export_fleet_report']
             $debugMsg .= 'Database updated.';
         }
         $debugMsg .= ' Data: ' . print_r($data, true);
-        log_audit_event('FVM', 'edit_vehicle', $_POST['edit_vehicle_id'], $_SESSION['full_name'] ?? 'unknown');
+        log_audit_event('FVM', 'edit_vehicle', $_POST['edit_vehicle_id'], $_SESSION['full_name'] ?? 'unknown', 'Vehicle details updated');
         $_SESSION['fvm_debug'] = $debugMsg;
         header("Location: {$baseURL}");
         exit;
