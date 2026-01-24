@@ -251,25 +251,25 @@ function vrds_view($baseURL)
         $dispatchParams
     );
 ?>
-    
+
     <div>
         <!--!--Dispatched Trips block-->
         <div class="mb-6">
             <?php if (!in_array($role, ['requester', 'user'])): ?>
                 <h3 class="text-lg font-bold mb-2">Dispatched Trips Map</h3>
             <?php endif; ?>
-                <?php if (!in_array($role, ['requester', 'driver'])): ?>
+            <?php if (!in_array($role, ['requester', 'driver'])): ?>
                 <div class="flex flex-wrap gap-2 mb-2">
-                 <!-- Dispatched Trips mapsearch bar -->
-                    <input id="mapSearch" class="input input-bordered" style="min-width:350px;max-width:500px;" placeholder="Search a place.." autocomplete="off">
+                    <!-- Dispatched Trips mapsearch bar -->
+                    <input id="mapSearch" class="input input-bordered w-full lg:w-96" placeholder="Search a place.." autocomplete="off">
                     <div id="searchSuggestions" class="osm-suggestions" style="position:absolute;z-index:1000;"></div>
                 </div>
-                <?php endif; ?>
+            <?php endif; ?>
             <div class="flex flex-wrap gap-2 mb-2">
                 <?php if (!in_array($role, ['requester', 'driver'])): ?>
-                <button id="addPoiBtn" class="btn btn-sm btn-success" type="button"><i data-lucide="map-pin-plus"></i> Add a POI </button>
-                <button id="myPoisBtn" class="btn btn-sm btn-info" type="button"><i data-lucide="list"></i> POIs List</button>
-                <button id="deletePoiBtn" class="btn btn-sm btn-error" type="button"><i data-lucide="trash-2"></i> Delete POI</button>
+                    <button id="addPoiBtn" class="btn btn-sm btn-success" type="button"><i data-lucide="map-pin-plus"></i> Add a POI </button>
+                    <button id="myPoisBtn" class="btn btn-sm btn-info" type="button"><i data-lucide="list"></i> POIs List</button>
+                    <button id="deletePoiBtn" class="btn btn-sm btn-error" type="button"><i data-lucide="trash-2"></i> Delete POI</button>
                 <?php endif; ?>
                 <!-- My POIs Modal -->
                 <dialog id="myPoisModal" class="modal">
@@ -306,11 +306,13 @@ function vrds_view($baseURL)
             <!-- END of dispatched trips block-->
 
             <!-- OSM Map for Ongoing Dispatched Trips + Ongoing List -->
-            <div class="<?= ($isDriverUser ? 'flex flex-col lg:flex-row gap-4' : 'flex gap-4') ?>" style="align-items:flex-start;">
-                <div id="dispatchMap" style="height: 400px; width: <?= ($isDriverUser ? '100%' : '70%') ?>; border-radius:10px;"></div>
-                <div id="ongoingDispatchList" style="width: <?= ($isDriverUser ? '100%' : '30%') ?>; max-height:400px; overflow:auto; background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:8px;">
-                    <h4 class="font-semibold mb-2">Ongoing Dispatches</h4>
-                    <div id="ongoingDispatchItems" class="text-center text-gray-500">Nothing to show</div>
+            <div class="flex flex-col lg:flex-row gap-4">
+                <div id="dispatchMap"
+                    style="height: 400px; width: 100%; border-radius:10px;"></div>
+                <div id="ongoingDispatchList"
+                    class="w-full lg:w-2/3 overflow-auto bg-base-400 border border-gray-200 rounded-lg p-2">
+                    <h4 class="font-semibold mb-4">Ongoing Dispatches</h4>
+                    <div id="ongoingDispatchItems" class="text-center0">Nothing to show</div>
                 </div>
             </div>
         </div>
@@ -336,76 +338,76 @@ function vrds_view($baseURL)
             </div>
             <!-- Vehicle Request Modal -->
             <?php if (in_array($role, ['admin', 'requester', 'user'])): ?>
-            <dialog id="request_modal" class="modal">
-                <div class="modal-box">
-                    <form method="dialog">
-                        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                    </form>
-                    <form id="requestVehicleForm" method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="mb-6">
-                        <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4">
-                        <legend class="fieldset-legend">Request a Vehicle</legend>
-                        <input type="hidden" name="request_vehicle" value="1">
-                        <div class="form-control mb-2">
-                            <label class="label">Purpose</label>
-                            <select id="purposeSelect" name="purpose" class="select select-bordered" required>
-                                <option value="">Select purpose</option>
-                                <option value="Delivery">Delivery</option>
-                                <option value="Supplies Pickup">Supplies Pickup</option>
-                                <option value="Guest Transport">Guest Transport</option>
-                                <option value="Staff Transport">Staff Transport</option>
-                                <option value="Maintenance / Repair Runs">Maintenance / Repair Runs</option>
-                                <option value="Official Errands">Official Errands</option>
-                                <option value="Event Logistics">Event Logistics</option>
-                                <option value="Emergency Response">Emergency Response</option>
-                                <option value="Waste Disposal / Return">Waste Disposal / Return</option>
-                                <option value="Other">Other (Please Specify)</option>
-                            </select>
-                        </div>
-                        <div id="purposeOtherWrap" class="form-control mb-2" style="display:none;">
-                            <label class="label">Please specify purpose</label>
-                            <input id="purposeOther" type="text" name="purpose_other" class="input input-bordered" placeholder="Please specify purpose">
-                        </div>
-                        <div class="form-control mb-2">
-                            <label class="label">Origin</label>
-                            <input type="text" name="origin" id="origin" class="input input-bordered" autocomplete="off" required>
-                            <input type="hidden" name="origin_lat" id="origin_lat">
-                            <input type="hidden" name="origin_lon" id="origin_lon">
-                            <div id="origin-suggestions" class="osm-suggestions"></div>
-                        </div>
-                        <div class="form-control mb-2">
-                            <label class="label">Destination</label>
-                            <input type="text" name="destination" id="destination" class="input input-bordered" autocomplete="off" required>
-                            <input type="hidden" name="destination_lat" id="destination_lat">
-                            <input type="hidden" name="destination_lon" id="destination_lon">
-                            <div id="destination-suggestions" class="osm-suggestions"></div>
-                        </div>
-                        <div class="form-control mb-2">
-                            <label class="label">Requested Vehicle Type</label>
-                            <select id="requestedVehicleSelect" name="requested_vehicle_type" class="select select-bordered" required>
-                                <option value="">Select vehicle type</option>
-                                <?php foreach ($vehicle_types as $type): ?>
-                                    <option value="<?= htmlspecialchars($type) ?>"><?= htmlspecialchars($type) ?></option>
-                                <?php endforeach; ?>
-                                <option value="Other">Other (Please Specify)</option>
-                            </select>
-                        </div>
-                        <div id="requestedVehicleOtherWrap" class="form-control mb-2" style="display:none;">
-                            <label class="label">Please specify vehicle type</label>
-                            <input id="requestedVehicleOther" type="text" name="requested_vehicle_type_other" class="input input-bordered" placeholder="Please specify vehicle type">
-                        </div>
-                        <div class="form-control mb-2">
-                            <label class="label">Reservation Date</label>
-                            <input id="reservationDate" type="date" name="reservation_date" class="input input-bordered" required min="<?= (new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d') ?>">
-                        </div>
-                        <div class="form-control mb-2">
-                            <label class="label">Completion Date</label>
-                            <input id="expectedReturn" type="date" name="expected_return" class="input input-bordered" required min="<?= (new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d') ?>">
-                        </div>
-                            
-                        <button class="btn btn-primary btn-outline mt-2 w-full">Submit Request</button>
-                                </fieldset>
-                    </form>
-            </dialog>
+                <dialog id="request_modal" class="modal">
+                    <div class="modal-box">
+                        <form method="dialog">
+                            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                        </form>
+                        <form id="requestVehicleForm" method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="mb-6">
+                            <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-xs border p-4">
+                                <legend class="fieldset-legend">Request a Vehicle</legend>
+                                <input type="hidden" name="request_vehicle" value="1">
+                                <div class="form-control mb-2">
+                                    <label class="label">Purpose</label>
+                                    <select id="purposeSelect" name="purpose" class="select select-bordered" required>
+                                        <option value="">Select purpose</option>
+                                        <option value="Delivery">Delivery</option>
+                                        <option value="Supplies Pickup">Supplies Pickup</option>
+                                        <option value="Guest Transport">Guest Transport</option>
+                                        <option value="Staff Transport">Staff Transport</option>
+                                        <option value="Maintenance / Repair Runs">Maintenance / Repair Runs</option>
+                                        <option value="Official Errands">Official Errands</option>
+                                        <option value="Event Logistics">Event Logistics</option>
+                                        <option value="Emergency Response">Emergency Response</option>
+                                        <option value="Waste Disposal / Return">Waste Disposal / Return</option>
+                                        <option value="Other">Other (Please Specify)</option>
+                                    </select>
+                                </div>
+                                <div id="purposeOtherWrap" class="form-control mb-2" style="display:none;">
+                                    <label class="label">Please specify purpose</label>
+                                    <input id="purposeOther" type="text" name="purpose_other" class="input input-bordered" placeholder="Please specify purpose">
+                                </div>
+                                <div class="form-control mb-2">
+                                    <label class="label">Origin</label>
+                                    <input type="text" name="origin" id="origin" class="input input-bordered" autocomplete="off" required>
+                                    <input type="hidden" name="origin_lat" id="origin_lat">
+                                    <input type="hidden" name="origin_lon" id="origin_lon">
+                                    <div id="origin-suggestions" class="osm-suggestions"></div>
+                                </div>
+                                <div class="form-control mb-2">
+                                    <label class="label">Destination</label>
+                                    <input type="text" name="destination" id="destination" class="input input-bordered" autocomplete="off" required>
+                                    <input type="hidden" name="destination_lat" id="destination_lat">
+                                    <input type="hidden" name="destination_lon" id="destination_lon">
+                                    <div id="destination-suggestions" class="osm-suggestions"></div>
+                                </div>
+                                <div class="form-control mb-2">
+                                    <label class="label">Requested Vehicle Type</label>
+                                    <select id="requestedVehicleSelect" name="requested_vehicle_type" class="select select-bordered" required>
+                                        <option value="">Select vehicle type</option>
+                                        <?php foreach ($vehicle_types as $type): ?>
+                                            <option value="<?= htmlspecialchars($type) ?>"><?= htmlspecialchars($type) ?></option>
+                                        <?php endforeach; ?>
+                                        <option value="Other">Other (Please Specify)</option>
+                                    </select>
+                                </div>
+                                <div id="requestedVehicleOtherWrap" class="form-control mb-2" style="display:none;">
+                                    <label class="label">Please specify vehicle type</label>
+                                    <input id="requestedVehicleOther" type="text" name="requested_vehicle_type_other" class="input input-bordered" placeholder="Please specify vehicle type">
+                                </div>
+                                <div class="form-control mb-2">
+                                    <label class="label">Reservation Date</label>
+                                    <input id="reservationDate" type="date" name="reservation_date" class="input input-bordered" required min="<?= (new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d') ?>">
+                                </div>
+                                <div class="form-control mb-2">
+                                    <label class="label">Completion Date</label>
+                                    <input id="expectedReturn" type="date" name="expected_return" class="input input-bordered" required min="<?= (new DateTime('now', new DateTimeZone('Asia/Manila')))->format('Y-m-d') ?>">
+                                </div>
+
+                                <button class="btn btn-primary btn-outline mt-2 w-full">Submit Request</button>
+                            </fieldset>
+                        </form>
+                </dialog>
             <?php endif; ?>
 
             <script src="js/dynamic-field-val.js"></script>
@@ -460,149 +462,149 @@ function vrds_view($baseURL)
                             </tr>
                         </thead>
                         <tbody>
-                                <?php foreach ($pendingRequests as $req): ?>
+                            <?php foreach ($pendingRequests as $req): ?>
+                                <?php
+                                $reqType = (string)($req['requested_vehicle_type'] ?? '');
+                                if (!array_key_exists($reqType, $pendingRecCache)) {
+                                    $pendingRecCache[$reqType] = recommend_assignment($reqType, $vehicles, $drivers);
+                                }
+                                $rec = $pendingRecCache[$reqType];
+                                ?>
+                                <tr>
+                                    <td><?= 'REQ' . str_pad($req['id'], 5, '0', STR_PAD_LEFT) ?></td>
+                                    <td><?= htmlspecialchars($req['purpose']) ?></td>
                                     <?php
-                                        $reqType = (string)($req['requested_vehicle_type'] ?? '');
-                                        if (!array_key_exists($reqType, $pendingRecCache)) {
-                                            $pendingRecCache[$reqType] = recommend_assignment($reqType, $vehicles, $drivers);
-                                        }
-                                        $rec = $pendingRecCache[$reqType];
+                                    $fullOrigin = trim($req['origin'] ?? '');
+                                    $originWords = preg_split('/\s+/', $fullOrigin);
+                                    if (count($originWords) > 7) {
+                                        $short = implode(' ', array_slice($originWords, 0, 7)) . '...';
+                                        $originDisplay = '<span title="' . htmlspecialchars($fullOrigin) . '">' . htmlspecialchars($short) . '</span>';
+                                    } else {
+                                        $originDisplay = htmlspecialchars($fullOrigin);
+                                    }
+                                    $fullDest = trim($req['destination'] ?? '');
+                                    $destWords = preg_split('/\s+/', $fullDest);
+                                    if (count($destWords) > 7) {
+                                        $shortD = implode(' ', array_slice($destWords, 0, 7)) . '...';
+                                        $destDisplay = '<span title="' . htmlspecialchars($fullDest) . '">' . htmlspecialchars($shortD) . '</span>';
+                                    } else {
+                                        $destDisplay = htmlspecialchars($fullDest);
+                                    }
                                     ?>
-                                    <tr>
-                                        <td><?= 'REQ' . str_pad($req['id'], 5, '0', STR_PAD_LEFT) ?></td>
-                                        <td><?= htmlspecialchars($req['purpose']) ?></td>
+                                    <td><?= $originDisplay ?></td>
+                                    <td><?= $destDisplay ?></td>
+                                    <td><?= htmlspecialchars($req['requested_vehicle_type']) ?></td>
+                                    <td><?= htmlspecialchars($req['reservation_date'] ?? '') ?></td>
+                                    <td><?= htmlspecialchars($req['expected_return'] ?? '') ?></td>
+                                    <td>
                                         <?php
-                                            $fullOrigin = trim($req['origin'] ?? '');
-                                            $originWords = preg_split('/\s+/', $fullOrigin);
-                                            if (count($originWords) > 7) {
-                                                $short = implode(' ', array_slice($originWords, 0, 7)) . '...';
-                                                $originDisplay = '<span title="' . htmlspecialchars($fullOrigin) . '">' . htmlspecialchars($short) . '</span>';
-                                            } else {
-                                                $originDisplay = htmlspecialchars($fullOrigin);
-                                            }
-                                            $fullDest = trim($req['destination'] ?? '');
-                                            $destWords = preg_split('/\s+/', $fullDest);
-                                            if (count($destWords) > 7) {
-                                                $shortD = implode(' ', array_slice($destWords, 0, 7)) . '...';
-                                                $destDisplay = '<span title="' . htmlspecialchars($fullDest) . '">' . htmlspecialchars($shortD) . '</span>';
-                                            } else {
-                                                $destDisplay = htmlspecialchars($fullDest);
-                                            }
+                                        $status = $req['status'];
+                                        $badgeClass = 'badge p-3 text-nowrap';
+                                        if ($status === 'Approved') {
+                                            $badgeClass .= ' badge-success';
+                                        } elseif ($status === 'Denied') {
+                                            $badgeClass .= ' badge-error ';
+                                        } elseif ($status === 'Pending') {
+                                            $badgeClass .= ' badge-warning';
+                                        } else {
+                                            $badgeClass .= ' badge-info';
+                                        }
                                         ?>
-                                        <td><?= $originDisplay ?></td>
-                                        <td><?= $destDisplay ?></td>
-                                        <td><?= htmlspecialchars($req['requested_vehicle_type']) ?></td>
-                                        <td><?= htmlspecialchars($req['reservation_date'] ?? '') ?></td>
-                                        <td><?= htmlspecialchars($req['expected_return'] ?? '') ?></td>
-                                        <td>
-                                            <?php
-                                            $status = $req['status'];
-                                            $badgeClass = 'badge p-3 text-nowrap';
-                                            if ($status === 'Approved') {
-                                                $badgeClass .= ' badge-success';
-                                            } elseif ($status === 'Denied') {
-                                                $badgeClass .= ' badge-error ';
-                                            } elseif ($status === 'Pending') {
-                                                $badgeClass .= ' badge-warning';
-                                            } else {
-                                                $badgeClass .= ' badge-info';
-                                            }
-                                            ?>
-                                            <span class="<?= $badgeClass ?>">
-                                                <?= htmlspecialchars($status) ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <?php if ($rec['vehicle'] && $rec['driver']): ?>
-                                                <?= htmlspecialchars($rec['vehicle']['vehicle_name']) ?> / <?= htmlspecialchars($rec['driver']['driver_name']) ?>
-                                            <?php else: ?>
-                                                <span class="text-error">No available match</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <div class="flex flex-col">
-                                                <?php if ($req['status'] === 'Pending'): ?>
-                                                    <?php if (!$isDriverUser): ?>
-                                                        <button class="btn btn-primary btn-sm mb-2" style="width:110%;" onclick="assign_modal_<?= $req['id'] ?>.showModal()"><i data-lucide="check"></i></button>
-                                                        <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" style="display:block">
-                                                            <input type="hidden" name="reject_request" value="1">
-                                                            <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
-                                                            <button type="submit" class="btn btn-error btn-sm" style="width:110%;" onclick="return confirm('Reject this vehicle request?')"><i data-lucide="x"></i></button>
-                                                        </form>
-                                                    <?php else: ?>
-                                                        <div class="text-sm opacity-75">Pending (recommended)</div>
-                                                    <?php endif; ?>
-                                                <?php elseif ($req['status'] === 'Approved'): ?>
-                                                    <button class="btn btn-info btn-sm" onclick="view_modal_<?= $req['id'] ?>.showModal()">
-                                                        <i data-lucide="eye" style="width:5%;" class="inline w-4 h-4"></i>View</button>
-                                                    <!-- Delete button removed per request -->
-                                                <?php endif; ?>
-                                                <!-- View Modal for Approved Request -->
-                                                <?php if ($req['status'] === 'Approved'): ?>
-                                                    <dialog id="view_modal_<?= $req['id'] ?>" class="modal">
-                                                        <div class="modal-box">
-                                                            <form method="dialog">
-                                                                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                                                            </form>
-                                                            <h3 class="font-bold text-lg mb-4">Approved Vehicle Request Details</h3>
-                                                            <div class="flex flex-col gap-2">
-                                                                <div><b>Purpose:</b> <?= htmlspecialchars($req['purpose']) ?></div>
-                                                                <div><b>Origin:</b> <?= htmlspecialchars($req['origin']) ?></div>
-                                                                <div><b>Destination:</b> <?= htmlspecialchars($req['destination']) ?></div>
-                                                                <div><b>Requested Vehicle Type:</b> <?= htmlspecialchars($req['requested_vehicle_type']) ?></div>
-                                                                <div><b>Reservation Date:</b> <?= htmlspecialchars($req['reservation_date'] ?? '') ?></div>
-                                                                <div><b>Expected Return:</b> <?= htmlspecialchars($req['expected_return'] ?? '') ?></div>
-                                                                <div><b>Status:</b> <?= htmlspecialchars($req['status']) ?></div>
-                                                            </div>
-                                                        </div>
-                                                        <form method="dialog" class="modal-backdrop">
-                                                            <button>close</button>
-                                                        </form>
-                                                    </dialog>
-                                                <?php endif; ?>
-                                            </div>
-                                            <dialog id="assign_modal_<?= $req['id'] ?>" class="modal">
-                                                <div class="modal-box">
-                                                    <form method="dialog">
-                                                        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                                                    </form>
-                                                    <h3 class="font-bold text-lg mb-4">Approve Vehicle Request</h3>
-                                                    <h2 class="text-md mb-4">Assign Vehicle and Driver</h2>
-                                                    <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="flex flex-col gap-4">
-                                                        <input type="hidden" name="approve_request" value="1">
+                                        <span class="<?= $badgeClass ?>">
+                                            <?= htmlspecialchars($status) ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <?php if ($rec['vehicle'] && $rec['driver']): ?>
+                                            <?= htmlspecialchars($rec['vehicle']['vehicle_name']) ?> / <?= htmlspecialchars($rec['driver']['driver_name']) ?>
+                                        <?php else: ?>
+                                            <span class="text-error">No available match</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <div class="flex flex-col">
+                                            <?php if ($req['status'] === 'Pending'): ?>
+                                                <?php if (!$isDriverUser): ?>
+                                                    <button class="btn btn-primary btn-sm mb-2" style="width:110%;" onclick="assign_modal_<?= $req['id'] ?>.showModal()"><i data-lucide="check"></i></button>
+                                                    <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" style="display:block">
+                                                        <input type="hidden" name="reject_request" value="1">
                                                         <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
-                                                        <div class="form-control">
-                                                            <label class="label">Vehicle:</label>
-                                                            <select name="vehicle_id" class="select select-bordered w-full" required>
-                                                                <option value="">Select a vehicle</option>
-                                                                <?php foreach ($vehicles as $veh): ?>
-                                                                    <?php if ($veh['status'] === 'Active'): ?>
-                                                                        <option value="<?= $veh['id'] ?>"><?= htmlspecialchars($veh['vehicle_name']) ?></option>
-                                                                    <?php endif; ?>
-                                                                <?php endforeach; ?>
-                                                            </select>
-                                                        </div>
-                                                        <!-- Driver selection -->
-                                                        <div class="form-control">
-                                                            <label class="label">Driver:</label>
-                                                            <select name="driver_id" class="select select-bordered w-full" required>
-                                                                <option value="">Select a driver</option>
-                                                                <?php foreach ($drivers as $drv): ?>
-                                                                    <?php if ($drv['status'] === 'Available'): ?>
-                                                                        <option value="<?= $drv['id'] ?>"><?= htmlspecialchars($drv['driver_name']) ?></option>
-                                                                    <?php endif; ?>
-                                                                <?php endforeach; ?>
-                                                            </select>
-                                                        </div>
-                                                        <button type="submit" class="btn btn-success mt-4">Approve & Dispatch</button>
+                                                        <button type="submit" class="btn btn-error btn-sm" style="width:110%;" onclick="return confirm('Reject this vehicle request?')"><i data-lucide="x"></i></button>
                                                     </form>
-                                                </div>
-                                                <form method="dialog" class="modal-backdrop">
-                                                    <button>close</button>
+                                                <?php else: ?>
+                                                    <div class="text-sm opacity-75">Pending (recommended)</div>
+                                                <?php endif; ?>
+                                            <?php elseif ($req['status'] === 'Approved'): ?>
+                                                <button class="btn btn-info btn-sm" onclick="view_modal_<?= $req['id'] ?>.showModal()">
+                                                    <i data-lucide="eye" style="width:5%;" class="inline w-4 h-4"></i>View</button>
+                                                <!-- Delete button removed per request -->
+                                            <?php endif; ?>
+                                            <!-- View Modal for Approved Request -->
+                                            <?php if ($req['status'] === 'Approved'): ?>
+                                                <dialog id="view_modal_<?= $req['id'] ?>" class="modal">
+                                                    <div class="modal-box">
+                                                        <form method="dialog">
+                                                            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                                                        </form>
+                                                        <h3 class="font-bold text-lg mb-4">Approved Vehicle Request Details</h3>
+                                                        <div class="flex flex-col gap-2">
+                                                            <div><b>Purpose:</b> <?= htmlspecialchars($req['purpose']) ?></div>
+                                                            <div><b>Origin:</b> <?= htmlspecialchars($req['origin']) ?></div>
+                                                            <div><b>Destination:</b> <?= htmlspecialchars($req['destination']) ?></div>
+                                                            <div><b>Requested Vehicle Type:</b> <?= htmlspecialchars($req['requested_vehicle_type']) ?></div>
+                                                            <div><b>Reservation Date:</b> <?= htmlspecialchars($req['reservation_date'] ?? '') ?></div>
+                                                            <div><b>Expected Return:</b> <?= htmlspecialchars($req['expected_return'] ?? '') ?></div>
+                                                            <div><b>Status:</b> <?= htmlspecialchars($req['status']) ?></div>
+                                                        </div>
+                                                    </div>
+                                                    <form method="dialog" class="modal-backdrop">
+                                                        <button>close</button>
+                                                    </form>
+                                                </dialog>
+                                            <?php endif; ?>
+                                        </div>
+                                        <dialog id="assign_modal_<?= $req['id'] ?>" class="modal">
+                                            <div class="modal-box">
+                                                <form method="dialog">
+                                                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                                                 </form>
-                                            </dialog>
-                                        </td>
-                                    </tr>
+                                                <h3 class="font-bold text-lg mb-4">Approve Vehicle Request</h3>
+                                                <h2 class="text-md mb-4">Assign Vehicle and Driver</h2>
+                                                <form method="POST" action="<?= htmlspecialchars($baseURL) ?>" class="flex flex-col gap-4">
+                                                    <input type="hidden" name="approve_request" value="1">
+                                                    <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
+                                                    <div class="form-control">
+                                                        <label class="label">Vehicle:</label>
+                                                        <select name="vehicle_id" class="select select-bordered w-full" required>
+                                                            <option value="">Select a vehicle</option>
+                                                            <?php foreach ($vehicles as $veh): ?>
+                                                                <?php if ($veh['status'] === 'Active'): ?>
+                                                                    <option value="<?= $veh['id'] ?>"><?= htmlspecialchars($veh['vehicle_name']) ?></option>
+                                                                <?php endif; ?>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </div>
+                                                    <!-- Driver selection -->
+                                                    <div class="form-control">
+                                                        <label class="label">Driver:</label>
+                                                        <select name="driver_id" class="select select-bordered w-full" required>
+                                                            <option value="">Select a driver</option>
+                                                            <?php foreach ($drivers as $drv): ?>
+                                                                <?php if ($drv['status'] === 'Available'): ?>
+                                                                    <option value="<?= $drv['id'] ?>"><?= htmlspecialchars($drv['driver_name']) ?></option>
+                                                                <?php endif; ?>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </div>
+                                                    <button type="submit" class="btn btn-success mt-4">Approve & Dispatch</button>
+                                                </form>
+                                            </div>
+                                            <form method="dialog" class="modal-backdrop">
+                                                <button>close</button>
+                                            </form>
+                                        </dialog>
+                                    </td>
+                                </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
@@ -629,17 +631,20 @@ function vrds_view($baseURL)
                         </thead>
                         <tbody>
                             <?php
-                                $myPage = max(1, (int)($_GET['vrds_my_dispatch_page'] ?? 1));
-                                $myPerPage = 10;
+                            $myPage = max(1, (int)($_GET['vrds_my_dispatch_page'] ?? 1));
+                            $myPerPage = 10;
+                            $myOffset = ($myPage - 1) * $myPerPage;
+                            $myCountRow = $driverRecordId ? fetchOneQuery("SELECT COUNT(*) AS cnt FROM dispatches WHERE driver_id = ?", [(string)$driverRecordId]) : ['cnt' => 0];
+                            $myTotal = (int)($myCountRow['cnt'] ?? 0);
+                            $myTotalPages = max(1, (int)ceil($myTotal / $myPerPage));
+                            if ($myPage > $myTotalPages) {
+                                $myPage = $myTotalPages;
                                 $myOffset = ($myPage - 1) * $myPerPage;
-                                $myCountRow = $driverRecordId ? fetchOneQuery("SELECT COUNT(*) AS cnt FROM dispatches WHERE driver_id = ?", [(string)$driverRecordId]) : ['cnt' => 0];
-                                $myTotal = (int)($myCountRow['cnt'] ?? 0);
-                                $myTotalPages = max(1, (int)ceil($myTotal / $myPerPage));
-                                if ($myPage > $myTotalPages) { $myPage = $myTotalPages; $myOffset = ($myPage - 1) * $myPerPage; }
-                                $myDispatches = $driverRecordId ? fetchAllQuery(
-                                    "SELECT id, request_id, vehicle_id, driver_id, officer_id, dispatch_date, status, origin, destination, purpose, origin_lat, origin_lon, destination_lat, destination_lon FROM dispatches WHERE driver_id = ? ORDER BY dispatch_date DESC LIMIT {$myPerPage} OFFSET {$myOffset}",
-                                    [(string)$driverRecordId]
-                                ) : [];
+                            }
+                            $myDispatches = $driverRecordId ? fetchAllQuery(
+                                "SELECT id, request_id, vehicle_id, driver_id, officer_id, dispatch_date, status, origin, destination, purpose, origin_lat, origin_lon, destination_lat, destination_lon FROM dispatches WHERE driver_id = ? ORDER BY dispatch_date DESC LIMIT {$myPerPage} OFFSET {$myOffset}",
+                                [(string)$driverRecordId]
+                            ) : [];
                             ?>
                             <?php foreach ($myDispatches as $d): ?>
                                 <tr>
@@ -672,7 +677,7 @@ function vrds_view($baseURL)
                                         <div class="flex flex-col md:flex-row">
                                             <?php if ($d['status'] === 'Ongoing'): ?>
                                                 <a href="<?= htmlspecialchars($baseURL . '&complete=' . $d['id']) ?>" class="btn btn-md btn-success" onclick="return confirm('Mark this dispatch as completed?')">
-                                                <i data-lucide="check" class="inline"></i>
+                                                    <i data-lucide="check" class="inline"></i>
                                                 </a>
                                             <?php endif; ?>
                                         </div>
@@ -725,7 +730,7 @@ function vrds_view($baseURL)
                 <table class="table table-zebra w-full">
                     <thead>
                         <tr>
-                            <th>Ref ID</th>
+                            <th class="break-normal whitespace-normal">Ref ID</th>
                             <th>Purpose</th>
                             <th>Origin</th>
                             <th>Destination</th>
@@ -739,86 +744,86 @@ function vrds_view($baseURL)
                     <tbody>
                         <?php foreach ($historyRequests as $req): ?>
                             <?php
-                                if ($isDriverUser) {
-                                    $reqType = (string)($req['requested_vehicle_type'] ?? '');
-                                    if (!array_key_exists($reqType, $historyRecCache)) {
-                                        $historyRecCache[$reqType] = recommend_assignment($reqType, $vehicles, $drivers);
-                                    }
-                                    $rec = $historyRecCache[$reqType];
-                                    $recommendedDriverId = $rec['driver']['id'] ?? null;
-                                    $assignedDriverId = $req['driver_id'] ?? ($req['assigned_driver_id'] ?? null);
-                                    if (!($recommendedDriverId == $driverRecordId || $assignedDriverId == $driverRecordId)) {
-                                        continue;
-                                    }
+                            if ($isDriverUser) {
+                                $reqType = (string)($req['requested_vehicle_type'] ?? '');
+                                if (!array_key_exists($reqType, $historyRecCache)) {
+                                    $historyRecCache[$reqType] = recommend_assignment($reqType, $vehicles, $drivers);
                                 }
+                                $rec = $historyRecCache[$reqType];
+                                $recommendedDriverId = $rec['driver']['id'] ?? null;
+                                $assignedDriverId = $req['driver_id'] ?? ($req['assigned_driver_id'] ?? null);
+                                if (!($recommendedDriverId == $driverRecordId || $assignedDriverId == $driverRecordId)) {
+                                    continue;
+                                }
+                            }
                             ?>
-                                <?php
-                                    $fullOrigin = trim($req['origin'] ?? '');
-                                    $originWords = preg_split('/\s+/', $fullOrigin);
-                                    if (count($originWords) > 7) {
-                                        $short = implode(' ', array_slice($originWords, 0, 7)) . '...';
-                                        $originDisplay = '<span title="' . htmlspecialchars($fullOrigin) . '">' . htmlspecialchars($short) . '</span>';
+                            <?php
+                            $fullOrigin = trim($req['origin'] ?? '');
+                            $originWords = preg_split('/\s+/', $fullOrigin);
+                            if (count($originWords) > 7) {
+                                $short = implode(' ', array_slice($originWords, 0, 7)) . '...';
+                                $originDisplay = '<span title="' . htmlspecialchars($fullOrigin) . '">' . htmlspecialchars($short) . '</span>';
+                            } else {
+                                $originDisplay = htmlspecialchars($fullOrigin);
+                            }
+                            $fullDest = trim($req['destination'] ?? '');
+                            $destWords = preg_split('/\s+/', $fullDest);
+                            if (count($destWords) > 7) {
+                                $shortD = implode(' ', array_slice($destWords, 0, 7)) . '...';
+                                $destDisplay = '<span title="' . htmlspecialchars($fullDest) . '">' . htmlspecialchars($shortD) . '</span>';
+                            } else {
+                                $destDisplay = htmlspecialchars($fullDest);
+                            }
+                            ?>
+                            <tr>
+                                <td><?= 'REQ' . str_pad($req['id'], 5, '0', STR_PAD_LEFT) ?></td>
+                                <td><?= htmlspecialchars($req['purpose']) ?></td>
+                                <td><?= $originDisplay ?></td>
+                                <td><?= $destDisplay ?></td>
+                                <td><?= htmlspecialchars($req['requested_vehicle_type']) ?></td>
+                                <td><?= htmlspecialchars($req['reservation_date'] ?? '') ?></td>
+                                <td><?= htmlspecialchars($req['expected_return'] ?? '') ?></td>
+                                <td>
+                                    <?php
+                                    $status = $req['status'];
+                                    $badgeClass = 'badge p-3 text-nowrap';
+                                    if ($status === 'Approved') {
+                                        $badgeClass .= ' badge-success';
+                                    } elseif ($status === 'Denied') {
+                                        $badgeClass .= ' badge-error ';
+                                    } elseif ($status === 'Pending') {
+                                        $badgeClass .= ' badge-warning';
                                     } else {
-                                        $originDisplay = htmlspecialchars($fullOrigin);
+                                        $badgeClass .= ' badge-info';
                                     }
-                                    $fullDest = trim($req['destination'] ?? '');
-                                    $destWords = preg_split('/\s+/', $fullDest);
-                                    if (count($destWords) > 7) {
-                                        $shortD = implode(' ', array_slice($destWords, 0, 7)) . '...';
-                                        $destDisplay = '<span title="' . htmlspecialchars($fullDest) . '">' . htmlspecialchars($shortD) . '</span>';
-                                    } else {
-                                        $destDisplay = htmlspecialchars($fullDest);
-                                    }
-                                ?>
-                                <tr>
-                                    <td><?= 'REQ' . str_pad($req['id'], 5, '0', STR_PAD_LEFT) ?></td>
-                                    <td><?= htmlspecialchars($req['purpose']) ?></td>
-                                    <td><?= $originDisplay ?></td>
-                                    <td><?= $destDisplay ?></td>
-                                    <td><?= htmlspecialchars($req['requested_vehicle_type']) ?></td>
-                                    <td><?= htmlspecialchars($req['reservation_date'] ?? '') ?></td>
-                                    <td><?= htmlspecialchars($req['expected_return'] ?? '') ?></td>
-                                    <td>
-                                        <?php
-                                        $status = $req['status'];
-                                        $badgeClass = 'badge p-3 text-nowrap';
-                                        if ($status === 'Approved') {
-                                            $badgeClass .= ' badge-success';
-                                        } elseif ($status === 'Denied') {
-                                            $badgeClass .= ' badge-error ';
-                                        } elseif ($status === 'Pending') {
-                                            $badgeClass .= ' badge-warning';
-                                        } else {
-                                            $badgeClass .= ' badge-info';
-                                        }
-                                        ?>
-                                        <span class="<?= $badgeClass ?>">
-                                            <?= htmlspecialchars($status) ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-info btn-sm" style="width:120%;" onclick="document.getElementById('view_modal_<?= $req['id'] ?>').showModal()"><i data-lucide="eye"></i></button>
-                                        <dialog id="view_modal_<?= $req['id'] ?>" class="modal">
-                                            <div class="modal-box">
-                                                <form method="dialog">
-                                                    <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                                                </form>
-                                                <h3 class="font-bold text-lg mb-4">Vehicle Request Details</h3>
-                                                <div class="flex flex-col gap-2">
-                                                    <div><b>Purpose:</b> <?= htmlspecialchars($req['purpose']) ?></div>
-                                                    <div><b>Origin:</b> <?= htmlspecialchars($req['origin']) ?></div>
-                                                    <div><b>Destination:</b> <?= htmlspecialchars($req['destination']) ?></div>
-                                                    <div><b>Requested Vehicle Type:</b> <?= htmlspecialchars($req['requested_vehicle_type']) ?></div>
-                                                    <div><b>Reservation Date:</b> <?= htmlspecialchars($req['reservation_date'] ?? '') ?></div>
-                                                    <div><b>Expected Return:</b> <?= htmlspecialchars($req['expected_return'] ?? '') ?></div>
-                                                    <div><b>Status:</b> <?= htmlspecialchars($req['status']) ?></div>
-                                                </div>
+                                    ?>
+                                    <span class="<?= $badgeClass ?>">
+                                        <?= htmlspecialchars($status) ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-info btn-sm" style="width:120%;" onclick="document.getElementById('view_modal_<?= $req['id'] ?>').showModal()"><i data-lucide="eye"></i></button>
+                                    <dialog id="view_modal_<?= $req['id'] ?>" class="modal">
+                                        <div class="modal-box">
+                                            <form method="dialog">
+                                                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                                            </form>
+                                            <h3 class="font-bold text-lg mb-4">Vehicle Request Details</h3>
+                                            <div class="flex flex-col gap-2">
+                                                <div><b>Purpose:</b> <?= htmlspecialchars($req['purpose']) ?></div>
+                                                <div><b>Origin:</b> <?= htmlspecialchars($req['origin']) ?></div>
+                                                <div><b>Destination:</b> <?= htmlspecialchars($req['destination']) ?></div>
+                                                <div><b>Requested Vehicle Type:</b> <?= htmlspecialchars($req['requested_vehicle_type']) ?></div>
+                                                <div><b>Reservation Date:</b> <?= htmlspecialchars($req['reservation_date'] ?? '') ?></div>
+                                                <div><b>Expected Return:</b> <?= htmlspecialchars($req['expected_return'] ?? '') ?></div>
+                                                <div><b>Status:</b> <?= htmlspecialchars($req['status']) ?></div>
                                             </div>
-                                            <form method="dialog" class="modal-backdrop"><button>close</button></form>
-                                        </dialog>
-                                    </td>
-                                </tr>
-                           
+                                        </div>
+                                        <form method="dialog" class="modal-backdrop"><button>close</button></form>
+                                    </dialog>
+                                </td>
+                            </tr>
+
                         <?php endforeach; ?>
                     </tbody>
                 </table>
@@ -831,143 +836,146 @@ function vrds_view($baseURL)
             </div>
 
             <?php if (!in_array($role, ['requester', 'user', 'driver'])): ?>
-            <!-- Dispatch Log Modal -->
-            <dialog id="dispatch_log_modal" class="modal">
-                <div class="modal-box">
-                    <form method="dialog">
-                        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-                    </form>
-                    <h3 class="font-bold text-lg mb-4">Dispatched Trips</h3>
+                <!-- Dispatch Log Modal -->
+                <dialog id="dispatch_log_modal" class="modal">
+                    <div class="modal-box">
+                        <form method="dialog">
+                            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+                        </form>
+                        <h3 class="font-bold text-lg mb-4">Dispatched Trips</h3>
 
-                    <form method="GET" action="dashboard.php" class="mb-3 flex flex-wrap gap-2 items-end">
-                        <input type="hidden" name="module" value="vrds">
-                        <input type="hidden" name="vrds_open_dispatch_log" value="1">
-                        <div class="form-control">
-                            <label class="label">Status</label>
-                            <select name="vrds_dispatch_status" class="select select-bordered select-sm">
-                                <option value="All" <?= ($dispatchStatus === 'All' || $dispatchStatus === '') ? 'selected' : '' ?>>All</option>
-                                <option value="Ongoing" <?= ($dispatchStatus === 'Ongoing') ? 'selected' : '' ?>>Ongoing</option>
-                                <option value="Completed" <?= ($dispatchStatus === 'Completed') ? 'selected' : '' ?>>Completed</option>
-                                <option value="Cancelled" <?= ($dispatchStatus === 'Cancelled') ? 'selected' : '' ?>>Cancelled</option>
-                            </select>
-                        </div>
-                        <div class="form-control">
-                            <label class="label">Vehicle</label>
-                            <select name="vrds_dispatch_vehicle_id" class="select select-bordered select-sm">
-                                <option value="0">All</option>
-                                <?php foreach ($vehicles as $veh): ?>
-                                    <option value="<?= (int)$veh['id'] ?>" <?= ((int)$veh['id'] === $dispatchVehicleId) ? 'selected' : '' ?>><?= htmlspecialchars($veh['vehicle_name']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="form-control">
-                            <label class="label">Driver</label>
-                            <select name="vrds_dispatch_driver_id" class="select select-bordered select-sm">
-                                <option value="0">All</option>
-                                <?php foreach ($drivers as $drv): ?>
-                                    <option value="<?= (int)$drv['id'] ?>" <?= ((int)$drv['id'] === $dispatchDriverId) ? 'selected' : '' ?>><?= htmlspecialchars($drv['driver_name']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="form-control">
-                            <label class="label">From</label>
-                            <input type="date" name="vrds_dispatch_from" value="<?= htmlspecialchars($dispatchFrom) ?>" class="input input-bordered input-sm">
-                        </div>
-                        <div class="form-control">
-                            <label class="label">To</label>
-                            <input type="date" name="vrds_dispatch_to" value="<?= htmlspecialchars($dispatchTo) ?>" class="input input-bordered input-sm">
-                        </div>
-                        <div class="form-control">
-                            <button class="btn btn-primary btn-sm" type="submit">Apply</button>
-                        </div>
-                        <div class="form-control">
-                            <a class="btn btn-ghost btn-sm" href="<?= htmlspecialchars($buildUrl(['vrds_dispatch_status' => null, 'vrds_dispatch_vehicle_id' => null, 'vrds_dispatch_driver_id' => null, 'vrds_dispatch_from' => null, 'vrds_dispatch_to' => null, 'vrds_dispatch_page' => 1, 'vrds_open_dispatch_log' => 1])) ?>">Reset</a>
-                        </div>
-                    </form>
+                        <form method="GET" action="dashboard.php" class="mb-3 flex flex-wrap gap-2 items-end">
+                            <input type="hidden" name="module" value="vrds">
+                            <input type="hidden" name="vrds_open_dispatch_log" value="1">
+                            <div class="form-control">
+                                <label class="label">Status</label>
+                                <select name="vrds_dispatch_status" class="select select-bordered select-sm">
+                                    <option value="All" <?= ($dispatchStatus === 'All' || $dispatchStatus === '') ? 'selected' : '' ?>>All</option>
+                                    <option value="Ongoing" <?= ($dispatchStatus === 'Ongoing') ? 'selected' : '' ?>>Ongoing</option>
+                                    <option value="Completed" <?= ($dispatchStatus === 'Completed') ? 'selected' : '' ?>>Completed</option>
+                                    <option value="Cancelled" <?= ($dispatchStatus === 'Cancelled') ? 'selected' : '' ?>>Cancelled</option>
+                                </select>
+                            </div>
+                            <div class="form-control">
+                                <label class="label">Vehicle</label>
+                                <select name="vrds_dispatch_vehicle_id" class="select select-bordered select-sm">
+                                    <option value="0">All</option>
+                                    <?php foreach ($vehicles as $veh): ?>
+                                        <option value="<?= (int)$veh['id'] ?>" <?= ((int)$veh['id'] === $dispatchVehicleId) ? 'selected' : '' ?>><?= htmlspecialchars($veh['vehicle_name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="form-control">
+                                <label class="label">Driver</label>
+                                <select name="vrds_dispatch_driver_id" class="select select-bordered select-sm">
+                                    <option value="0">All</option>
+                                    <?php foreach ($drivers as $drv): ?>
+                                        <option value="<?= (int)$drv['id'] ?>" <?= ((int)$drv['id'] === $dispatchDriverId) ? 'selected' : '' ?>><?= htmlspecialchars($drv['driver_name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="form-control">
+                                <label class="label">From</label>
+                                <input type="date" name="vrds_dispatch_from" value="<?= htmlspecialchars($dispatchFrom) ?>" class="input input-bordered input-sm">
+                            </div>
+                            <div class="form-control">
+                                <label class="label">To</label>
+                                <input type="date" name="vrds_dispatch_to" value="<?= htmlspecialchars($dispatchTo) ?>" class="input input-bordered input-sm">
+                            </div>
+                            <div class="form-control">
+                                <button class="btn btn-primary btn-sm" type="submit">Apply</button>
+                            </div>
+                            <div class="form-control">
+                                <a class="btn btn-ghost btn-sm" href="<?= htmlspecialchars($buildUrl(['vrds_dispatch_status' => null, 'vrds_dispatch_vehicle_id' => null, 'vrds_dispatch_driver_id' => null, 'vrds_dispatch_from' => null, 'vrds_dispatch_to' => null, 'vrds_dispatch_page' => 1, 'vrds_open_dispatch_log' => 1])) ?>">Reset</a>
+                            </div>
+                        </form>
 
-                    <?php // Removed pagination: show all dispatches in modal ?>
-                    <form method="POST" action="<?= htmlspecialchars($baseURL) ?>">
-                        <!--
+                        <?php // Removed pagination: show all dispatches in modal 
+                        ?>
+                        <form method="POST" action="<?= htmlspecialchars($baseURL) ?>">
+                            <!--
                         <div class="mb-2 flex gap-2">
                             <button type="submit" name="clear_dispatch_logs" class="btn btn-error btn-sm" onclick="return confirm('Clear all dispatch logs?')">Remove All Records</button>
                         </div>
                     -->
-                        <div class="overflow-x-auto">
-                            <table class="table table-zebra table-sm">
-                                <thead>
-                                    <tr>
-                                        <!-- No batch select -->
-                                        <th>Ref ID</th>
-                                        <th>Vehicle</th>
-                                        <th>Driver</th>
-                                        <th>Dispatch Date</th>
-                                        <th>Status</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($dispatchLogRows as $d): ?>
+                            <div class="overflow-x-auto">
+                                <table class="table table-zebra table-sm">
+                                    <thead>
                                         <tr>
-                                            <?php if ($isDriverUser && isset($driverRecordId) && $d['driver_id'] != $driverRecordId) { continue; } ?>
-                                            <td><?= 'DSP' . str_pad($d['id'], 5, '0', STR_PAD_LEFT) ?></td>
-                                            <td>
-                                                <?= htmlspecialchars($vehicleNameById[(int)$d['vehicle_id']] ?? '') ?>
-                                            </td>
-                                            <td>
-                                                <?= htmlspecialchars($driverNameById[(int)$d['driver_id']] ?? '') ?>
-                                            </td>
-                                            <td><?= htmlspecialchars($d['dispatch_date']) ?></td>
-                                            <td>
-                                                <?php
-                                                $badgeClass = 'badge badge-soft p-3 text-nowrap';
-                                                if ($d['status'] === 'Ongoing') {
-                                                    $badgeClass .= ' badge-soft badge-warning';
-                                                } elseif ($d['status'] === 'Completed') {
-                                                    $badgeClass .= ' badge-soft badge-success';
-                                                } elseif ($d['status'] === 'Cancelled') {
-                                                    $badgeClass .= ' badge-soft badge-error ';
-                                                } else {
-                                                    $badgeClass .= ' badge-soft badge-info';
-                                                }
-                                                ?>
-                                                <span class="<?= $badgeClass ?>">
-                                                    <?= htmlspecialchars($d['status']) ?>
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div class="flex flex-col md:flex-row">
-                                                    <?php if ($d['status'] === 'Ongoing'): ?>
-                                                        <a href="<?= htmlspecialchars($baseURL . '&complete=' . $d['id']) ?>" class="btn btn-md btn-success" onclick="return confirm('Mark this dispatch as completed?')">
-                                                        <i data-lucide="check" class="inline"></i>
-                                                        </a>
-                                                    <?php endif; ?>
-                                                    <!--
+                                            <!-- No batch select -->
+                                            <th>Ref ID</th>
+                                            <th>Vehicle</th>
+                                            <th>Driver</th>
+                                            <th>Dispatch Date</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($dispatchLogRows as $d): ?>
+                                            <tr>
+                                                <?php if ($isDriverUser && isset($driverRecordId) && $d['driver_id'] != $driverRecordId) {
+                                                    continue;
+                                                } ?>
+                                                <td><?= 'DSP' . str_pad($d['id'], 5, '0', STR_PAD_LEFT) ?></td>
+                                                <td>
+                                                    <?= htmlspecialchars($vehicleNameById[(int)$d['vehicle_id']] ?? '') ?>
+                                                </td>
+                                                <td>
+                                                    <?= htmlspecialchars($driverNameById[(int)$d['driver_id']] ?? '') ?>
+                                                </td>
+                                                <td><?= htmlspecialchars($d['dispatch_date']) ?></td>
+                                                <td>
+                                                    <?php
+                                                    $badgeClass = 'badge badge-soft p-3 text-nowrap';
+                                                    if ($d['status'] === 'Ongoing') {
+                                                        $badgeClass .= ' badge-soft badge-warning';
+                                                    } elseif ($d['status'] === 'Completed') {
+                                                        $badgeClass .= ' badge-soft badge-success';
+                                                    } elseif ($d['status'] === 'Cancelled') {
+                                                        $badgeClass .= ' badge-soft badge-error ';
+                                                    } else {
+                                                        $badgeClass .= ' badge-soft badge-info';
+                                                    }
+                                                    ?>
+                                                    <span class="<?= $badgeClass ?>">
+                                                        <?= htmlspecialchars($d['status']) ?>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="flex flex-col md:flex-row">
+                                                        <?php if ($d['status'] === 'Ongoing'): ?>
+                                                            <a href="<?= htmlspecialchars($baseURL . '&complete=' . $d['id']) ?>" class="btn btn-md btn-success" onclick="return confirm('Mark this dispatch as completed?')">
+                                                                <i data-lucide="check" class="inline"></i>
+                                                            </a>
+                                                        <?php endif; ?>
+                                                        <!--
                                                     <a href="<?= htmlspecialchars($baseURL . '&delete=' . $d['id']) ?>"
                                                         class="btn btn-xs btn-error sm:btn-sm md:btn-md w-1/2"
                                                         onclick="return confirm('Delete this dispatch log?')">
                                                         <i data-lucide="delete" class="inline"></i>Delete
                                                     </a> -->
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </form>
 
-                    <div class="flex justify-center mt-2 gap-2">
-                        <?php for ($p = 1; $p <= $dispatchTotalPages; $p++): ?>
-                            <a class="btn btn-xs <?= ($p == $dispatchPage) ? 'btn-primary' : 'btn-outline' ?>" href="<?= htmlspecialchars($buildUrl(['vrds_dispatch_page' => $p, 'vrds_open_dispatch_log' => 1])) ?>">Page <?= $p ?></a>
-                        <?php endfor; ?>
+                        <div class="flex justify-center mt-2 gap-2">
+                            <?php for ($p = 1; $p <= $dispatchTotalPages; $p++): ?>
+                                <a class="btn btn-xs <?= ($p == $dispatchPage) ? 'btn-primary' : 'btn-outline' ?>" href="<?= htmlspecialchars($buildUrl(['vrds_dispatch_page' => $p, 'vrds_open_dispatch_log' => 1])) ?>">Page <?= $p ?></a>
+                            <?php endfor; ?>
+                        </div>
                     </div>
-                </div>
-                <form method="dialog" class="modal-backdrop">
-                    <button>close</button>
-                </form>
-            </dialog>
+                    <form method="dialog" class="modal-backdrop">
+                        <button>close</button>
+                    </form>
+                </dialog>
             <?php endif; ?>
-            
+
             <!-- Leaflet.js & OSM/Nominatim Autocomplete JS & CSS -->
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
             <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -1093,16 +1101,19 @@ function vrds_view($baseURL)
                         renderOngoingList(dispatches);
                     }
 
-                    function renderOngoingList(dispatches){
+                    function renderOngoingList(dispatches) {
                         const container = document.getElementById('ongoingDispatchItems');
                         if (!container) return;
-                        if (!dispatches || dispatches.length === 0){ container.innerHTML = '<div class="opacity-50">No ongoing dispatches</div>'; return; }
+                        if (!dispatches || dispatches.length === 0) {
+                            container.innerHTML = '<div class="opacity-50">No ongoing dispatches</div>';
+                            return;
+                        }
                         container.innerHTML = '';
                         dispatches.forEach(d => {
                             const vehicle = vehicles.find(v => v.id == d.vehicle_id);
                             const driver = drivers.find(dr => dr.id == d.driver_id);
                             const el = document.createElement('div');
-                            el.className = 'mb-2 p-2 border rounded hover:bg-gray-50 cursor-pointer';
+                            el.className = 'mb-2 p-2 border rounded opacity-[.80] hover:opacity-100 cursor-pointer';
                             el.style.display = 'flex';
                             el.style.flexDirection = 'column';
                             el.style.gap = '4px';
@@ -1111,12 +1122,12 @@ function vrds_view($baseURL)
                             const sub = document.createElement('div');
                             sub.style.fontSize = '0.9rem';
                             sub.style.opacity = '0.9';
-                            sub.textContent = (driver ? driver.driver_name : 'Driver #' + d.driver_id) + ' — ' + (d.origin || '-') ;
+                            sub.textContent = (driver ? driver.driver_name : 'Driver #' + d.driver_id) + ' — ' + (d.origin || '-');
                             el.appendChild(title);
                             el.appendChild(sub);
-                            el.onclick = function(){
+                            el.onclick = function() {
                                 const m = originMarkersById[d.id];
-                                if (m){
+                                if (m) {
                                     const latlng = m.getLatLng();
                                     map.setView([latlng.lat, latlng.lng], 15);
                                     m.openPopup();
@@ -1170,46 +1181,46 @@ function vrds_view($baseURL)
                     const _addPoiBtn = document.getElementById('addPoiBtn');
                     if (_addPoiBtn) {
                         _addPoiBtn.onclick = function() {
-                        // Prevent multiple listeners
-                        if (window._poiMapClickHandler) {
-                            map.off('click', window._poiMapClickHandler);
-                        }
-                        window._poiMapClickHandler = function(e) {
-                            const lat = e.latlng.lat;
-                            const lon = e.latlng.lng;
-                            const name = prompt('Enter POI name:');
-                            if (!name) {
+                            // Prevent multiple listeners
+                            if (window._poiMapClickHandler) {
                                 map.off('click', window._poiMapClickHandler);
-                                return;
                             }
-                            const description = prompt('Enter POI description (optional):') || '';
-                            fetch(window.location.pathname + '?add_custom_poi=1', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                    name,
-                                    lat,
-                                    lon,
-                                    description
-                                })
-                            }).then(res => res.json()).then(resp => {
-                                if (resp.success) {
-                                    fetchAndShowPOIs();
-                                    alert('POI added!');
-                                } else {
-                                    alert('Failed to add POI.');
+                            window._poiMapClickHandler = function(e) {
+                                const lat = e.latlng.lat;
+                                const lon = e.latlng.lng;
+                                const name = prompt('Enter POI name:');
+                                if (!name) {
+                                    map.off('click', window._poiMapClickHandler);
+                                    return;
                                 }
-                                map.off('click', window._poiMapClickHandler);
-                            }).catch(() => {
-                                alert('Failed to add POI.');
-                                map.off('click', window._poiMapClickHandler);
-                            });
+                                const description = prompt('Enter POI description (optional):') || '';
+                                fetch(window.location.pathname + '?add_custom_poi=1', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        name,
+                                        lat,
+                                        lon,
+                                        description
+                                    })
+                                }).then(res => res.json()).then(resp => {
+                                    if (resp.success) {
+                                        fetchAndShowPOIs();
+                                        alert('POI added!');
+                                    } else {
+                                        alert('Failed to add POI.');
+                                    }
+                                    map.off('click', window._poiMapClickHandler);
+                                }).catch(() => {
+                                    alert('Failed to add POI.');
+                                    map.off('click', window._poiMapClickHandler);
+                                });
+                            };
+                            map.on('click', window._poiMapClickHandler);
+                            alert('Click on the map to set POI location.');
                         };
-                        map.on('click', window._poiMapClickHandler);
-                        alert('Click on the map to set POI location.');
-                    };
                     }
 
                     // Search bar autocomplete
@@ -1217,87 +1228,111 @@ function vrds_view($baseURL)
                     const suggestionsDiv = document.getElementById('searchSuggestions');
                     let searchTimeout = null;
                     if (searchInput && suggestionsDiv) {
-                    searchInput.addEventListener('input', function() {
-                        const query = searchInput.value.trim().toLowerCase();
-                        if (searchTimeout) clearTimeout(searchTimeout);
-                        if (query.length < 3) {
-                            suggestionsDiv.style.display = 'none';
-                            return;
-                        }
-                        searchTimeout = setTimeout(() => {
-                            suggestionsDiv.innerHTML = '';
-                            // Suggest POIs first
-                            let poiMatches = pois.filter(poi => poi.name && poi.name.toLowerCase().includes(query));
-                            poiMatches.forEach(poi => {
-                                const div = document.createElement('div');
-                                div.textContent = poi.name + ' (POI)';
-                                div.style.fontWeight = 'bold';
-                                div.onclick = function() {
-                                    searchInput.value = poi.name;
-                                    suggestionsDiv.style.display = 'none';
-                                    if (poi.lat && poi.lon) {
-                                        let lat = typeof poi.lat === 'string' ? parseFloat(poi.lat) : poi.lat;
-                                        let lon = typeof poi.lon === 'string' ? parseFloat(poi.lon) : poi.lon;
-                                        if (!isNaN(lat) && !isNaN(lon)) {
-                                            map.setView([lat, lon], 17);
-                                        }
-                                    }
-                                };
-                                suggestionsDiv.appendChild(div);
-                            });
-                            // Then fetch Nominatim results
-                            fetch('https://corsproxy.io/?https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&q=' + encodeURIComponent(query))
-                                .then(res => res.json())
-                                .then(data => {
-                                    data.slice(0, 8).forEach(place => {
-                                        const div = document.createElement('div');
-                                        div.textContent = place.display_name;
-                                        div.onclick = function() {
-                                            searchInput.value = place.display_name;
-                                            suggestionsDiv.style.display = 'none';
-                                            map.setView([parseFloat(place.lat), parseFloat(place.lon)], 17);
-                                        };
-                                        suggestionsDiv.appendChild(div);
-                                    });
-                                    if (suggestionsDiv.innerHTML !== '') {
-                                        suggestionsDiv.style.display = 'block';
-                                    } else {
+                        searchInput.addEventListener('input', function() {
+                            const query = searchInput.value.trim().toLowerCase();
+                            if (searchTimeout) clearTimeout(searchTimeout);
+                            if (query.length < 3) {
+                                suggestionsDiv.style.display = 'none';
+                                return;
+                            }
+                            searchTimeout = setTimeout(() => {
+                                suggestionsDiv.innerHTML = '';
+                                // Suggest POIs first
+                                let poiMatches = pois.filter(poi => poi.name && poi.name.toLowerCase().includes(query));
+                                poiMatches.forEach(poi => {
+                                    const div = document.createElement('div');
+                                    div.textContent = poi.name + ' (POI)';
+                                    div.style.fontWeight = 'bold';
+                                    div.onclick = function() {
+                                        searchInput.value = poi.name;
                                         suggestionsDiv.style.display = 'none';
-                                    }
+                                        if (poi.lat && poi.lon) {
+                                            let lat = typeof poi.lat === 'string' ? parseFloat(poi.lat) : poi.lat;
+                                            let lon = typeof poi.lon === 'string' ? parseFloat(poi.lon) : poi.lon;
+                                            if (!isNaN(lat) && !isNaN(lon)) {
+                                                map.setView([lat, lon], 17);
+                                            }
+                                        }
+                                    };
+                                    suggestionsDiv.appendChild(div);
                                 });
-                        }, 300);
-                    });
-                    document.addEventListener('click', function(e) {
-                        if (!suggestionsDiv.contains(e.target) && e.target !== searchInput) {
-                            suggestionsDiv.style.display = 'none';
-                        }
-                    });
-                    // Initial load, then periodic updates, 10000 = 10 seconds
-                    addDispatchMarkers(<?php echo json_encode(array_values($ongoingDispatches)); ?>);
-                    fetchAndShowPOIs();
-                    setInterval(fetchAndUpdateDispatches, 10000);
-                    if (<?= $dispatchOpen ? 'true' : 'false' ?>) {
-                        const dlg = document.getElementById('dispatch_log_modal');
-                        if (dlg && typeof dlg.showModal === 'function') {
-                            dlg.showModal();
+                                // Then fetch Nominatim results
+                                fetch('https://corsproxy.io/?https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&q=' + encodeURIComponent(query))
+                                    .then(res => res.json())
+                                    .then(data => {
+                                        data.slice(0, 8).forEach(place => {
+                                            const div = document.createElement('div');
+                                            div.textContent = place.display_name;
+                                            div.onclick = function() {
+                                                searchInput.value = place.display_name;
+                                                suggestionsDiv.style.display = 'none';
+                                                map.setView([parseFloat(place.lat), parseFloat(place.lon)], 17);
+                                            };
+                                            suggestionsDiv.appendChild(div);
+                                        });
+                                        if (suggestionsDiv.innerHTML !== '') {
+                                            suggestionsDiv.style.display = 'block';
+                                        } else {
+                                            suggestionsDiv.style.display = 'none';
+                                        }
+                                    });
+                            }, 300);
+                        });
+                        document.addEventListener('click', function(e) {
+                            if (!suggestionsDiv.contains(e.target) && e.target !== searchInput) {
+                                suggestionsDiv.style.display = 'none';
+                            }
+                        });
+                        // Initial load, then periodic updates, 10000 = 10 seconds
+                        addDispatchMarkers(<?php echo json_encode(array_values($ongoingDispatches)); ?>);
+                        fetchAndShowPOIs();
+                        setInterval(fetchAndUpdateDispatches, 10000);
+                        if (<?= $dispatchOpen ? 'true' : 'false' ?>) {
+                            const dlg = document.getElementById('dispatch_log_modal');
+                            if (dlg && typeof dlg.showModal === 'function') {
+                                dlg.showModal();
+                            }
                         }
                     }
-}                });
+                });
             </script>
             <style>
                 /* Responsive adjustments for VRDS page */
-                .modal-box { box-sizing: border-box; max-width: 50vw !important; }
-                dialog.modal { padding: 0.5rem; }
-                .overflow-x-auto { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-                .table { width: 100%; min-width: 0; table-layout: auto; }
-                .table th, .table td { white-space: normal; word-break: break-word; }
+                .modal-box {
+                    box-sizing: border-box;
+                    max-width: 50vw !important;
+                }
+
+                dialog.modal {
+                    padding: 0.5rem;
+                }
+
+                .overflow-x-auto {
+                    overflow-x: auto;
+                    -webkit-overflow-scrolling: touch;
+                }
+
+                .table {
+                    width: 100%;
+                    min-width: 0;
+                    table-layout: auto;
+                }
 
                 /* Small screens: allow tables to scroll instead of overflowing */
                 @media (max-width: 640px) {
-                    .modal-box { padding: 0.5rem; }
-                    .table { font-size: 0.9rem; }
-                    .leaflet-container { max-width: 100%; }
+                    .modal-box {
+                        padding: 0.5rem;
+                    }
+
+                    .table {
+                        font-size: 0.9rem;
+                    }
+
+                    .leaflet-container {
+                        max-width: 100%;
+                    }
                 }
+
                 .osm-suggestions {
                     position: absolute;
                     /* z-index: 1000; */
