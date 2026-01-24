@@ -109,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         unset($_SESSION['otp'], $_SESSION['otp_expires'], $_SESSION['otp_attempts'], $_SESSION['pending_user'], $_SESSION['otp_locked']);
         log_audit_event(
             'Authentication',
-            'Successful Login',
+            'Login',
             $user['id'],
             $user['eid'],
             'User successfully logged in after OTP verification'
