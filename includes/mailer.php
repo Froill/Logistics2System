@@ -28,6 +28,10 @@ function sendOTPEmail(string $recipientEmail, string $otp): bool
         $mail->SMTPSecure = 'tls';
         $mail->Port       = 587;
 
+        // Add timeout settings for better reliability
+        $mail->Timeout = 15;
+        $mail->SMTPKeepAlive = true;
+
         // Recipients
         $mail->setFrom(SMTP_EMAIL, SMTP_NAME);
         $mail->addAddress($recipientEmail);
@@ -59,9 +63,10 @@ function sendOTPEmail(string $recipientEmail, string $otp): bool
         ";
 
         $mail->send();
+        error_log("OTP Email sent successfully to: " . $recipientEmail);
         return true;
     } catch (Exception $e) {
-        error_log("Mailer error: " . $mail->ErrorInfo);
+        error_log("Mailer error - Email: {$recipientEmail}, Error: " . $mail->ErrorInfo);
         return false;
     }
 }
@@ -90,6 +95,10 @@ function sendEmail(string $to, string $subject, string $body): bool
         $mail->SMTPSecure = 'tls';
         $mail->Port       = 587;
 
+        // Add timeout settings for better reliability
+        $mail->Timeout = 15;
+        $mail->SMTPKeepAlive = true;
+
         // Recipients
         $mail->setFrom(SMTP_EMAIL, SMTP_NAME);
         $mail->addAddress($to);
@@ -100,9 +109,10 @@ function sendEmail(string $to, string $subject, string $body): bool
         $mail->Body    = $body;
 
         $mail->send();
+        error_log("Email sent successfully to: " . $to . " | Subject: " . $subject);
         return true;
     } catch (Exception $e) {
-        error_log("Mailer error: " . $mail->ErrorInfo);
+        error_log("Mailer error - Email: {$to}, Subject: {$subject}, Error: " . $mail->ErrorInfo);
         return false;
     }
 }

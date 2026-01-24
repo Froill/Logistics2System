@@ -70,12 +70,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validate OTP
     if ($inputOtp === $_SESSION['otp']) {
 
+        // Fetch T&C acceptance status from database
+        $stmt = $conn->prepare("SELECT t_and_c_accepted FROM users WHERE id = ?");
+        $stmt->bind_param("i", $user['id']);
+        $stmt->execute();
+        $result = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        $t_and_c_accepted = $result['t_and_c_accepted'] ?? 0;
+
         // Complete login
         $_SESSION['user_id']   = $user['id'];
         $_SESSION['eid']       = $user['eid'];
         $_SESSION['role']      = $user['role'];
         $_SESSION['full_name'] = $user['full_name'];
         $_SESSION['current_module'] = $user['current_module'];
+        $_SESSION['t_and_c_accepted'] = $t_and_c_accepted;
 
         /*** Persist trusted device: cookie + fingerprint ***/
         $deviceToken = bin2hex(random_bytes(32)); // random 64-char token
@@ -114,6 +123,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user['full_name'],
             'User successfully logged in after OTP verification'
         );
+
+        // Check if user has accepted T&C
+        if (!$t_and_c_accepted) {
+            header('Location: ../terms-and-conditions.php');
+            exit();
+        }
+
         header('Location: ../dashboard.php');
         exit();
     } else {

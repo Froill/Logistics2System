@@ -131,7 +131,7 @@ unset($_SESSION['otp_error']);
 
                     <!-- Back to Login -->
                     <div class="mt-4 sm:mt-6 text-center">
-                        <a href="/login.php" class="text-sm sm:text-base font-medium text-blue-400 hover:text-blue-300 flex items-center justify-center">
+                        <a href="login.php" class="text-sm sm:text-base font-medium text-blue-400 hover:text-blue-300 flex items-center justify-center">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                             </svg>
@@ -210,25 +210,53 @@ unset($_SESSION['otp_error']);
 
         // Resend OTP function
         function resendOTP() {
-            // Simulate resend OTP
-            alert('New OTP has been sent to your device');
+            // Make AJAX request to backend
+            fetch('./includes/resend-otp.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'action=resend'
+                })
+                .then(response => response.text())
+                .then(data => {
+                    // Check if response indicates success
+                    if (data.includes('success') || data.includes('A new OTP')) {
+                        // Show success message
+                        const successEl = document.createElement('div');
+                        successEl.className = 'text-center mb-3 text-green-500 font-medium';
+                        successEl.textContent = 'A new OTP has been sent to your email';
+                        const form = document.getElementById('otpForm');
+                        form.insertBefore(successEl, form.firstChild);
 
-            // Reset countdown
-            timeLeft = 120;
-            countdownEl.textContent = `Resend OTP in 02:00`;
-            countdownEl.classList.remove('hidden');
-            resendBtn.classList.add('hidden');
+                        // Remove success message after 3 seconds
+                        setTimeout(() => successEl.remove(), 3000);
+                    } else {
+                        alert('Failed to resend OTP. Please try again.');
+                        return;
+                    }
 
-            // Restart timer
-            clearInterval(timer);
-            updateCountdown();
-            const newTimer = setInterval(updateCountdown, 1000);
+                    // Reset countdown
+                    timeLeft = 120;
+                    countdownEl.textContent = `Resend OTP in 02:00`;
+                    countdownEl.classList.remove('hidden');
+                    resendBtn.classList.add('hidden');
 
-            // Clear OTP fields
-            document.querySelectorAll('.otp-input').forEach(input => {
-                input.value = '';
-            });
-            document.getElementsByName('otp1')[0].focus();
+                    // Restart timer
+                    clearInterval(timer);
+                    updateCountdown();
+                    const newTimer = setInterval(updateCountdown, 1000);
+
+                    // Clear OTP fields
+                    document.querySelectorAll('.otp-input').forEach(input => {
+                        input.value = '';
+                    });
+                    document.getElementsByName('otp1')[0].focus();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while resending OTP. Please try again.');
+                });
         }
     </script>
 </body>

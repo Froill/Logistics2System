@@ -139,8 +139,16 @@ try {
                 $_SESSION['role']     = $user['role'];
                 $_SESSION['full_name'] = $user['full_name'];
                 $_SESSION['current_module'] = 'dashboard';
+                $_SESSION['t_and_c_accepted'] = $user['t_and_c_accepted'];
 
                 log_audit_event('Authentication', 'Login', $user['id'], $_SESSION['full_name'], 'User logged in via trusted device');
+
+                // Check if user has accepted T&C
+                if (!$user['t_and_c_accepted']) {
+                    header("Location: ../terms-and-conditions.php");
+                    exit();
+                }
+
                 header("Location: ../dashboard.php");
                 exit();
             }
@@ -164,7 +172,7 @@ try {
         ];
 
         if (sendOTPEmail($user['email'], $otp)) {
-            log_audit_event('Authentication', 'OTP Sent', $user['id'], $_SESSION['full_name'], 'OTP sent for login');
+            log_audit_event('Authentication', 'OTP Sent', $user['id'], $user['full_name'], 'OTP sent for login');
             header("Location: ../verify-otp.php");
             exit();
         } else {
@@ -179,7 +187,7 @@ try {
         if ($user) {
             recordFailedLoginAttempt($user['email'], $clientIP, 'Invalid password');
             $_SESSION['error'] = "Invalid email or password.";
-            log_audit_event('Authentication', 'Failed Attempt', $user['id'], $_SESSION['full_name'], 'Invalid password entered');
+            log_audit_event('Authentication', 'Failed Attempt', $user['id'], $user['full_name'], 'Invalid password entered');
         } else {
             // User not found - still record attempt and check IP rate limit
             recordFailedLoginAttempt($eid, $clientIP, 'User not found');

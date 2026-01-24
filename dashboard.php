@@ -5,6 +5,25 @@ require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/ajax.php';
 require_once __DIR__ . '/modules/audit_log.php';
 
+// Check if user has accepted T&C
+// If t_and_c_accepted is not set in session, redirect to accept first
+if (!isset($_SESSION['user_id'])) {
+  header("Location: login.php");
+  exit();
+}
+
+// For new sessions, default t_and_c_accepted to 1 if not set (backward compatibility)
+// Users will be redirected to T&C page if database says they haven't accepted
+if (!isset($_SESSION['t_and_c_accepted'])) {
+  $_SESSION['t_and_c_accepted'] = 0;
+}
+
+// If user hasn't accepted T&C, redirect them
+if (!$_SESSION['t_and_c_accepted']) {
+  header("Location: terms-and-conditions.php");
+  exit();
+}
+
 $id = $_SESSION['user_id'];
 $eid = $_SESSION['eid'];
 $full_name = $_SESSION['full_name'];

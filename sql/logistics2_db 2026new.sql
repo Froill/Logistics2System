@@ -849,3 +849,10 @@ DO
   WHERE `last_request_time` < DATE_SUB(NOW(), INTERVAL 7 DAY) 
   AND `request_count` < 5
   AND `is_blocked` = 0;
+
+-- Add Terms and Conditions acceptance tracking to users table
+ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `t_and_c_accepted` tinyint(1) DEFAULT 0;
+ALTER TABLE `users` ADD COLUMN IF NOT EXISTS `t_and_c_accepted_at` datetime DEFAULT NULL;
+
+-- Verify the columns were added
+SHOW COLUMNS FROM users WHERE Field IN ('t_and_c_accepted', 't_and_c_accepted_at');
