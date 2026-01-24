@@ -54,6 +54,13 @@ function tcao_view($baseURL)
     $allTrips = fetchAllQuery('SELECT t.*, d.driver_name FROM driver_trips t JOIN drivers d ON t.driver_id = d.id');
     $drivers = fetchAll('drivers');
     $vehicles = fetchAll('fleet_vehicles');
+    // For dropdown filters, hide archived vehicles (but keep full list for historical analysis/labels)
+    $filterVehicles = $vehicles;
+    if (function_exists('db_column_exists') && db_column_exists('fleet_vehicles', 'is_archived')) {
+        $filterVehicles = array_values(array_filter($filterVehicles, function ($v) {
+            return empty($v['is_archived']);
+        }));
+    }
     $usedTripIds = array_column($costs, 'trip_id');
     $availableTrips = array_filter($allTrips, function ($t) use ($usedTripIds) {
         return !in_array($t['id'], $usedTripIds);
@@ -400,7 +407,7 @@ function tcao_view($baseURL)
                 <label class="label"><span class="label-text">Vehicle</span></label>
                 <select name="filter_vehicle" class="select select-bordered w-48">
                     <option value="">All Vehicles</option>
-                    <?php foreach ($vehicles as $v): ?>
+                    <?php foreach ($filterVehicles as $v): ?>
                         <option value="<?= $v['id'] ?>" <?= ($filterVehicle == $v['id'] ? 'selected' : '') ?>><?= htmlspecialchars($v['vehicle_name']) ?></option>
                     <?php endforeach; ?>
                 </select>
