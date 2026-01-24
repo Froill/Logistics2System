@@ -2,6 +2,8 @@
 // USER MANAGEMENT MODULE
 
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/security_lockout.php';
+require_once __DIR__ . '/lock_management.php';
 
 function user_management_logic($baseURL)
 {
@@ -37,6 +39,9 @@ function user_management_logic($baseURL)
             u.email, 
             u.role, 
             u.created_at,
+            u.account_locked,
+            u.locked_until,
+            u.failed_login_count,
             d.license_number
         FROM users u
         LEFT JOIN drivers d ON u.eid = d.eid
@@ -48,6 +53,12 @@ function user_management_logic($baseURL)
     $result = $stmt->get_result();
     $GLOBALS['um_users'] = $result->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
+
+    // Fetch locked accounts for security overview
+    $GLOBALS['locked_accounts'] = getAllLockedAccounts($conn);
+
+    // Get security statistics
+    $GLOBALS['security_stats'] = getSecurityStats($conn);
 
     // Store pagination info
     $GLOBALS['um_page'] = $page;
@@ -91,6 +102,24 @@ function user_management_view($baseURL)
             <div class="alert alert-error mb-4"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
+        <!-- Security Overview Section -->
+        <?php
+        $locked_accounts = $GLOBALS['locked_accounts'] ?? [];
+        $security_stats = $GLOBALS['security_stats'] ?? [];
+        if (!empty($locked_accounts)):
+        ?>
+            <div class="alert alert-warning mb-4 flex items-start gap-3">
+                <i data-lucide="alert-circle" class="size-5 flex-shrink-0"></i>
+                <div class="flex-1">
+                    <h3 class="font-bold">Security Alert</h3>
+                    <p class="text-sm mt-1">
+                        <strong><?= count($locked_accounts) ?></strong> account(s) currently locked due to failed login attempts.
+                        <button onclick="securityModal.showModal()" class="link link-primary ml-2">View Details</button>
+                    </p>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <div class="overflow-x-auto rounded-box border border-base-content/5 bg-base-100">
             <table class="table w-full">
                 <thead>
@@ -100,6 +129,7 @@ function user_management_view($baseURL)
                         <th>Name</th>
                         <th>Email</th>
                         <th>Role</th>
+                        <th>Status</th>
                         <th>Created</th>
                         <th class="text-right">Actions</th>
                     </tr>
@@ -112,6 +142,22 @@ function user_management_view($baseURL)
                             <td><?= htmlspecialchars($u['full_name']) ?></td>
                             <td><?= htmlspecialchars($u['email']) ?></td>
                             <td><?= htmlspecialchars(ucfirst($u['role'])) ?></td>
+                            <td>
+                                <?php if ($u['account_locked'] == 1): ?>
+                                    <div class="badge badge-error py-4 gap-2">
+                                        <i data-lucide="lock"></i>
+                                        Locked
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        Attempts: <?= $u['failed_login_count'] ?? 0 ?>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="badge badge-success py-4 gap-2">
+                                        <i data-lucide="unlock"></i>
+                                        Active
+                                    </div>
+                                <?php endif; ?>
+                            </td>
                             <td><?= htmlspecialchars($u['created_at']) ?></td>
                             <td class="text-right">
                                 <div class="flex flex-wrap md:flex-nowrap items-center justify-end gap-2">
@@ -125,6 +171,18 @@ function user_management_view($baseURL)
                                                                 ]), ENT_QUOTES, 'UTF-8') ?>)">
                                         <i data-lucide="user-round-pen"></i>
                                     </button>
+
+                                    <?php if ($u['account_locked'] == 1): ?>
+                                        <button class="btn btn-warning btn-sm py-5 flex content-center"
+                                            onclick="openUnlockModal(<?= htmlspecialchars(json_encode([
+                                                                            'id' => $u['id'],
+                                                                            'full_name' => $u['full_name'],
+                                                                            'email' => $u['email'],
+                                                                            'attempts' => $u['failed_login_count'] ?? 0
+                                                                        ]), ENT_QUOTES, 'UTF-8') ?>)">
+                                            <i data-lucide="lock-open"></i>
+                                        </button>
+                                    <?php endif; ?>
 
                                     <?php if ((int)$u['id'] !== (int)($_SESSION['user_id'] ?? 0)): ?>
                                         <button class="btn btn-error btn-sm py-5 flex content-center"
@@ -169,6 +227,109 @@ function user_management_view($baseURL)
 
     </div>
     </div>
+
+    <!-- Security Overview Modal -->
+    <dialog id="securityModal" class="modal">
+        <div class="modal-box max-w-2xl">
+            <div class="flex items-center gap-2">
+                <i data-lucide="shield-alert" class="size-6 bold"></i>
+                <h3 class="font-bold text-lg">Security Overview</h3>
+            </div>
+
+            <div class="mt-4">
+                <?php
+                $locked = $GLOBALS['locked_accounts'] ?? [];
+                $stats = $GLOBALS['security_stats'] ?? [];
+                ?>
+
+                <!-- Locked Accounts -->
+                <h4 class="font-bold text-base mb-2">Locked Accounts (<?= count($locked) ?>)</h4>
+                <?php if (!empty($locked)): ?>
+                    <div class="space-y-2 mb-4">
+                        <?php foreach ($locked as $account): ?>
+                            <div class="border border-error/30 rounded-lg p-3 bg-error/5">
+                                <div class="flex justify-between items-center mb-1">
+                                    <div class="font-semibold"><?= htmlspecialchars($account['full_name']) ?></div>
+                                    <div class="text-xs font-mono text-base-600"><?= htmlspecialchars($account['email']) ?></div>
+                                </div>
+                                <div class="text-xs text-base-400 mb-2">
+                                    Failed Attempts: <span class="font-bold"><?= $account['failed_login_count'] ?? 0 ?></span>
+                                    | Locked Until: <span class="font-bold"><?= $account['locked_until'] ?? 'Unknown' ?></span>
+                                </div>
+                                <button class="btn btn-warning btn-xs"
+                                    onclick="openUnlockModal(<?= htmlspecialchars(json_encode([
+                                                                    'id' => $account['user_id'],
+                                                                    'full_name' => $account['full_name'],
+                                                                    'email' => $account['email'],
+                                                                    'attempts' => $account['failed_login_count'] ?? 0
+                                                                ]), ENT_QUOTES, 'UTF-8') ?>); securityModal.close()">
+                                    Unlock Account
+                                </button>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
+                    <p class="text-gray-600 text-sm mb-4">No locked accounts at this time.</p>
+                <?php endif; ?>
+
+                <!-- Statistics -->
+                <?php if (!empty($stats)): ?>
+                    <h4 class="font-bold text-base mb-2">Statistics</h4>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div class="bg-info/10 p-2 rounded">
+                            <div class="text-info font-bold"><?= $stats['total_locked_accounts'] ?? 0 ?></div>
+                            <div class="text-xs">Total Locked</div>
+                        </div>
+                        <div class="bg-warning/20 p-2 rounded">
+                            <div class="text-error font-bold"><?= $stats['total_failed_attempts'] ?? 0 ?></div>
+                            <div class="text-xs">Failed Attempts</div>
+                        </div>
+                        <div class="bg-error/10 p-2 rounded">
+                            <div class="text-error font-bold"><?= $stats['locked_ips'] ?? 0 ?></div>
+                            <div class="text-xs">Blocked IPs</div>
+                        </div>
+                        <div class="bg-success/10 p-2 rounded">
+                            <div class="text-success font-bold"><?= $stats['total_users'] ?? 0 ?></div>
+                            <div class="text-xs">Total Users</div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <div class="modal-action">
+                <button type="button" class="btn" onclick="securityModal.close()">Close</button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Unlock Account Modal -->
+    <dialog id="unlockUserModal" class="modal">
+        <form method="POST" action="includes/lock_unlock_handler.php" class="modal-box">
+            <input type="hidden" name="action" value="unlock" />
+            <input type="hidden" name="user_id" id="unlock_user_id" />
+
+            <div class="flex items-center gap-2">
+                <i data-lucide="lock-open" class="size-6 bold"></i>
+                <h3 class="font-bold text-lg">Unlock Account</h3>
+            </div>
+
+            <div class="mt-4">
+                <p class="mb-3">
+                    Are you sure you want to unlock <strong id="unlock_full_name"></strong>?
+                </p>
+                <div class="bg-info/10 p-3 rounded text-sm">
+                    <div class="font-semibold mb-1">Account Details:</div>
+                    <div>Email: <span id="unlock_email" class="font-mono text-xs"></span></div>
+                    <div>Failed Attempts: <span id="unlock_attempts" class="font-bold"></span></div>
+                </div>
+            </div>
+
+            <div class="modal-action">
+                <button type="submit" class="btn btn-warning">Unlock</button>
+                <button type="button" class="btn" onclick="unlockUserModal.close()">Cancel</button>
+            </div>
+        </form>
+    </dialog>
 
     <!-- Add User Modal -->
     <dialog id="addUserModal" class="modal">
@@ -318,6 +479,14 @@ function user_management_view($baseURL)
             }
 
             editUserModal.showModal();
+        }
+
+        function openUnlockModal(account) {
+            document.getElementById('unlock_user_id').value = account.id;
+            document.getElementById('unlock_full_name').textContent = account.full_name;
+            document.getElementById('unlock_email').textContent = account.email;
+            document.getElementById('unlock_attempts').textContent = account.attempts;
+            unlockUserModal.showModal();
         }
 
         function openDeleteModal(user) {
