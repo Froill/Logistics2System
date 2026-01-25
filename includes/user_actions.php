@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once 'db.php';
+require_once 'audit.php';
 
 // Only admin can access
 if ($_SESSION['role'] !== 'admin') {
@@ -77,6 +78,8 @@ try {
 
             require_once 'mailer.php';
 
+            log_audit_event("User Mgnt", "Create Account", $userID, $_SESSION['full_name'], "Created user account for $full_name (EID: $eid)");
+
             $first_name = explode(' ', $full_name)[0];
             // Send credentials to user's email
             $body = "
@@ -111,7 +114,7 @@ try {
                 throw new Exception("User ID, full name, and email are required.");
             }
 
-            // Get old role + eid
+            /* ---- Get old role + eid ---- */
             $res = $conn->prepare("SELECT role, eid FROM users WHERE id=?");
             $res->bind_param("i", $user_id);
             $res->execute();
@@ -119,51 +122,89 @@ try {
             $res->fetch();
             $res->close();
 
-            // Whitelist of roles that can be assigned by admin
-            $allowedRoles = ['supervisor', 'manager', 'requester', 'driver']; // add more roles if needed
+            /* ---- Allowed roles ---- */
+            $allowedRoles = ['supervisor', 'manager', 'requester', 'driver'];
 
-            // Determine role to use
+            /* ---- Determine role ---- */
             if (isset($role) && in_array($role, $allowedRoles)) {
                 $roleToUse = $role;
             } else {
-                $roleToUse = $oldRole; // fallback to current role
+                $roleToUse = $oldRole;
             }
 
-            // Prepare update statement
+            /* ---- Detect role change ---- */
+            $roleChanged = ($oldRole !== $roleToUse);
+
+            /* ---- Update user ---- */
             if (!empty($password)) {
                 $hashed = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $conn->prepare("UPDATE users SET full_name=?, email=?, password=?, role=? WHERE id=?");
-                $stmt->bind_param("ssssi", $full_name, $email, $hashed, $roleToUse, $user_id);
+
+                if ($roleChanged) {
+                    $stmt = $conn->prepare("
+            UPDATE users 
+            SET full_name=?, email=?, password=?, role=?,
+                t_and_c_accepted=0,
+                t_and_c_accepted_at=NULL
+            WHERE id=?
+        ");
+                    $stmt->bind_param("ssssi", $full_name, $email, $hashed, $roleToUse, $user_id);
+                } else {
+                    $stmt = $conn->prepare("
+            UPDATE users 
+            SET full_name=?, email=?, password=?, role=? 
+            WHERE id=?
+        ");
+                    $stmt->bind_param("ssssi", $full_name, $email, $hashed, $roleToUse, $user_id);
+                }
             } else {
-                $stmt = $conn->prepare("UPDATE users SET full_name=?, email=?, role=? WHERE id=?");
-                $stmt->bind_param("sssi", $full_name, $email, $roleToUse, $user_id);
+
+                if ($roleChanged) {
+                    $stmt = $conn->prepare("
+            UPDATE users 
+            SET full_name=?, email=?, role=?,
+                t_and_c_accepted=0,
+                t_and_c_accepted_at=NULL
+            WHERE id=?
+        ");
+                    $stmt->bind_param("sssi", $full_name, $email, $roleToUse, $user_id);
+                } else {
+                    $stmt = $conn->prepare("
+            UPDATE users 
+            SET full_name=?, email=?, role=? 
+            WHERE id=?
+        ");
+                    $stmt->bind_param("sssi", $full_name, $email, $roleToUse, $user_id);
+                }
             }
+
             $stmt->execute();
             $stmt->close();
 
-            // --- Driver sync logic ---
+            /* ---- Driver sync logic ---- */
             if ($roleToUse === 'driver') {
-                // Insert or update driver record
+
                 $stmt = $conn->prepare("
-            INSERT INTO drivers (eid, driver_name, license_number, email, status)
-            VALUES (?, ?, ?, ?, 'Available')
-            ON DUPLICATE KEY UPDATE 
-                driver_name=VALUES(driver_name),
-                license_number=VALUES(license_number),
-                email=VALUES(email),
-                status='Available'
-        ");
+        INSERT INTO drivers (eid, driver_name, license_number, email, status)
+        VALUES (?, ?, ?, ?, 'Available')
+        ON DUPLICATE KEY UPDATE 
+            driver_name=VALUES(driver_name),
+            license_number=VALUES(license_number),
+            email=VALUES(email),
+            status='Available'
+    ");
                 $stmt->bind_param("ssss", $eid, $full_name, $license_number, $email);
                 $stmt->execute();
                 $stmt->close();
             } elseif ($oldRole === 'driver' && $roleToUse !== 'driver') {
-                // If user is no longer a driver, mark inactive
+
                 $stmt = $conn->prepare("UPDATE drivers SET status='Inactive' WHERE eid=?");
                 $stmt->bind_param("s", $eid);
                 $stmt->execute();
                 $stmt->close();
             }
 
+            log_audit_event("User Mgnt", "Update Account", $user_id, $_SESSION['full_name'], "Updated user account for $full_name (EID: $eid)");
+            /* ---- Success message ---- */
             $_SESSION['um_success'] = "User account updated successfully.";
             break;
 
@@ -198,6 +239,7 @@ try {
                 $stmt->execute();
                 $stmt->close();
             }
+            log_audit_event("User Mgnt", "Delete Account", $user_id, $_SESSION['full_name'], "Deleted user account with EID: $eid");
             break;
 
 
